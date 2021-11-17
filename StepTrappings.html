@@ -1,0 +1,164 @@
+<script>
+    var StepTrappings = function (i, CharGen) {
+        var oThat = {};
+        var allTrappingsToChoose;
+        var character;
+
+        oThat.stepName = "Possessions";
+        oThat.title = function () {
+            return 'Déterminer vos Possessions de départ.'
+        };
+        oThat.desc = function () {
+            return 'Vos Possessions sont constituées par l\'équipement, les vêtements, armes et autres objets que possède votre Personnage. Vous commencez la partie avec des Possessions de départ déterminées par votre Classe et votre Carrière.'
+        };
+
+
+        oThat.cancelAction = true;
+        oThat.validateAction = true;
+
+        oThat.resetAction = function () {
+            CharGen.character.trappings = [];
+        };
+        oThat.saveAction = function () {
+            CharGen.saveCharacter(character);
+
+            return true;
+        };
+
+        oThat.initAction = function () {
+            character = CharGen.character.clone();
+        };
+
+        oThat.randomAllAction = function () {
+            allTrappingsToChoose = character.getCareer().data.trappings.split(', ');
+            var remaining = allTrappingsToChoose.length;
+            var number = 0;
+            var species;
+            while (number < remaining) {
+                species = allTrappingsToChoose[number].split(" ou ");
+                var i = Helper.getRandomInt(species.length) - 1;
+                character.trappings[number] = species[i];
+                ++number;
+            }
+            oThat.saveAction();
+        };
+
+        oThat.show = function () {
+            allTrappingsToChoose = character.getCareer().data.trappings.split(', ');
+            $(allTrappingsToChoose).each(function (number, el) {
+                var species = el.split(" ou ");
+                if (species.length === 1) {
+                    character.trappings[number] = species[0];
+                }
+            });
+            oThat.showTrappings(0);
+        };
+        oThat.showTrappings = function (number) {
+            $('.validate').prop('disabled', true);
+            var remaining = allTrappingsToChoose.length;
+            $(character.trappings).each(function (i, el) {
+                if (el) {
+                    --remaining;
+                }
+            });
+            $('.left_panel').html("<div class='description_title'>" + remaining + ' Possessions à choisir' + "</div>");
+            $('.right_panel').html('<div class="description">' + oThat.desc() + '</div>');
+            if (!character.trappings[number] && allTrappingsToChoose.length > number) {
+                var label = function (i, el) {
+                    return el
+                };
+                var filter = function () {
+                    return true
+                };
+                var species = allTrappingsToChoose[number].split(" ou ");
+                var change = function (i, el) {
+                    character.trappings[number] = el;
+                    oThat.showTrappings(number + 1);
+                };
+                var showHelp = function (i, el) {
+                    var trapp = CharGen.allTrappings[Helper.toId(Helper.removePlural(el))];
+                    if (typeof trapp !== 'undefined') {
+                        if (trapp.desc !== '') {
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+                var initHelp = function (i, el) {
+                    var trapp = CharGen.allTrappings[Helper.toId(Helper.removePlural(el))];
+                    if (typeof trapp !== 'undefined') {
+                        if (trapp.desc !== '') {
+                            Helper.showPopin('', Helper.getHelpFormat(trapp));
+                        }
+                    }
+                };
+                Helper.generateListWithHelpPopin(
+                    $(species),
+                    filter,
+                    $('.left_panel'),
+                    false,
+                    label,
+                    function () {
+                        return false
+                    },
+                    initHelp,
+                    change,
+                    showHelp
+                );
+            } else if (allTrappingsToChoose.length > number + 1) {
+                return oThat.showTrappings(number + 1)
+            } else {
+                $('.validate').prop('disabled', false);
+            }
+            var funcDisabled = function (i, el) {
+                return allTrappingsToChoose[i].split(" ou ").length === 1;
+            };
+            var showHelp = function (i, el) {
+                var trapp = CharGen.allTrappings[Helper.toId(Helper.removePlural(el))];
+                if (typeof trapp !== 'undefined') {
+                    if (trapp.desc !== '') {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            var initHelp = function (i, el) {
+                var trapp = CharGen.allTrappings[Helper.toId(Helper.removePlural(el))];
+                if (typeof trapp !== 'undefined') {
+                    if (trapp.desc !== '') {
+                        Helper.showPopin('', Helper.getHelpFormat(trapp));
+                    }
+                }
+            };
+            $('.validate').prop('disabled', remaining !== 0);
+            Helper.generateListWithHelpPopin(
+                $(character.trappings),
+                function (i, el) {
+                    return !!el
+                },
+                $('.right_panel'),
+                true,
+                function (i, el) {
+                    return el
+                },
+                funcDisabled,
+                initHelp,
+                function (i) {
+                    character.trappings[i] = null;
+                    oThat.showTrappings(0)
+                },
+                showHelp
+            );
+
+            $('.cancel').off('click').on('click', function () {
+                CharGen.defaultAction.cancel();
+            });
+
+            $('.validate').off('click').on('click', function () {
+                CharGen.defaultAction.validate(oThat, i);
+            });
+        };
+        return oThat;
+    }
+    this.StepTrappings = StepTrappings
+</script>

@@ -1,0 +1,344 @@
+<script>
+    var StepCharacteristics = function (y, CharGen) {
+        var oThat = {};
+        var character;
+
+        oThat.stepName = "Attributs";
+        oThat.desc = function (i) {
+            if (!i) {
+                return 'Pour déterminer vos Caractéristiques :<ol> <li>Cliquez sur <b>Aléatoire</b>. Si vous estimez que votre Personnage pourrait être meilleur si vous inversiez certains résultats de dés entre les Caractéristiques, passez à l\'étape suivante. Si vous conservez vos résultats aléatoires, gagnez +50 PX.</li> <li>Réassignez chacun des dix résultats obtenus à l\'étape 1 à une Caractéristique différente en utilisant les flèches. Si vous êtes satisfait de cette nouvelle combinaison, gagnez +25 PX.</li><li>Si vous n\'êtes toujours pas satisfait de vos résultats, cliquez à nous sur <b>Aléatoire</b> et échangez les scores sans gagner de bonus de PX, ou ignorez tout simplement l\'aléatoire en cliquant sur <b>Choissir</b>. Dans ce cas, répartissez comme bon vous semble 100 points entre les 10 Caractéristiques, avec un minimum de 4 et un maximum de 18 Points alloués à chaque Caractéristique. Il n\'y a pas de bonus de PX pour cette option, comme si vous aviez relancé les dés.</li></ol>'
+            } else if (i === 1) {
+                return 'Vous pouvez répartir comme bon vous semble un total de 5 Augmentations entre les Caractéristiques ci-dessous.';
+            } else {
+                return 'Vous commencez avec une valeur de base pour le Destin et la Résilience, puis vous disposez d\'un nombre de Points supplémentaires à répartir entre ces Attributs, comme bon vous semble. Plus vous attribuez de Points à votre Destin, plus vous êtes chanceux. En comparaison, une plus haute Résilience indique que vous pouvez faire face à n\'importe quelle situation.'
+            }
+        };
+        oThat.title = function () {
+            return 'Déterminez chacun de vos Attributs'
+        };
+
+        oThat.initAction = function () {
+            character = CharGen.character.clone();
+        };
+
+        oThat.cancelAction = true;
+        oThat.validateAction = true;
+
+        oThat.resetAction = function () {
+            CharGen.character.characteristics = [];
+            var elems = CharGen.data.characteristics;
+            for (var i = 0; i < elems.length; ++i) {
+                var el = elems[i];
+                var char = CharGen.character.setCharacteristic(el);
+                if (typeof CharGen.character.randomState.imposedCharacteristics[el.id] != 'undefined') {
+                    char.roll = CharGen.character.randomState.imposedCharacteristics[el.id];
+                }
+            }
+        };
+        oThat.saveAction = function () {
+            if (character.randomState.characteristic === 1 || character.randomState.characteristic === 2) {
+                character.addXP('Attributs Aléatoire', (character.randomState.characteristic === 1 ? 50 : 25), true);
+            }
+            character.randomState.characteristic = -2;
+            CharGen.saveCharacter(character);
+            return true;
+        };
+
+        oThat.show = function () {
+            oThat.showSpecieCharacteristics('roll');
+        };
+
+        oThat.randomAllAction = function () {
+            var remaining = character.searchCharacteristic('Extra Points').getTotal();
+            var extraList = [];
+            var elem;
+            var elems = CharGen.data.characteristics;
+            for (var i = 0; i < elems.length; ++i) {
+                var el = elems[i];
+                var value = Math.round((Helper.getRandomInt(10) + Helper.getRandomInt(10)));
+                if (el.class === 'roll') {
+                    character.searchCharacteristic(el.id).roll = value;
+                } else if (el.class === 'extra') {
+                    extraList[extraList.length] = el;
+                }
+            }
+            var index;
+            while (remaining > 0) {
+                index = Helper.getRandomInt(extraList.length) - 1;
+                elem = character.searchCharacteristic(extraList[index].id);
+                elem.roll += 1;
+                --remaining;
+            }
+            var characteristics = character.getCareer().data.getCharacteristics();
+            remaining = 5;
+            while (remaining > 0) {
+                index = Helper.getRandomInt(characteristics.length) - 1;
+                elem = character.searchCharacteristic(characteristics[index].id);
+                elem.career += 1;
+                --remaining;
+            }
+            character.randomState.characteristic = 1;
+            oThat.saveAction();
+        };
+
+
+        oThat.showSpecieCharacteristics = function (mode) {
+            $('.left_panel').html("");
+            var funcMoveUpDown = false;
+            if (mode === 'roll') {
+                $('.validate').prop('disabled', true);
+                $('.random').show();
+                $('.other').show().html('Choisir');
+                Helper.addDescription(oThat.desc(0));
+                funcMoveUpDown = function (el, el2) {
+                    var id1 = el.parents('tr').data('line');
+                    var id2 = el2.parents('tr').data('line');
+                    var char1 = character.getCharacteristic(id1);
+                    var char2 = character.getCharacteristic(id2);
+                    var current = char1.roll;
+                    char1.roll = char2.roll;
+                    char2.roll = current;
+                    el.val(char1.roll);
+                    el2.val(char2.roll);
+                    if (character.randomState.characteristic === 1) {
+                        character.randomState.characteristic = 2;
+                    }
+                };
+                $('.left_panel').html("<div class='description_title' style='display:none'><span class='char_specie_points'></span> Points à allouer" + "</div>");
+            } else {
+                $('.validate').prop('disabled', true);
+                $('.random').hide();
+                $('.other').hide();
+                Helper.addDescription(oThat.desc(2));
+                $('.left_panel').html("<div class='description_title'><span class='char_career_points'></span> Points à allouer" + "</div>");
+            }
+
+            var careersCharacteristics = character.getCareer().data.getCharacteristics();
+            var characteristics = character.getCharacteristics();
+            var $characteristics = Helper.generateListWithRankAndHelp(
+                characteristics,
+                ['', 'Base', '', 'Total'],
+                function (i, el) {
+                    return el.data.class === mode
+                },
+                $('.left_panel'),
+                [
+                    function (i, el) {
+                        return el.getLabel() + (careersCharacteristics.some(item => item.id === el.id) ? ' *' : '');
+                    },
+                    function (i, el) {
+                        return el.getSpecie();
+                    },
+                    function (i, el) {
+                        return el.roll;
+                    },
+                    function (i, el) {
+                        return el.roll
+                            + el.getSpecie();
+                    }
+                ],
+                function (i, el, mode, $el) {
+                    var value = Math.max(0, Math.min(el.roll + mode, 20));
+                    el.roll = value;
+                    $el.val(value);
+                },
+                function (i, char, elems, total) {
+                    total.html(char.roll
+                        + char.getSpecie());
+                    var remaining;
+                    var base = $(total).parents('table');
+                    if (mode === 'roll') {
+                        remaining = 100;
+                        var length = elems.length;
+                        $(elems).each(function (i, el) {
+                            if (el) {
+                                var $el = base.find('tr[data-line="' + i + '"]');
+                                var val = el.roll;
+                                remaining -= val;
+                                $el.find('.down').prop('disabled', val === 4);
+                                $el.find('.up').prop('disabled', val === 18);
+                                $el.find('.moveup').prop('disabled', i === 0);
+                                $el.find('.movedown').prop('disabled', i === length - 1);
+                            }
+                        });
+                        base.parents('.left_panel').find('.char_specie_points').html(remaining);
+                        if (remaining <= 0) {
+                            base.find('.up').prop('disabled', true);
+                        }
+                        $('.validate').prop('disabled', character.randomState.characteristic === -1 && remaining !== 0);
+                    } else {
+                        remaining = character.searchCharacteristic('Extra Points').getTotal();
+                        $(elems).each(function (i, el) {
+                            if (el) {
+                                var $el = base.find('tr[data-line="' + i + '"]');
+                                var val = el.roll;
+                                remaining -= val;
+                                $el.find('.down').prop('disabled', val === 0);
+                                $el.find('.up').prop('disabled', false);
+                            }
+                        });
+                        base.parents('.left_panel').find('.char_career_points').html(remaining);
+                        if (remaining <= 0) {
+                            base.find('.up').prop('disabled', true);
+                        }
+                        $('.validate').prop('disabled', remaining !== 0);
+                    }
+                },
+                function (i, el) {
+                    Helper.showPopin('', Helper.getHelpFormat(el.data))
+                },
+                false,
+                funcMoveUpDown
+            );
+            if (mode === 'roll') {
+                $characteristics.find('.down, .up, .moveup, .movedown').hide();
+                if (character.getCharacteristic(0).roll) {
+                    $('.random').prop('disabled', true);
+                    $('.other').prop('disabled', true);
+                    $('.validate').prop('disabled', false);
+                }
+                if (character.randomState.characteristic !== 0) {
+                    $('.random').prop('disabled', true);
+                    $('.other').prop('disabled', true);
+                    if (character.randomState.characteristic === -1) {
+                        $characteristics.find('.down, .up').show();
+                        $('.description_title').show();
+                    } else if (character.randomState.characteristic >= 1) {
+                        $characteristics.find('.moveup, .movedown').show();
+                        $('.random').prop('disabled', character.randomState.characteristic === 3);
+                        $('.other').prop('disabled', character.randomState.characteristic === 3);
+                    }
+                }
+            }
+            $('.random').off('click').on('click', function () {
+                $characteristics.find('.moveup, .movedown').show();
+                $characteristics.find('.down, .up').hide();
+                $characteristics.find('input.number').each(function (i) {
+                    var value = Math.round((Helper.getRandomInt(10) + Helper.getRandomInt(10)));
+                    var el = character.getCharacteristic(i);
+                    el.roll = value;
+                    character.randomState.imposedCharacteristics[el.id] = value;
+                    $(this).val(value);
+                    $(this).trigger('change');
+                });
+                if (character.randomState.characteristic !== 0) {
+                    $(this).prop('disabled', true);
+                    $('.other').prop('disabled', true);
+                    character.randomState.characteristic = 3;
+                } else {
+                    character.randomState.characteristic = 1;
+                }
+                CharGen.saveRandomState(character);
+            });
+            $('.other').off('click').on('click', function () {
+                $characteristics.find('.moveup, .movedown').hide();
+                $characteristics.find('.down, .up').show();
+                $('.description_title').show();
+                $characteristics.find('input.number').each(function (i) {
+                    var value = 4;
+                    var el = character.getCharacteristic(i);
+                    el.roll = value;
+                    $(this).val(value);
+                    $(this).trigger('change');
+                });
+                $(this).prop('disabled', true);
+                $('.random').prop('disabled', true);
+                character.randomState.characteristic = -1;
+            });
+            $characteristics.find('.number').first().change();
+
+            $('.validate').off('click').on('click', function () {
+                if (mode === 'roll') {
+                    oThat.showCareerCharacteristics();
+                } else {
+                    CharGen.defaultAction.validate(oThat, y);
+                }
+            });
+            $('.cancel').off('click').on('click', function () {
+                if (mode === 'roll') {
+                    CharGen.defaultAction.cancel();
+                } else {
+                    oThat.showCareerCharacteristics();
+                }
+            });
+
+        };
+
+        oThat.showCareerCharacteristics = function () {
+            $('.random').hide();
+            $('.other').hide();
+            $('.validate').prop('disabled', true);
+            Helper.addDescription(oThat.desc(1));
+
+            $('.left_panel').html("<div class='description_title'><span class='char_career_points'></span> Points à allouer" + "</div>");
+
+            var careersCharacteristics = character.getCareer().data.getCharacteristics();
+            var characteristics = character.getCharacteristics();
+            var $characteristics = Helper.generateListWithRankAndHelp(
+                character.getCharacteristics(),
+                ['', 'Base', 'Aug', 'Total'],
+                function (i, el) {
+                    return careersCharacteristics.some((item => item.id === el.id))
+                },
+                $('.left_panel'),
+                [
+                    function (i, el) {
+                        return el.getLabel()
+                    },
+                    function (i, el) {
+                        return el.getSpecie()
+                            + el.roll;
+                    },
+                    function (i, el) {
+                        return el.career;
+                    },
+                    function (i, el) {
+                        return el.getSpecie()
+                            + el.career
+                            + el.roll;
+                    }
+                ],
+                function (i, el, mode, $el) {
+                    var value = Math.max(0, Math.min(el.career + mode, 5));
+                    el.career = value;
+                    $el.val(value);
+                },
+                function (i, char, elems, total) {
+                    var remaining = 5;
+                    var base = $(total).parents('table');
+                    $(elems).each(function (i, el) {
+                        if (el) {
+                            var parent = base.find('tr[data-line="' + i + '"]');
+                            var val = el.career;
+                            remaining -= val;
+                            parent.find('.down').prop('disabled', val === 0);
+                            parent.find('.up').prop('disabled', val === 5);
+                        }
+                    });
+                    base.parents('.left_panel').find('.char_career_points').html(remaining);
+                    if (remaining <= 0) {
+                        base.find('.up').prop('disabled', true);
+                    }
+                    $('.validate').prop('disabled', remaining !== 0);
+                    total.html(char.getSpecie()
+                        + char.career
+                        + char.roll);
+                },
+                function (i, el) {
+                    Helper.showPopin('', Helper.getHelpFormat(el.data))
+                }
+            );
+            $characteristics.find('.number').first().change();
+
+            $('.cancel').off('click').on('click', function () {
+                oThat.showSpecieCharacteristics('roll');
+            });
+
+            $('.validate').off('click').on('click', function () {
+                oThat.showSpecieCharacteristics('extra');
+            });
+        };
+        return oThat;
+    };
+    this.StepCharacteristics = StepCharacteristics
+</script>

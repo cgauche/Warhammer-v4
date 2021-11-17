@@ -1,0 +1,152 @@
+<script>
+    var StepDetail = function (i, CharGen) {
+        var oThat = {};
+        var character;
+
+        oThat.stepName = "Détails";
+        oThat.desc = function () {
+            return 'Une ébauche de votre Personnage est en place, ajoutez-y quelques détails pour l\'étoffer dans votre imagination, en décidant de son apparence, de sa façon de penser et de ce qui le motive.'
+        };
+        oThat.title = function () {
+            return 'Choisissez votre nom, votre age, la couleur de vos cheveux et de vos yeux, votre taille, vos Traits Psychologiques et vos Ambitions.'
+        };
+
+        oThat.initAction = function () {
+            character = CharGen.character.clone();
+        };
+
+        oThat.randomAction = function (el) {
+            el.off('click').on('click', function () {
+                /** AGE **/
+                var spec = character.getSpecie().data;
+                var value = spec.age;
+                var i = spec.rollAge;
+                while (i > 0) {
+                    value += Helper.getRandomInt(10);
+                    --i;
+                }
+                $('[data-id="detail_1"]').val(value);
+                $('[data-id="detail_1"]').trigger('change');
+                /** EYES **/
+                value = Helper.getRandomInt(10) + Helper.getRandomInt(10);
+                $(CharGen.data.eyes).each(function (i, el) {
+                    if (el.rand >= value) {
+                        $('[data-id="detail_2"]').val(el.label[spec.index]);
+                        $('[data-id="detail_2"]').trigger('change');
+                        return false;
+                    }
+                });
+                /** HAIRS **/
+                value = Helper.getRandomInt(10) + Helper.getRandomInt(10);
+                $(CharGen.data.hairs).each(function (i, el) {
+                    if (el.rand >= value) {
+                        $('[data-id="detail_3"]').val(el.label[spec.index]);
+                        $('[data-id="detail_3"]').trigger('change');
+                        return false;
+                    }
+                });
+                /** HEIGHT **/
+                value = spec.height;
+                i = spec.rollHeight;
+                while (i > 0) {
+                    value += (Helper.getRandomInt(10));
+                    --i;
+                }
+                $('[data-id="detail_4"]').val(Math.round(value * 100) / 100);
+                $('[data-id="detail_4"]').trigger('change');
+            })
+        };
+        oThat.cancelAction = true;
+        oThat.validateAction = true;
+        oThat.resetAction = function () {
+            var elems = CharGen.data.details;
+            for (var i = 0; i < elems.length; ++i) {
+                CharGen.character.details[i] = '';
+            }
+        };
+        oThat.saveAction = function () {
+            character.details = [];
+            $('.details').each(function (i, el) {
+                character.details[i] = $(el).val();
+            });
+            CharGen.saveCharacter(character);
+            return true;
+        };
+
+        oThat.randomAllAction = function () {
+            /** AGE **/
+            var spec = character.getSpecie().data;
+            var value = spec.age;
+            var i = spec.rollAge;
+            var elems;
+            var el;
+            while (i > 0) {
+                value += Helper.getRandomInt(10);
+                --i;
+            }
+            character.details[1] = value;
+            /** EYES **/
+            value = Helper.getRandomInt(10) + Helper.getRandomInt(10);
+            elems = CharGen.data.eyes;
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                if (el.rand >= value) {
+                    character.details[2] = el.label[spec.index];
+                    break;
+                }
+            }
+            /** HAIRS **/
+            value = Helper.getRandomInt(10) + Helper.getRandomInt(10);
+            elems = CharGen.data.hairs;
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                if (el.rand >= value) {
+                    character.details[3] = el.label[spec.index];
+                    break;
+                }
+            }
+            /** HEIGHT **/
+            value = spec.height;
+            i = spec.rollHeight;
+            while (i > 0) {
+                value += (Helper.getRandomInt(10));
+                --i;
+            }
+            character.details[4] = Math.round(value * 100) / 100;
+            CharGen.saveCharacter(character);
+        };
+
+        oThat.show = function () {
+            $('.validate').prop('disabled', false);
+            var details = CharGen.data.details;
+            Helper.generateListWithRankAndHelp(
+                details,
+                ['', ''],
+                function () {
+                    return true
+                },
+                $('.left_panel'),
+                [
+                    function (i, el) {
+                        return el.label
+                    },
+                    function (i, el) {
+                        return '<input type="text" data-id="detail_' + el.index + '" class="details" value="' + (character.details[i]) + '"/>';
+                    }
+                ],
+                function () {
+                },
+                function () {
+                },
+                function (i) {
+                    Helper.showPopin('', Helper.getHelpFormat({
+                        label: details[i].label,
+                        desc: (details[i].allDesc ? details[i].allDesc : details[i].desc[character.getSpecie().data.index])
+                    }));
+                },
+            );
+        };
+        return oThat;
+    }
+    this.StepDetail = StepDetail
+</script>

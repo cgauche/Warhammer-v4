@@ -1,0 +1,306 @@
+<script>
+    var StepExperience = function (i, CharGen) {
+        var oThat = {};
+        var character;
+        var tab;
+        oThat.stepName = "Progression";
+        oThat.desc = function (i) {
+            return 'Les Points d\'Expérience (PX) sont utilisés pour améliorer votre Personnage. Le MJ vous accordera des PX lorques vous réalisez quelque chose pendant la partie. Cela pourrait inclure le fait de résoudre l\'aventure en cours avec succès, une bonne interprétation de votre Personnage, la défaite de vos ennemis, etc. Entre les aventures, vous dépensez vos PX pour acheter de nouvelles Compétences et de nouveaux Talents, pour augmenter vos Caractéristiques et pour changer de Carrière. La dernière étape de la création de votre Personnage consiste à dépenser les bonus de PX que vous avez potentiellement gagnés pendant le processus de création. Les tableaux ci-dessous vous indiquent comment dépenser vos Points.<br>Dans un premier temps, vous pouvez seulement dépenser vos PX pour augmenter les 3 Caractéristiques, 8 Compétences et 4 Talents disponibles dans votre niveau de Carrière.'
+        };
+        oThat.title = function () {
+            return 'Progression'
+        };
+        oThat.refreshData = function () {
+            character.applyTalent();
+            var caracs = character.getCareer().getCharacteristics();
+            var skills = character.getCareer().getSkills();
+            var talents = character.getCareer().getTalents();
+            tab = {'skill': skills, 'characteristic': caracs, 'talent': talents};
+        };
+        oThat.refreshAll = function () {
+            oThat.refreshData();
+            oThat.show();
+        };
+        oThat.initAction = function () {
+            character = CharGen.character.clone();
+            oThat.refreshData();
+        };
+        oThat.cancelAction = true;
+        oThat.validateAction = true;
+
+        oThat.resetAction = function () {
+        };
+        oThat.saveAction = function () {
+            character.deleteEmpty();
+            CharGen.saveCharacter(character);
+            return true;
+        };
+        oThat.showSpecialisationPopin = function (elem, change) {
+            Helper.showSpecialisationPopin(character, elem, change, null, true);
+        };
+        oThat.refreshXP = function () {
+            var used = 0;
+            var currentExperience = character.xp.max;
+            var base = $('.body_panel')
+            var elems = [].concat(tab['skill'], tab['characteristic'], tab['talent']);
+            $(elems).each(function (i, elem) {
+                var type = elem.getType();
+                if (type !== "skill") {
+                    i -= tab['skill'].length;
+                    if (type !== 'characteristic') {
+                        i -= tab['characteristic'].length;
+                    }
+                }
+                var el = base.find('.experience_div[data-type="' + type + '"] [data-line="' + i + '"] .number');
+                var parent = el.parents('td');
+                var val = elem.getAdvance();
+                if (typeof elem.getMax !== 'undefined') {
+                    var max = elem.getMax();
+                    if (max && val > max) {
+                        elem.advance -= (val - max);
+                        el.val(elem.getAdvance() + (max ? '/' + max : ''));
+                        val = elem.getAdvance();
+                    }
+                }
+                var oldValue = elem.getAdvance() - elem.advance;
+                used += Helper.getXPCost(elem, oldValue, val);
+                parent.find('.down').prop('disabled', val === oldValue);
+            });
+            $(elems).each(function (i, elem) {
+                var type = elem.getType();
+                if (type !== "skill") {
+                    i -= tab['skill'].length;
+                    if (type !== 'characteristic') {
+                        i -= tab['characteristic'].length;
+                    }
+                }
+                var el = base.find('.experience_div[data-type="' + type + '"] [data-line="' + i + '"] .number');
+                var parent = $(el).parents('td');
+                var oldValue = elem.getAdvance();
+                var val = oldValue + 1;
+                var cost = Helper.getXPCost(elem, oldValue, val);
+                $($(el).parents('tr').find('td').length > 4 ? $(el).parents('tr').find('td')[3] : $(el).parents('tr').find('td')[2]).html('<span style="color: yellow">' + cost + '</span>');
+                var disabled = used + cost > character.xp.max;
+                if (typeof elem.getMax !== 'undefined') {
+                    var max = elem.getMax();
+                    if (max) {
+                        disabled = disabled || (max <= oldValue);
+                    }
+                }
+                parent.find('.up').prop('disabled', disabled);
+            });
+            base.find('.experience').html(currentExperience - used);
+            $('.validate').prop('disabled', currentExperience - used < 0);
+            character.xp.used = used;
+        }
+
+        oThat.show = function () {
+            var rightPanel = $('.right_panel').html('');
+            rightPanel.append(this.desc());
+            /** CHARACTERISTICS **/
+            rightPanel.append('<br><br><div><b>Caractéristiques:</b></div><div class="experience_div" data-type="characteristic"><div>');
+            oThat.refreshCharacteristicTab(rightPanel);
+
+            /** Talents **/
+            rightPanel.append('</div><br><div><b>Talents:</b></div><div class="experience_div" data-type="talent"><div>');
+            oThat.refreshTalentTab(rightPanel);
+            rightPanel.append('</div>')
+
+            var leftPanel = $('.left_panel').html('');
+            leftPanel.append("<div class='description_title'><span class='experience'></span> Points d\'Expérience à dépenser" + "</div>");
+            /** SKILLS **/
+            leftPanel.append('<div><b>Compétences:</b></div><div class="experience_div" data-type="skill"><div>');
+            oThat.refreshSkillTab(leftPanel);
+            leftPanel.append('</div>')
+
+            $('.cancel').off('click').on('click', function () {
+                CharGen.defaultAction.cancel();
+            });
+
+            $('.validate').off('click').on('click', function () {
+                CharGen.defaultAction.validate(oThat, i);
+            });
+            oThat.refreshXP(tab);
+        };
+        oThat.refreshCharacteristicTab = function (skillstab) {
+            var caracs = tab['characteristic'];
+            //var oldCaracs = oldtab['characteristic'];
+            var div = skillstab.find('.experience_div[data-type="characteristic"]');
+            div.html('');
+            return Helper.generateListWithRankAndHelp(
+                caracs,
+                ['', 'Base', 'Aug', 'Coût', 'Total'],
+                function () {
+                    return true
+                },
+                div,
+                [
+                    function (i, el) {
+                        return el.getLabel();
+                    },
+                    function (i, el) {
+                        return el.getBase();
+                    },
+                    function (i, el) {
+                        return el.getAdvance();
+                    },
+                    function () {
+                        return '';
+                    },
+                    function (i, el) {
+                        return el.getTotal();
+                    }
+                ],
+                function (i, carac, mode, $el) {
+                    var oldValue = carac.getAdvance() - carac.advance;
+                    var value = Math.max(oldValue, carac.getAdvance() + mode);//Math.max(baseCarac.getAdvance(), carac.getAdvance() + mode);
+                    carac.advance = value - oldValue;
+                    $el.val(value);
+                },
+                oThat.refreshAll,
+                function (i, el) {
+                    Helper.showPopin('', Helper.getHelpFormat(el.data));
+                }
+            );
+        };
+        oThat.refreshSkillTab = function (skillstab) {
+            var skills = tab['skill'];
+            //var oldSkills = oldtab['skill'];
+            var div = skillstab.find('.experience_div[data-type="skill"]');
+            div.html('');
+            return Helper.generateListWithRankAndHelp(
+                skills,
+                ['', 'Base', 'Aug', 'Coût', 'Total'],
+                function () {
+                    return true;
+                },
+                div,
+                [
+                    function (i, el) {
+                        return el.getLabel()
+                    },
+                    function (i, el) {
+                        return el.getBase();
+                    },
+                    function (i, el) {
+                        return el.getAdvance();
+                    },
+                    function () {
+                        return '';
+                    },
+                    function (i, el) {
+                        return el.getTotal();
+                    }
+                ],
+                oThat.change,
+                oThat.refreshAll,
+                function (i, el) {
+                    Helper.showPopin('', Helper.getHelpFormat(el.data));
+                }
+            );
+        }
+
+        oThat.change = function (i, elem, mode, $el) {
+            var magic = elem.data ? elem.data.addMagic : elem.addMagic;
+            if (elem.specs && !elem.spec && !magic) {
+                oThat.showSpecialisationPopin(elem, function (i, newElem) {
+                    oThat.change(i, newElem, mode, $el);
+                    oThat.refreshAll();
+                });
+            } else {
+                var veryOldValue = elem.getAdvance();
+                elem = character.set(elem);
+                if (veryOldValue !== elem.getAdvance()) {
+                    mode = 0;
+                }
+                var oldAdvance = elem.advance;
+                var oldValue = elem.getAdvance() - oldAdvance;
+                var value = Math.max(oldValue, elem.getAdvance() + mode);
+                var max = elem.getMax ? elem.getMax() : '';
+                if (max) {
+                    value = Math.min(max, value);
+                }
+                elem.advance = value - oldValue;
+                if (veryOldValue === 0 && value && mode) {
+                    character.applyTalent();
+                    if (magic) {
+                        var cancelAction = function () {
+                            elem.advance = oldAdvance;
+                            character.applyTalent();
+                            oThat.refreshAll();
+                        }
+                        var validateAction = function () {
+                            character.applyTalent();
+                            oThat.refreshAll();
+                        }
+                        Helper.showMagicSpecialisation(CharGen, character, cancelAction, validateAction, magic)
+                    }
+                }
+            }
+        };
+
+        oThat.refreshTalentTab = function (skillstab) {
+            var talents = tab['talent'];
+            var div = skillstab.find('.experience_div[data-type="talent"]');
+
+            div.html('');
+            return Helper.generateListWithRankAndHelp(
+                talents,
+                ['', 'Rang', 'Coût'],
+                function () {
+                    return true;
+                },
+                div,
+                [
+                    function (i, el) {
+                        return el.getLabel()
+                    },
+                    function (i, el) {
+                        var max = el.getMax();
+                        return el.getAdvance() + (max ? '/' + max : '');
+                    },
+                    function () {
+                        return '';
+                    },
+                ],
+                oThat.change,
+                oThat.refreshAll,
+                function (i, el) {
+                    Helper.showPopin('', Helper.getHelpFormat(el.data));
+                }
+            );
+        }
+
+        oThat.randomAllAction = function () {
+            var allValls = [].concat(tab['characteristic'], tab['skill'], tab['talent']);
+            var currentExperience = character.xp.max;
+            var used = 0;
+            var max;
+            while (used < currentExperience && allValls.length !== 0) {
+                var index = Helper.getRandomInt(allValls.length) - 1;
+                var el = allValls[index];
+                var oldValue = el.getAdvance();
+                var val = oldValue + 1;
+                var cost = Helper.getXPCost(el, oldValue, val);
+                if (used + cost > currentExperience ||  val > 70) {
+                    allValls.splice(index, 1);
+                } else if (typeof el.getMax !== 'undefined' && (max = el.getMax()) && val > max) {
+
+                } else {
+                    if ((el = Helper.randomSpecialisation(character, allValls, el, index, oldValue))) {
+                        el.advance += 1;
+                        Helper.randomMagicTalent(CharGen, character, el);
+                        used += cost;
+                        oThat.refreshData();
+                        allValls = [].concat(tab['characteristic'], tab['skill'], tab['talent']);
+                    }
+                }
+            }
+            character.xp.used = used;
+            oThat.saveAction();
+        };
+
+        return oThat;
+    };
+    this.StepExperience = StepExperience;
+</script>

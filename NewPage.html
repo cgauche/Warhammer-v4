@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <?!= include('Stylesheet'); ?>
+</head>
+<body class='ui-widget'>
+<div class="main_panel">
+    <div class="header_panel"><span class="text"></span></div>
+    <div class="body_panel">
+        <div class="all_panel overflow_panel"></div>
+        <div class="left_panel pretty_panel overflow_panel"></div>
+        <div class="right_panel pretty_panel overflow_panel"></div>
+        <div style="clear:both"></div>
+    </div>
+    <div class="footer_panel">
+        <button style="display:none" class="ui-button ui-widget left_button button random">Random</button>
+        <button style="display:none" class="ui-button ui-widget left_button button other"></button>
+        <button style="display:none" class="ui-button ui-widget right_button button cancel">Annuler</button>
+        <button style="display:none" class="ui-button ui-widget right_button button validate">OK</button>
+    </div>
+</div>
+<div id="load" style='display:none' title="Charger votre personnage">
+    <textarea style='width: 97%;' placeholder='Entrer le code de votre personnage ici' class='code'></textarea>
+</div>
+<div id="save" style='display:none' title="Code de votre personnage">
+    <textarea style='width: 97%;' class='codesave'></textarea>
+</div>
+<?!= include('StepSpecies'); ?>
+<?!= include('StepCareers'); ?>
+<?!= include('StepCharacteristics'); ?>
+<?!= include('StepTalents'); ?>
+<?!= include('StepSkills'); ?>
+<?!= include('StepTrappings'); ?>
+<?!= include('StepDetail'); ?>
+<?!= include('StepExperience'); ?>
+<?!= include('StepResume'); ?>
+<?!= include('Glossaire'); ?>
+<?!= include('MainMenu'); ?>
+<?!= include('Menu'); ?>
+<?!= include('Helper'); ?>
+<?!= include('Character'); ?>
+<?!= include('CharacterGenerator'); ?>
+<?!= include('FoundryHelper'); ?>
+<div id="dialog" title=""></div>
+<div id="dialog_modal" title=""></div>
+<script>
+    $(document).ready(function () {
+        CharacterGenerator().init();
+    });
+</script>
+</body>
+</html>

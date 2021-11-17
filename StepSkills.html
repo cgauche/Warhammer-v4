@@ -1,0 +1,249 @@
+<script>
+    var StepSkills = function (y, CharGen) {
+        var oThat = {};
+        var character;
+        var currentCareerSkills;
+        var currentSpecieSkills;
+
+        oThat.stepName = "Compétences";
+        oThat.desc = function (i) {
+            if (!i) {
+                return 'Chaque Race possède différentes Compétences à choisir. Vous pouvez sélectionner 3 Compétences auxquelles ajouter 5 Augmentations à chacune, et 3 Compétences auxquelles ajouter 3 Augmentations à chacune. '
+            } else {
+                return 'Répartissez 40 Points d\'Augmentations entre vos huit Compétences de départ, sans dépasser plus de 10 Points alloués à une seule Compétence à ce stade. Vous pouvez vous contenter d\'ajouter 5 Augmentations à chaque Compétence de Carrière si vous le souhaitez: c\'est l\'une des étapes requises pour achever votre Carrière si vous voulez en choisir une nouvelle.';
+            }
+        };
+        oThat.title = function () {
+            return 'Choisissez vos Compétences.'
+        };
+
+        oThat.cancelAction = true;
+        oThat.validateAction = true;
+
+        oThat.initAction = function () {
+            character = CharGen.character.clone();
+        };
+        oThat.refreshData = function () {
+            currentSpecieSkills = character.getSpecie().getSkills();
+            currentCareerSkills = character.getCareer().getSkills();
+        };
+        oThat.resetAction = function () {
+            CharGen.character.skills = [];
+        };
+        oThat.saveAction = function () {
+            character.deleteEmpty();
+            CharGen.saveCharacter(character);
+            return true;
+        };
+
+        oThat.show = function () {
+            oThat.showSpecieSkills();
+        };
+
+        oThat.showSpecialisationPopin = function (elem, change) {
+            Helper.showSpecialisationPopin(character, elem, change, null, true);
+        };
+        oThat.randomAllAction = function () {
+            oThat.refreshData();
+            var index;
+            var remaining = 3;
+            var el;
+            while (remaining > 0) {
+                index = Helper.getRandomInt(currentSpecieSkills.length) - 1;
+                el = currentSpecieSkills[index];
+                if (el.specie === 0 &&
+                    (el = Helper.randomSpecialisation(character, currentSpecieSkills, el, index, el.specie))) {
+                    el.specie = 5;
+                    --remaining;
+                }
+            }
+            remaining = 3;
+            while (remaining > 0) {
+                index = Helper.getRandomInt(currentSpecieSkills.length) - 1;
+                el = currentSpecieSkills[index];
+                if (el.specie === 0 &&
+                    (el = Helper.randomSpecialisation(character, currentSpecieSkills, el, index, el.specie))) {
+                    el.specie = 3;
+                    --remaining;
+                }
+            }
+            remaining = 40;
+            while (remaining > 0) {
+                index = Helper.getRandomInt(currentCareerSkills.length) - 1;
+                el = currentCareerSkills[index];
+                if (el.career < 10 &&
+                    (el = Helper.randomSpecialisation(character, currentCareerSkills, el, index, el.career))) {
+                    el.career += 1;
+                    --remaining;
+                }
+            }
+            oThat.saveAction();
+        };
+
+        oThat.showSpecieSkills = function () {
+            oThat.refreshData();
+            var change = function (i, elem, mode, $el) {
+                if (elem.specs && !elem.spec) {
+                    oThat.showSpecialisationPopin(elem, function (i, elem) {
+                        change(i, elem, mode, $el);
+                    });
+                } else {
+                    var veryOldValue = elem.getAdvance();
+                    elem = character.setSkill(elem);
+                    if (veryOldValue !== elem.getAdvance()) {
+                        mode = 0;
+                    }
+                    var value = elem.specie;
+                    if (value !== 3) {
+                        value = 3;
+                    } else if (mode > 0) {
+                        value = 5;
+                    } else {
+                        value = 0;
+                    }
+                    elem.specie = value;
+                    oThat.showSpecieSkills();
+                }
+            };
+            $('.validate').prop('disabled', true);
+            Helper.addDescription(oThat.desc(0));
+            $('.left_panel').html("<div class='description_title'><span class='skills_specie_5points'></span> Compétences auxquelles ajouter 5 Augmentations</div>"
+                + "<div class='description_title'><span class='skills_specie_3points'></span> Compétences auxquelles ajouter 3 Augmentations</div>");
+            var $skills = Helper.generateListWithRankAndHelp(currentSpecieSkills,
+                ['', 'Base', 'Augm', 'Total'],
+                function () {
+                    return true
+                },
+                $('.left_panel'),
+                [function (i, el) {
+                    return el.getLabel();
+                },
+                    function (i, el) {
+                        return el.getBase()
+                    },
+                    function (i, el) {
+                        return el.specie;
+                    },
+                    function (i, el) {
+                        return el.specie
+                            + el.getBase();
+                    }],
+                change,
+                function (i, el, elems, total) {
+                    total.html(el.specie
+                        + el.getBase());
+                    var remaining5 = 3;
+                    var remaining3 = 3;
+                    var base = $(total).parents('table');
+                    $(elems).each(function (i, el) {
+                        if (el) {
+                            var parent = base.find('tr[data-line="' + i + '"]');
+                            var val = el.specie;
+                            if (val === 5) {
+                                remaining5 -= 1;
+                            } else if (val === 3) {
+                                remaining3 -= 1;
+                            }
+                            parent.find('.down').prop('disabled', val === 0);
+                            parent.find('.up').prop('disabled', val === 5);
+                        }
+                    });
+                    total.parents('.left_panel').find('.skills_specie_5points').html(remaining5);
+                    total.parents('.left_panel').find('.skills_specie_3points').html(remaining3);
+                    $('.validate').prop('disabled', remaining5 !== 0 || remaining3 !== 0);
+                },
+                function (i, el) {
+                    Helper.showPopin('', Helper.getHelpFormat(el.data))
+                }
+            );
+
+            $skills.find('.number').first().change();
+
+            $('.cancel').off('click').on('click', function () {
+                CharGen.defaultAction.cancel();
+            });
+            $('.validate').off('click').on('click', function () {
+                oThat.showCareerSkills();
+            });
+        };
+
+        oThat.showCareerSkills = function () {
+            oThat.refreshData();
+            var change = function (i, elem, mode, $el) {
+                if (elem.specs && !elem.spec) {
+                    oThat.showSpecialisationPopin(elem, function (i, elem) {
+                        change(i, elem, mode, $el);
+                    });
+                } else {
+                    var veryOldValue = elem.getAdvance();
+                    elem = character.setSkill(elem);
+                    if (veryOldValue !== elem.getAdvance()) {
+                        mode = 0;
+                    }
+                    elem.career = Math.max(0, Math.min(elem.career + mode, 10));
+                    oThat.showCareerSkills();
+                }
+            };
+            $('.validate').prop('disabled', true);
+            $('.left_panel').html("<div class='description_title'><span class='skills_career'></span> Points à allouer" + "</div>");
+            Helper.addDescription(oThat.desc(1));
+            var $skills = Helper.generateListWithRankAndHelp(currentCareerSkills,
+                ['', 'Base', 'Augmentation', 'Total'],
+                function () {
+                    return true
+                },
+                $('.left_panel'),
+                [function (i, el) {
+                    return el.getLabel()
+                },
+                    function (i, el) {
+                        return el.getBase();
+                    },
+                    function (i, el) {
+                        return el.specie + el.career;
+                    },
+                    function (i, el) {
+                        return el.specie
+                            + el.career
+                            + el.getBase();
+                    }],
+                change,
+                function (i, el, elems, total) {
+                    total.html(el.specie
+                        + el.career
+                        + el.getBase());
+                    var remaining = 40;
+                    var base = $(total).parents('table');
+                    $(elems).each(function (i, el) {
+                        if (el) {
+                            var parent = base.find('tr[data-line="' + i + '"]');
+                            var val = el.career;
+                            remaining -= val;
+                            parent.find('.down').prop('disabled', val === 0);
+                            parent.find('.up').prop('disabled', val === 10);
+                        }
+                    });
+                    base.parents('.left_panel').find('.skills_career').html(remaining);
+                    if (remaining <= 0) {
+                        base.find('.up').prop('disabled', true);
+                    }
+                    $('.validate').prop('disabled', remaining !== 0);
+                },
+                function (i, el) {
+                    Helper.showPopin('', Helper.getHelpFormat(el.data))
+            }
+            );
+
+            $skills.find('.number').first().change();
+
+            $('.cancel').off('click').on('click', function () {
+                oThat.showSpecieSkills();
+            });
+            $('.validate').off('click').on('click', function () {
+                CharGen.defaultAction.validate(oThat, y);
+            });
+        };
+        return oThat;
+    }
+    this.StepSkills = StepSkills;
+</script>

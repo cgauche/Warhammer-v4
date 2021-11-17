@@ -1,0 +1,282 @@
+<script>
+    var Compendium = function (i, CharGen) {
+        var oThat = {};
+        oThat.stepName = "Compendium";
+        oThat.desc = function () {
+            return ''
+        };
+        oThat.title = function () {
+            return 'Compendium'
+        };
+        oThat.initAction = function () {
+        };
+
+        oThat.cancelAction = function () {
+            $('.cancel').html('Retour');
+            $('.cancel').off('click').on('click', function () {
+                $('.left_panel').addClass('overflow_panel');
+                $('.left_panel').addClass('pretty_panel');
+                CharGen.showMainMenu(i);
+            });
+        };
+
+        oThat.show = function () {
+            var con = $('.left_panel').html('');
+            con.removeClass('overflow_panel');
+            con.removeClass('pretty_panel');
+            con.append('<div class="tabs"></div>');
+            var tabs = con.find('.tabs');
+            tabs.append('<ul><li><a href="#tabs-1">Races</a></li><li><a href="#tabs-2">Caractéristiques</a></li><li><a href="#tabs-3">Classes</a></li><li><a href="#tabs-4">Carrières</a></li><li><a href="#tabs-5">Talents</a></li><li><a href="#tabs-6">Compétences</a></li><li><a href="#tabs-7">Dieux</a></li><li><a href="#tabs-8">Sorts</a></li><li><a href="#tabs-9">Possessions</a></li><li><a href="#tabs-10">Lieux</a></li></ul>');
+
+            /** Races **/
+            tabs.append('<div id="tabs-1" class="pretty_panel paneltabs overflow_panel"></div>');
+            var talentstab = tabs.find('#tabs-1');
+            var species = CharGen.data.species;
+            Helper.generateListWithHelp(
+                species,
+                function () {
+                    return true
+                },
+                talentstab,
+                function (i, el) {
+                    return el.label
+                },
+                function (i) {
+                    Helper.addDescription(Helper.getHelpFormat(species[i]));
+                },
+                true
+            );
+            /** Attributs **/
+            tabs.append('<div id="tabs-2" class="pretty_panel paneltabs overflow_panel"></div>');
+            var talentstab = tabs.find('#tabs-2');
+            var characteristics = CharGen.data.characteristics;
+            Helper.generateListWithHelp(
+                characteristics,
+                function () {
+                    return true
+                },
+                talentstab,
+                function (i, el) {
+                    return el.label
+                },
+                function (i) {
+                    Helper.addDescription(Helper.getHelpFormat(characteristics[i]));
+                },
+                true
+            );
+            /** Classes **/
+            tabs.append('<div id="tabs-3" class="pretty_panel paneltabs overflow_panel"></div>');
+            var talentstab = tabs.find('#tabs-3');
+            var classes = CharGen.data.classes;
+            Helper.generateListWithHelp(
+                classes,
+                function () {
+                    return true
+                },
+                talentstab,
+                function (i, el) {
+                    return el.label
+                },
+                function (i) {
+                    Helper.addDescription(Helper.getHelpFormat(classes[i]));
+                },
+                true
+            );
+            /** Carrières **/
+            tabs.append('<div id="tabs-4" class="pretty_panel paneltabs overflow_panel"></div>');
+            talentstab = tabs.find('#tabs-4');
+            var careers = CharGen.data.careers;
+            var currentClass = '';
+            var currentCareer = '';
+            var displayedCareers = [];
+            $(careers).each(function (i, el) {
+                if (currentClass !== careers[i].class) {
+                    currentClass = careers[i].class;
+                    displayedCareers[displayedCareers.length] = {
+                        label: currentClass,
+                        desc: CharGen.allClasses[Helper.toId(currentClass)].desc,
+                        level: 1
+                    };
+                }
+                if (currentCareer !== careers[i].label) {
+                    currentCareer = careers[i].label;
+                    displayedCareers[displayedCareers.length] = {
+                        label: currentCareer,
+                        desc: careers[i].desc,
+                        level: 2
+                    };
+                }
+                displayedCareers[displayedCareers.length] = {
+                    label: careers[i].careerLevelName,
+                    desc: careers[i].desc,
+                    level: 3
+                };
+            });
+            Helper.generateListWithHelp(
+                displayedCareers,
+                function () {
+                    return true
+                },
+                talentstab,
+                function (i, el) {
+                    return el.label;
+                },
+                function (i) {
+                    Helper.addDescription(Helper.getHelpFormat(displayedCareers[i]));
+                },
+                true,
+                null,
+                function (i, el) {
+                    return el.level;
+                }
+            );
+            /** TALENTS **/
+            tabs.append('<div id="tabs-5" class="pretty_panel paneltabs overflow_panel"></div>');
+            talentstab = tabs.find('#tabs-5');
+            var talents = CharGen.data.talents;
+            Helper.generateListWithHelp(
+                talents,
+                function () {
+                    return true
+                },
+                talentstab,
+                function (i, el) {
+                    return el.label
+                },
+                function (i) {
+                    Helper.addDescription(Helper.getHelpFormat(talents[i]));
+                },
+                true
+            );
+
+            /** Compétence **/
+            tabs.append('<div id="tabs-6" class="pretty_panel paneltabs overflow_panel"></div>');
+            talentstab = tabs.find('#tabs-6');
+            var skills = CharGen.data.skills;
+            Helper.generateListWithHelp(
+                skills,
+                function () {
+                    return true
+                },
+                talentstab,
+                function (i, el) {
+                    return el.label
+                },
+                function (i) {
+                    Helper.addDescription(Helper.getHelpFormat(skills[i]));
+                },
+                true
+            );
+            /** Dieux **/
+            tabs.append('<div id="tabs-7" class="pretty_panel paneltabs overflow_panel"></div>');
+            talentstab = tabs.find('#tabs-7');
+            var gods = CharGen.data.gods;
+            Helper.generateListWithHelp(
+                gods,
+                function () {
+                    return true
+                },
+                talentstab,
+                function (i, el) {
+                    return el.label
+                },
+                function (i) {
+                    Helper.addDescription(Helper.getHelpFormat(gods[i]));
+                },
+                true,
+            );
+            /** Sorts **/
+            tabs.append('<div id="tabs-8" class="pretty_panel paneltabs overflow_panel"></div>');
+            talentstab = tabs.find('#tabs-8');
+            var spells = CharGen.data.spells;
+            var currentType = '';
+            var currentSpec = '';
+            var displayedSpells = [];
+            $(spells).each(function (i, el) {
+                if (currentType !== spells[i].type) {
+                    currentType = spells[i].type;
+                    displayedSpells[displayedSpells.length] = {
+                        label: currentType,
+                        desc: '',
+                        level: 1
+                    };
+                }
+                if (currentSpec !== spells[i].spec) {
+                    currentSpec = spells[i].spec;
+                    displayedSpells[displayedSpells.length] = {
+                        label: currentSpec,
+                        desc: '',
+                        level: 2
+                    };
+                }
+                displayedSpells[displayedSpells.length] = {
+                    label: spells[i].label,
+                    desc: spells[i].desc,
+                    level: 3
+                };
+            });
+
+            Helper.generateListWithHelp(
+                displayedSpells,
+                function () {
+                    return true
+                },
+                talentstab,
+                function (i, el) {
+                    return el.label
+                },
+                function (i) {
+                    Helper.addDescription(Helper.getHelpFormat(displayedSpells[i]));
+                },
+                true,
+                null,
+                function (i, el) {
+                    return el.level;
+                }
+            );
+            /** Equipements **/
+            tabs.append('<div id="tabs-9" class="pretty_panel paneltabs overflow_panel"></div>');
+            talentstab = tabs.find('#tabs-9');
+            var trappings = CharGen.data.trappings;
+            Helper.generateListWithHelp(
+                trappings,
+                function () {
+                    return true
+                },
+                talentstab,
+                function (i, el) {
+                    return el.label
+                },
+                function (i) {
+                    Helper.addDescription(Helper.getHelpFormat(trappings[i]));
+                },
+                true
+            );
+            /** Lore **/
+            tabs.append('<div id="tabs-10" class="pretty_panel paneltabs overflow_panel"></div>');
+            talentstab = tabs.find('#tabs-10');
+            var lore = CharGen.data.lore;
+            Helper.generateListWithHelp(
+                lore,
+                function (i, el) {
+                    return true;
+                },
+                talentstab,
+                function (i, el) {
+                    return el.label
+                },
+                function (i) {
+                    Helper.addDescription(Helper.getHelpFormat(lore[i]));
+                },
+                true,
+                null,
+                function (i, el) {
+                    return el.level;
+                }
+            );
+
+            tabs.tabs();
+        };
+        return oThat;
+    }
+</script>

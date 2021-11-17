@@ -1,0 +1,758 @@
+<script>
+    var Helper = {
+        ajaxLoader: function (el, options) {
+            // Becomes this.options
+            var defaults = {
+                bgColor: '#fff', // Defines the color of the layer
+                ldColor: '#000', // Defines the color of the loader
+                duration: 800,
+                opacity: 0.7, // Defines the opacity of the layer if one 
+                classOveride: false,
+                layer: true, // Defines if there will be a layer or not
+                size: '2.5em' // Size of the loader
+            };
+            this.options = jQuery.extend(defaults, options);
+            this.container = $(el);
+
+            this.init = function () {
+                var container = this.container;
+                // Delete any other loaders
+                this.remove();
+                // Create the overlay
+                var overlay = $('<section></section>').css({
+                    'background-color': this.options.bgColor,
+                    'opacity': this.options.opacity,
+                    'z-index': 999
+                }).addClass('ajax_loader');
+                var loader = $('<div class="loader" style="height:' + this.options.size + ';width:' + this.options.size + '">' +
+                    '<div class="ldr-blk an_delay one" style="background-color:' + this.options.ldColor + '"></div>' +
+                    '<div class="ldr-blk an_delay two" style="background-color:' + this.options.ldColor + '"></div>' +
+                    '<div class="ldr-blk an_delay three" style="background-color:' + this.options.ldColor + '"></div>' +
+                    '<div class="ldr-blk an_delay four" style="background-color:' + this.options.ldColor + '"></div>' +
+                    '</div>');
+                if (this.options.layer) {
+                    overlay.append(loader);
+                } else {
+                    overlay = loader.addClass('ajax_loader');
+                }
+                // add an overiding class name to set new loader style
+                if (this.options.classOveride) {
+                    overlay.addClass(this.options.classOveride);
+                }
+                // insert overlay and loader into DOM
+                container.append(overlay).fadeIn(this.options.duration);
+            };
+
+            this.remove = function (callback) {
+                var overlay = this.container.children(".ajax_loader");
+                if (overlay.length) {
+                    overlay.fadeOut(this.options.classOveride, function () {
+                        overlay.remove();
+                        if (typeof callback === "function")
+                            callback();
+                    });
+                }
+            };
+
+            this.init();
+        },
+        addDescription: function (message) {
+            return $('.right_panel').html("<div class='description'>" + message + "</div>");
+        },
+        showPopin: function (title, message) {
+            $('.ui-dialog-title').html(title);
+            Helper.popin.html(message);
+            Helper.popin.dialog("open");
+        },
+        uniqid: function () {
+            return (new Date().getTime() + Math.floor((Math.random() * 10000) + 1)).toString(16);
+        },
+        getHelpFormat: function (el) {
+            return '<span><h3>' + (typeof el.getLabel !== 'undefined' ? el.getLabel() : el.label) + '</h3>' + el.desc + '<span>';
+        },
+        removePlural: function (text) {
+            return text.replace(/(s|es|e)\b/ig, '');
+        },
+        toId: function (text)
+        {
+            if (!text) {
+                return text;
+            }
+            return text.toLowerCase().replace(/[éêè]/ig, 'e').replace(/[áâà]/ig, 'a').replace('  ', ' ').replace('œ', 'oe');
+        },
+        getRandomInt: function (max) {
+            return Math.floor(1 + Math.random() * Math.floor(max));
+        },
+        sort: function (array) {
+            array.sort(function (a, b) {
+                if (a.data.type !== b.data.type) {
+                    return a.data.type === 'base' ? -1 : 1;
+                }
+                return a.getLabel() > b.getLabel() ? 1 : -1
+            });
+            return array;
+        },
+        getXPCost: function (elem, oldValue, newValue) {
+            var type = elem.getType();
+            var total = 0;
+            while (oldValue !== newValue) {
+                if (type === 'skill') {
+                    if (newValue <= 5) {
+                        total += 10;
+                    } else if (newValue <= 10) {
+                        total += 15;
+                    } else if (newValue <= 15) {
+                        total += 20;
+                    } else if (newValue <= 20) {
+                        total += 30;
+                    } else if (newValue <= 25) {
+                        total += 40;
+                    } else if (newValue <= 30) {
+                        total += 60;
+                    } else if (newValue <= 35) {
+                        total += 80;
+                    } else if (newValue <= 40) {
+                        total += 110;
+                    } else if (newValue <= 45) {
+                        total += 140;
+                    } else if (newValue <= 50) {
+                        total += 180;
+                    } else if (newValue <= 55) {
+                        total += 220;
+                    } else if (newValue <= 60) {
+                        total += 270;
+                    } else if (newValue <= 65) {
+                        total += 320;
+                    } else if (newValue <= 70) {
+                        total += 380;
+                    }
+                } else if (type === 'characteristic') {
+                    if (newValue <= 5) {
+                        total += 25;
+                    } else if (newValue <= 10) {
+                        total += 30;
+                    } else if (newValue <= 15) {
+                        total += 40;
+                    } else if (newValue <= 20) {
+                        total += 50;
+                    } else if (newValue <= 25) {
+                        total += 70;
+                    } else if (newValue <= 30) {
+                        total += 90;
+                    } else if (newValue <= 35) {
+                        total += 120;
+                    } else if (newValue <= 40) {
+                        total += 150;
+                    } else if (newValue <= 45) {
+                        total += 190;
+                    } else if (newValue <= 50) {
+                        total += 230;
+                    } else if (newValue <= 55) {
+                        total += 280;
+                    } else if (newValue <= 60) {
+                        total += 330;
+                    } else if (newValue <= 65) {
+                        total += 390;
+                    } else if (newValue <= 70) {
+                        total += 450;
+                    }
+                } else if (type === 'talent') {
+                    total += newValue * 100;
+                }
+                if (elem.reduced) {
+                    total -= elem.reduced;
+                }
+                newValue--;
+            }
+            return total;
+        },
+        generateNormalList: function (list, filter, onChange, el) {
+            el = typeof el !== 'undefined' ? el : $('.left_panel');
+            return Helper.generateListWithHelp(list, filter, el, function (i, el) {
+                return el.getLabel()
+            }, function (i, el, disabled) {
+                Helper.addDescription(Helper.getHelpFormat(el));
+                if (!disabled) {
+                    onChange(i, el);
+                }
+            }, false, null, function (i, e) {
+                if (typeof e.level != 'undefined') {
+                    return e.level;
+                }
+                return e;
+            });
+        },
+        generateMenu: function (list, index, el, onClick) {
+            var html = '<div class="steplist">';
+            $(list).each(function (i, e) {
+                html += '<button class="ui-button ui-widget button" data-line="' + i + '" ' + (index === null || i <= index ? '' : 'disabled') + ' >' + e.stepName + '</button>';
+            });
+            html += '</div>';
+            el.html(html);
+            var steplist = $('.steplist');
+            $(steplist).find('button').off('click').on('click', function () {
+                var i = $(this).data('line');
+                var el = list[i];
+                if (el.onClick) {
+                    el.onClick(i, el);
+                } else {
+                    onClick(i, el);
+                }
+            });
+            return list;
+        },
+        generateListWithRankAndHelp: function (elems, header, filter, el, funcsLabel, funcsUpDown, funcOnChange, funcClickLine, append, funcsMoveUpDown) {
+            var id = 'selectable' + Helper.uniqid();
+            var count = $(header).length;
+            var html = '<table class="selectable ' + (count > 2 ? 'rank' : '') + '" id="' + id + '"><tr>';
+            var displayedElems = [];
+            $(header).each(function () {
+                html += '<td>' + this + '</td>'
+            });
+            html += '</tr>';
+            $.each(elems, function (i) {
+                if (filter(i, this)) {
+                    displayedElems[i] = this;
+                    var y = 0;
+                    html += '<tr data-line="' + i + '" data-id="' + this.id + '"><td class="label ui-widget-content">' + funcsLabel[y++](i, this) + '</td>';
+                    if (count >= 4) {
+                        html += '<td class="base">' + funcsLabel[y++](i, this) + '</td>';
+                    }
+                    html += '<td class="modif">';
+                    if (append) {
+                        html += funcsLabel[y++](i, this);
+                    } else {
+                        if (count > 2) {
+                            html += '<button class="down"><</button>';
+                            if (funcsMoveUpDown) {
+                                html += '<button class="movedown">&darr;</button>';
+                            }
+                            html += '<input class="number" type="text" disabled value="' + funcsLabel[y++](i, this) + '" />';
+                            if (funcsMoveUpDown) {
+                                html += '<button class="moveup">&uarr;</button>';
+                            }
+                            html += '<button class="up">></button>';
+                        } else {
+                            html += funcsLabel[y++](i, this);
+                        }
+                        while (y < count - 1) {
+                            html += '<td>' + funcsLabel[y++](i, this) + '</td>';
+                        }
+
+                    }
+                    if (count > 2) {
+                        html += '</td><td class="total">' + funcsLabel[y++](i, this) + '</td>'
+                    }
+                    html += '</tr>';
+                }
+            });
+            html += '</ol>';
+            el.append(html);
+            var select = $('#' + id);
+
+            var line = select.find("tr[data-line] td:first-child");
+            line.off('click').on('click', function () {
+                var index = $(this).parents('tr[data-line]').data('line');
+                funcClickLine(index, elems[index]);
+            });
+            select.find('button.up,button.down').off('click').on('click', function () {
+                var index = $(this).parents("tr").data('line');
+                var $el = $(this).parents("tr").find('input.number');
+                funcsUpDown(index, elems[index], $(this).hasClass('up') ? 1 : -1, $el)
+                $el.trigger('change');
+            });
+            select.find('button.moveup,button.movedown').off('click').on('click', function () {
+                var $el = $(this).parents("tr").find('input.number');
+                var $el2 = $(this).hasClass('moveup') ? $el.parents('tr').prev().find('input.number') : $el.parents('tr').next().find('input.number');
+                funcsMoveUpDown($el, $el2)
+                $el.trigger('change');
+                $el2.trigger('change');
+            });
+            select.find('input.number').off('change').on('change', function () {
+                var index = $(this).parents("tr").data('line');
+                funcOnChange(index, elems[index], displayedElems, $(this).parents("tr").find('.total'));
+            });
+            return select;
+        },
+        generateListWithHelp: function (elems, filter, el, funcLabel, funcHelp, append, funDisabled, funcLevel) {
+            var id = 'selectable' + Helper.uniqid();
+            var html = '<ol class="selectable" id="' + id + '">';
+            $(elems).each(function (i, el) {
+                if (filter(i, el)) {
+                    var disabled = '';
+                    if (funDisabled && funDisabled(i, el)) {
+                        disabled = 'disabled';
+                    }
+                    var level = '';
+                    if (funcLevel) {
+                        level = 'listchild' + funcLevel(i, el);
+                    }
+                    html += '<li data-line="' + i + '" data-id="' + el.id + '" class="ui-widget-content ' + disabled + ' ' + level + '">' + funcLabel(i, el) + '</li>';
+                }
+            });
+            html += '</ol>';
+            if (append) {
+                el.append(html);
+            } else {
+                el.html(html);
+            }
+            var select = $('#' + id);
+
+            select.off("click").on('click', 'li', function () {
+                var $el = $(this);
+                var i = $el.data('line');
+                if (append !== true && !$el.is('.disabled')) {
+                    var container = $el.parents('.overflow_panel');
+                    container.stop(true);
+                    var conOffset = container.offset();
+                    var offset = $el.offset();
+                    select.find('li.ui-selected').removeClass('ui-selected');
+                    $el.addClass('ui-selected');
+                    if (conOffset && offset) {
+                        container.animate({
+                            scrollTop: offset.top - conOffset.top + container.scrollTop()
+                        });
+                    }
+                }
+                if (funcHelp) {
+                    funcHelp(i, elems[i], $el.is('.disabled'));
+                }
+                return false;
+            });
+            $(el).animate({
+                scrollTop: 0
+            });
+            return select;
+        },
+        generateListWithHelpPopin: function (elems, filter, el, left, funcLabel, funDisabled, funcHelp, funcAdd, showHelp) {
+            var id = 'selectable' + Helper.uniqid();
+            var html = '<ol class="selectable" id="' + id + '">';
+            $(elems).each(function (i, el) {
+                if (filter(i, el)) {
+                    var disabled = '';
+                    if (funDisabled && funDisabled(i, el)) {
+                        disabled = 'disabled';
+                    }
+                    html += '<li data-line="' + i + '" data-id="' + el.id + '" class="ui-widget-content ' + disabled + '">';
+                    if (left) {
+                        html += '<buttom class="add" style="float:left;' + (disabled ? 'visibility:hidden' : '') + '"><</buttom>';
+                    }
+                    html += funcLabel(i, el);
+                    if (!left) {
+                        html += '<buttom class="add" style="' + (disabled ? 'visibility:hidden' : '') + '">></buttom>';
+                    }
+                    if (!showHelp || showHelp(i, el)) {
+                        html += '<buttom class="popin_help">?</buttom>';
+                    }
+                    html += '</li>';
+                }
+            });
+            html += '</ol>';
+            el.append(html);
+            var $select = $('#' + id);
+
+            $select.find('.popin_help').off("click").on('click', function () {
+                var i = $(this).parent('li').data('line');
+                funcHelp(i, elems[i]);
+                return false;
+            });
+            $select.find('.add').off("click").on('click', function () {
+                var i = $(this).parent('li').data('line');
+                funcAdd(i, elems[i]);
+            });
+            return $select;
+        },
+        formatSkill: function (CharGen, text) {
+            return Helper.formatComplexElem(CharGen, text, 'skill');
+        },
+        formatTalent: function (CharGen, text) {
+            return Helper.formatComplexElem(CharGen, text, 'talent');
+        },
+        formatSpell: function (CharGen, text) {
+            return Helper.formatComplexElem(CharGen, text, 'spell');
+        },
+        formatComplexElem: function (CharGen, text, type) {
+            var string = text.split('(');
+            var spec = '';
+            var majType = type[0].toUpperCase() + type.substring(1);
+            text = string[0].trim();
+            var elem = Helper.clone(CharGen['all' + majType + 's'][Helper.toId(text)]);
+            if (!elem.id) {
+                return false;
+            }
+            var displayedSpec = '';
+            if (string.length > 1) {
+                displayedSpec = string[1].split(')')[0];
+                spec = displayedSpec.replace(/ ou /g, ', ');
+            }
+            if (elem.specName !== spec && spec !== 'Au choix') {
+                elem.specs = spec;
+                string = spec.split(', ');
+                if (string.length === 1 && spec) {
+                    elem.spec = spec;
+                } else {
+                    elem.specName = displayedSpec;
+                }
+            }
+            elem.getType = function () {return type};
+            return elem;
+        },
+        merge: function (el, char) {
+            for (var key in el) {
+                if (el.hasOwnProperty(key)) {
+                    char[key] = el[key];
+                }
+            }
+        },
+        isFunction: function ( obj ) {
+
+            // Support: Chrome <=57, Firefox <=52
+            // In some browsers, typeof returns "function" for HTML <object> elements
+            // (i.e., `typeof document.createElement( "object" ) === "function"`).
+            // We don't want to classify *any* DOM node as a function.
+            return typeof obj === "function" && typeof obj.nodeType !== "number";
+        },
+        extend: function() {
+            var options, name, src, copy, copyIsArray, clone,
+                target = arguments[ 0 ] || {},
+                i = 1,
+                length = arguments.length,
+                deep = false;
+
+            // Handle a deep copy situation
+            if ( typeof target === "boolean" ) {
+                deep = target;
+
+                // Skip the boolean and the target
+                target = arguments[ i ] || {};
+                i++;
+            }
+
+            // Handle case when target is a string or something (possible in deep copy)
+            if ( typeof target !== "object" && !Helper.isFunction( target ) ) {
+                target = {};
+            }
+
+            // Extend jQuery itself if only one argument is passed
+            if ( i === length ) {
+                target = this;
+                i--;
+            }
+
+            for ( ; i < length; i++ ) {
+
+                // Only deal with non-null/undefined values
+                if ( ( options = arguments[ i ] ) != null ) {
+
+                    // Extend the base object
+                    for ( name in options ) {
+                        src = target[ name ];
+                        copy = options[ name ];
+
+                        // Prevent never-ending loop
+                        if ( target === copy ) {
+                            continue;
+                        }
+
+                        // Recurse if we're merging plain objects or arrays
+                        if ( deep && copy && ( Helper.isPlainObject( copy ) ||
+                            ( copyIsArray = Array.isArray( copy ) ) ) ) {
+
+                            if ( copyIsArray ) {
+                                copyIsArray = false;
+                                clone = src && Array.isArray( src ) ? src : [];
+
+                            } else {
+                                clone = src && Helper.isPlainObject( src ) ? src : {};
+                            }
+
+                            // Never move original objects, clone them
+                            target[ name ] = Helper.extend( deep, clone, copy );
+
+                            // Don't bring in undefined values
+                        } else if ( copy !== undefined ) {
+                            target[ name ] = copy;
+                        }
+                    }
+                }
+            }
+
+            // Return the modified object
+            return target;
+        },
+        isPlainObject: function( obj ) {
+            var proto, Ctor;
+
+            // Detect obvious negatives
+            // Use toString instead of jQuery.type to catch host objects
+            if ( !obj || toString.call( obj ) !== "[object Object]" ) {
+                return false;
+            }
+
+            proto = Object.getPrototypeOf( obj );
+
+            // Objects with no prototype (e.g., `Object.create( null )`) are plain
+            if ( !proto ) {
+                return true;
+            }
+            var class2type = {}
+            var elems = "Boolean Number String Function Array Date RegExp Object Error Symbol".split( " " );
+            for (var i = 0; i < elems.length; ++i) {
+                var el = elems[i];
+                class2type[ "[object " + el + "]" ] = el.toLowerCase();
+            }
+
+            // Objects with prototype are plain iff they were constructed by a global Object function
+            Ctor = class2type.hasOwnProperty.call( proto, "constructor" ) && proto.constructor;
+            return typeof Ctor === "function" && class2type.hasOwnProperty.toString.call( Ctor ) === class2type.hasOwnProperty.toString.call( Object );
+        },
+        clone: function (el) {
+            return Helper.extend(true, {}, el);
+        },
+        initPopin: function () {
+            Helper.popin = $("#dialog").dialog({
+                autoOpen: false,
+                width: 500
+            })
+        },
+        randomSpecialisation: function (character, allValls, el, index, oldValue, number) {
+            if (oldValue === 0) {
+                if (el.specs && !el.spec) {
+                    var specs = el.specs.split(', ')
+                    while (specs.length) {
+                        var i = Helper.getRandomInt(specs.length) - 1;
+                        if (character.search(el.id, specs[i], el.getType(), true, el.origins ? el.origins[0] : null)) {
+                            specs.splice(i, 1);
+                        } else {
+                            el.spec = specs[i];
+                            break;
+                        }
+                    }
+                    if (!specs.length) {
+                        if (allValls) {
+                            allValls.splice(index, 1);
+                        }
+                        return false
+                    }
+                }
+            }
+            var veryOldAdvance = el.getTotal();
+            el = character.set(el, number);
+            if (allValls) {
+                allValls[index] = el;
+            }
+            return veryOldAdvance === el.getTotal() ? el : false;
+        },
+        showSpecialisationPopin: function (character, elem, change, cancel, withOrigin, type) {
+            type = typeof type !== 'undefined' ? type : elem.getType();
+            var majType = type[0].toUpperCase() + type.substring(1);
+            withOrigin = typeof withOrigin !== 'undefined' ? withOrigin : false;
+
+            Helper.showModelPopin('Spécialisation',
+                'Choisissez une spécialisation pour votre ' + majType + ': <div><span class="showHelp" data-type="' + type + 's" data-index="' + (elem.index ? elem.index : elem.data.index) + '">' + elem.getLabel() + '</span></div>',
+                function (html) {
+                    Helper.generateListWithHelp(
+                        elem.specs.split(', '),
+                        function () {
+                            return true;
+                        },
+                        html,
+                        function (i, el) {
+                            return el
+                        },
+                        null,
+                        2,
+                        function (i, el) {
+                            if (withOrigin) {
+                                return character.search(elem.id, el, type, true, elem.origins ? elem.origins[0] : null, false, false)
+                            } else {
+                                return character.search(elem.id, el, type);
+                            }
+                        }
+                    );
+                }, function (el) {
+                    var spec = el.find('.ui-selected');
+                    if (spec.length) {
+                        elem.spec = spec.html();
+                        change(0, elem);
+                        return true;
+                    }
+                    return false;
+                },
+                cancel
+            );
+        },
+        showSpells : function (CharGen, character, returnAction, validateAction, number, mode, numberSpellToChoose) {
+            var spells = CharGen.data.spells;
+            var remaining = numberSpellToChoose;
+            var charSpells = character.getSpells();
+            $(charSpells).each(function (i, el) {
+                if (el && el.data.type === mode) {
+                    --remaining;
+                }
+            });
+            if (mode === 'Béni') {
+                $('.left_panel').html('');
+            } else {
+                $('.left_panel').html("<div class='description_title'>" + remaining + ' Sorts à choisir' + "</div>");
+            }
+            $('.validate').prop('disabled', true);
+            if (!character.getSpell(number)) {
+                var label = function (i, el) {
+                    return el.getLabel();
+                };
+                var filter = function (i, el) {
+                    return el.type === mode;
+                };
+                var change = function (i, el) {
+                    //el.spec = mode;
+                    character.setSpell(el, number);
+                    Helper.showSpells(CharGen, character, returnAction, validateAction, number + 1, mode, numberSpellToChoose);
+                };
+                var funcDisabled = function (i, el) {
+                    return remaining <= 0 || character.searchSpell(el.id, el.spec) || mode === 'Béni';
+                };
+                var initHelp = function (i, el) {
+                    Helper.showPopin('', Helper.getHelpFormat(el));
+                };
+                Helper.generateListWithHelpPopin(
+                    spells,
+                    filter,
+                    $('.left_panel'),
+                    false,
+                    label,
+                    funcDisabled,
+                    initHelp,
+                    change
+                );
+            } else {
+                return Helper.showSpells(CharGen, character, returnAction, validateAction, number + 1, mode, numberSpellToChoose)
+            }
+            $('.right_panel').html('');
+            $('.validate').prop('disabled', remaining !== 0 && mode !== 'Béni');
+            Helper.generateListWithHelpPopin(
+                charSpells,
+                function (i, el) {
+                    return el && el.data.type === mode
+                },
+                $('.right_panel'),
+                true,
+                function (i, el) {
+                    return el.getLabel()
+                },
+                function () {
+                    return mode === 'Béni';
+                },
+                function (i, el) {
+                    Helper.showPopin('', Helper.getHelpFormat(el.data))
+                },
+                function (i) {
+                    character.setSpell(null, i);
+                    Helper.showSpells(CharGen, character, returnAction, validateAction, 0, mode, numberSpellToChoose)
+                }
+            );
+
+            $('.cancel').off('click').on('click', function () {
+                if (mode === 'Béni') {
+                    Helper.showGods(CharGen, character, returnAction, validateAction, mode);
+                } else {
+                    returnAction();
+                }
+            });
+
+            $('.validate').off('click').on('click', function () {
+                validateAction();
+            });
+        },
+        showGods : function (CharGen, character, returnAction, validateAction, mode) {
+            $('.right_panel').html('');
+            var species = $(CharGen.data.gods);
+            var $species = Helper.generateNormalList(species, function () {
+                return true
+            }, function (i, el) {
+                var godTalent = character.searchTalent('Béni', '', false);
+                godTalent.spec = el.label;
+                character.applyTalent();
+                $('.validate').prop('disabled', false)
+            });
+            var godTalent = character.searchTalent('Béni', '', false)
+            if (godTalent) {
+                $species.find('li[data-id="' + godTalent.spec + '"]').click()
+            }
+
+            $('.cancel').off('click').on('click', function () {
+                returnAction()
+            });
+
+            $('.validate').off('click').on('click', function () {
+                Helper.showSpells(CharGen, character, returnAction, validateAction, 0, mode, character.getSpells().length);
+            });
+        },
+        showMagicSpecialisation: function (CharGen, character, cancelAction, validateAction, magic) {
+            if (magic === 'Béni') {
+                Helper.showGods(CharGen, character, cancelAction, validateAction, magic);
+            } else if (magic === 'Magie mineure') {
+                Helper.showSpells(CharGen, character, cancelAction, validateAction, 0, magic, character.searchCharacteristic('Force Mentale').getBonus());
+            }
+        },
+        randomMagicTalent: function (CharGen, character, talent) {
+            var magic = talent.data ? talent.data.addMagic : talent.addMagic;
+            if (magic === 'Béni') {
+                var gods = CharGen.data.gods;
+                var i = Helper.getRandomInt(gods.length) - 1;
+                talent.spec = gods[i].label;
+            } else {
+                if (magic === 'Magie mineure') {
+                    var spellsNumber = 0;
+                    var numberSpellToChoose = character.searchCharacteristic('Force Mentale').getBonus();
+                    var spells = CharGen.data.spells;
+                    while (spellsNumber < numberSpellToChoose) {
+                        var index = Helper.getRandomInt(spells.length) - 1;
+                        var spell = spells[index];
+                        if (spell.type === magic && !character.searchSpell(spell.id, spell.spec)) {
+                            character.setSpell(spell, spellsNumber);
+                            ++spellsNumber;
+                        }
+                    }
+                }
+            }
+        },
+        showModelPopin: function (title, description, html, validateFunction, cancelFunction) {
+            var dialog = $("#dialog_modal").dialog({
+                title: title,
+                autoOpen: true,
+                width: 350,
+                modal: true,
+                buttons: {
+                    "Valider": function () {
+                        if (validateFunction) {
+                            if (!validateFunction($(this))) {
+                                return false;
+                            }
+                        }
+                        $(this).dialog('close');
+                    },
+                    "Annuler": function () {
+                        $(this).dialog('close');
+                    }
+                },
+                close: function () {
+                    if (cancelFunction) {
+                        cancelFunction($(this));
+                    }
+                }
+            });
+            dialog.html('');
+            if (description) {
+                dialog.html("<div class='description'>" + description + "</div>");
+            }
+            if (typeof html === 'function') {
+                html(dialog);
+            } else {
+                dialog.html(html);
+            }
+            return dialog;
+        }
+    }
+    this.Helper = Helper;
+</script>

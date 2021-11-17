@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <?!= include('OldStylesheet'); ?>
+</head>
+<body>
+<div class="ui-widget mainpage">
+    <div style="float:right; display:none">
+        <select id="lang">
+            <option value="en">En</option>
+            <option value="fr">Fr</option>
+        </select>
+    </div>
+    <div style="clear:both"></div>
+    <fieldset>
+        <legend>Character</legend>
+        <div id="div_species">
+            <label for="species">Species:</label>
+            <select id="species">
+            </select>
+            <input type="button" id="help_species" value="?"/>
+            <input type="button" id="roll_species" value="Roll"/>
+            <input type="button" id="validate_species" value="Submit" style="display:none"/>
+        </div>
+        <div id="div_classes" style="display:none">
+            <label for="classes">Career:</label>
+            <select id="classes">
+            </select>
+            <input type="button" id="help_classes" value="?"/>
+            <input type="button" id="roll_classes" value="Roll"/>
+            <input type="button" id="validate_classes" value="Submit" style="display:none"/>
+            <div class="desc_classes"></div>
+        </div>
+    </fieldset>
+    <fieldset class="details" style="display:none">
+        <legend>Details</legend>
+        <div>
+    <span id="div_details">
+      <label for="name">Nom:</label>
+      <input type="text" id="name">
+      <input type="button" id="help_name" value="?"/>
+        <!--      <input type="button" id="roll_name" value="Roll"/> -->
+    </span>
+            <span id="div_age">
+      <label for="age">Age:</label>
+      <input type="text" id="age">
+                <!--      <input type="button" id="help_age" value="?"/> -->
+      <input type="button" id="roll_age" value="Roll"/>
+    </span>
+        </div>
+        <div>
+    <span id="div_eye">
+      <label for="eye">Couleur des yeux:</label>
+      <select id="eye">
+      </select>
+        <!--      <input type="button" id="help_eye" value="?"/> -->
+      <input type="button" id="roll_eye" value="Roll"/>
+    </span>
+            <span id="div_hair">
+      <label for="hair">Couleur des cheveux:</label>
+      <select id="hair">
+      </select>
+                <!--      <input type="button" id="help_hair" value="?"/> -->
+      <input type="button" id="roll_hair" value="Roll"/>
+    </span>
+            <span id="div_height">
+      <label for="height">Taille:</label>
+      <input type="text" id="height">
+                <!--      <input type="button" id="help_height" value="?"/> -->
+      <input type="button" id="roll_height" value="Roll"/>
+    </span>
+        </div>
+    </fieldset>
+    <fieldset class="characteristics" style="display:none; float:left">
+        <legend>Characteristics</legend>
+        <table border=1>
+            <tr>
+                <th><input type="button" id="roll_characteristics" value="Roll"/></th>
+                <th>?</th>
+                <th>Species</th>
+                <th class="roll_total"></th>
+                <th>Careers</th>
+                <th>Total</th>
+            </tr>
+        </table>
+        <input type="button" id="validate_characteristics" value="Submit" style="display:none"/>
+    </fieldset>
+    <fieldset class="skills" style="display:none; float:left">
+        <legend>Skills</legend>
+        <table border=1>
+            <tr>
+                <th></th>
+                <th>?</th>
+                <th>Species</th>
+                <th class="skill_total">Career</th>
+                <th>Total</th>
+            </tr>
+        </table>
+    </fieldset>
+    <div style="clear:both"></div>
+    <fieldset class="talents" style="display:none; float: left">
+        <legend>Talents</legend>
+        <ol>
+        </ol>
+    </fieldset>
+    <fieldset class="magie_mineure" style="display:none; float: left">
+        <legend>Petty Magic</legend>
+        <ol>
+        </ol>
+    </fieldset>
+    <fieldset class="béni" style="display:none; float: left">
+        <legend>Blessing</legend>
+        <label for="gods">Gods:</label>
+        <select id="gods">
+        </select>
+        <input type="button" id="help_gods" value="?"/>
+        <ol>
+        </ol>
+    </fieldset>
+    <fieldset class="trappings" style="display:none; float: left">
+        <legend>Trappings</legend>
+        <table border=1>
+            <tr>
+                <th>Qty</th>
+                <th>Name</th>
+                <th>?</th>
+                <th>Enc</th>
+                <th>Carry</th>
+            </tr>
+        </table>
+    </fieldset>
+
+</div>
+<?!= include('JavaScript'); ?>
+<div id="dialog" title="">
+    <p></p>
+</div>
+</body>
+</html>

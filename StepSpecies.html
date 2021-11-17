@@ -1,0 +1,96 @@
+<script>
+    var StepSpecies = function (i, CharGen) {
+        var oThat = {};
+        var character;
+        var $species;
+
+        oThat.stepName = "Race";
+        oThat.desc = function () {
+            return 'Votre Personnage sera un humain, un nain, un halfling, un haut elfe ou un elfe sylvain. Elles sont décrites ci-dessous pour vous aider à choisir, et vous trouverez également quelques points de vue typiques que chaque race a sur les autres. Vous pouvez cliquer sur <b>Aléatoire</b> et gagner 20 PX si vous acceptez le premier choix, sinon vous pouvez cliquer sur <b>Choisir</b> pour faire votre propre choix.'
+        };
+        oThat.title = function () {
+            return 'Choisissez l\'une des 5 races'
+        };
+        oThat.initAction = function () {
+            character = CharGen.character.clone();
+        };
+
+        oThat.cancelAction = true;
+        oThat.validateAction = true;
+        oThat.resetAction = function () {
+            CharGen.character.specie = null;
+        };
+        oThat.randomAllAction = function () {
+            var elems = CharGen.data.species;
+            var value = Helper.getRandomInt(100);
+            for (var i = 0; i < elems.length; ++i) {
+                var el = elems[i];
+                if (el.rand >= value) {
+                    character.setSpecie(el);
+                    break;
+                }
+            }
+            character.randomState.specie = 1;
+            oThat.saveAction();
+        }
+        oThat.saveAction = function () {
+            if (character.randomState.specie > 0) {
+                character.addXP('Race Aléatoire', 20, true);
+            }
+            character.randomState.specie = -2;
+            CharGen.saveCharacter(character);
+            return true;
+        };
+
+        oThat.randomAction = function (el) {
+            el.off('click').on('click', function () {
+                var species = $(CharGen.data.species);
+                var value = Helper.getRandomInt(100);
+                character.randomState.specie = 1;
+                $(this).prop('disabled', true);
+                species.each(function (i, el) {
+                    if (el.rand >= value) {
+                        var $el = $species.find('li[data-id="' + el.id + '"]');
+                        character.randomState.imposedSpecie = el.id;
+                        $el.removeClass('disabled');
+                        $el.click();
+                        return false;
+                    }
+                });
+                CharGen.saveRandomState(character);
+            });
+        };
+        oThat.otherAction = function (el) {
+            el.html('Choisir');
+            el.off('click').on('click', function () {
+                character.randomState.specie = -1;
+                $(this).prop('disabled', true);
+                $('.random').prop('disabled', true);
+                $species.find('li[data-line]').removeClass('disabled');
+            });
+        };
+
+        oThat.show = function () {
+            var species = $(CharGen.data.species);
+            $species = Helper.generateNormalList(species, function () {
+                return true
+            }, function (i, el) {
+                character.setSpecie(el);
+                $('.validate').prop('disabled', false);
+            });
+            if (character.randomState.specie !== -1) {
+                $species.find('li[data-line]').addClass('disabled');
+            }
+            $('.random').prop('disabled', character.randomState.specie !== 0);
+            $('.other').prop('disabled', character.randomState.specie <= -1);
+            var specieId = character.getSpecie() !== null ? character.getSpecie().id : character.randomState.imposedSpecie;
+            if (specieId !== null) {
+                var $el = $species.find('li[data-id="' + specieId + '"]');
+                $el.removeClass('disabled');
+                $el.click();
+            }
+        };
+        return oThat;
+    }
+    this.StepSpecies = StepSpecies
+</script>

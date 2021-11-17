@@ -1,0 +1,97 @@
+<script>
+    var Menu = function (i, CharGen) {
+        var oThat = {};
+        oThat.stepName = "Création de personnage";
+        oThat.desc = function () {
+            return ''
+        };
+        oThat.title = function () {
+            return 'Création de personnage'
+        };
+        oThat.initAction = function () {
+        };
+
+        oThat.cancelAction = function () {
+            $('.cancel').html('Retour');
+            $('.cancel').off('click').on('click', function () {
+                $('.left_panel').addClass('overflow_panel');
+                $('.left_panel').addClass('pretty_panel');
+                CharGen.showMainMenu(i);
+            });
+        };
+        oThat.createNewCharacter = function () {
+            CharGen.stepIndex = 0;
+            CharGen.saveName = "";
+            CharGen.character = createNewCharacter(CharGen);
+        };
+        oThat.show = function () {
+            $('.left_panel').hide();
+            $('.right_panel').hide();
+            $('.all_panel').show();
+            Helper.generateMenu(CharGen.stepList, CharGen.stepIndex, $('.all_panel'),
+                function (i, el) {
+                    $('.all_panel').hide();
+                    $('.left_panel').show();
+                    $('.right_panel').show();
+                    CharGen.showPanel(i, el);
+                }
+            );
+            /*$('.cancel').prop('disabled', false).show().html('Test application').off('click').on('click', function () {
+                var species = $(CharGen.data.species);
+                var classes = $(CharGen.data.classes);
+                var careers = $(CharGen.data.careers);
+                var characteristics = $(CharGen.data.characteristics);
+                var skills = $(CharGen.data.skills);
+                var talents = $(CharGen.data.talents);
+                var gods = $(CharGen.data.gods);
+                var spells = $(CharGen.data.spells);
+                var trappings = $(CharGen.data.trappings);
+                
+                //species
+                species.each(function (i, el) {
+                    $(el.skills.split(', ')).each(function (y, specieSkill) {
+                        oThat.testData(el.label + ' Skills', CharGen.allSkills, Helper.sanitarize(specieSkill), specieSkill);
+                    });
+                    $(el.talents.split(', ')).each(function (y, specieTalents) {
+                        $(specieTalents.split(' or ')).each(function (z, specieTalent) {
+                          oThat.testData(el.label + ' Talents', CharGen.allTalents, Helper.sanitarize(specieTalent), specieTalent);
+                        });
+                    });
+                });
+                
+                //careers
+                careers.each(function (i, el) {
+                    $(el.skills.split(', ')).each(function (y, careerSkill) {
+                        oThat.testData(el.label + ' Skills', CharGen.allSkills, Helper.sanitarize(careerSkill), careerSkill);
+                    });
+                    $(el.characteristics.split(', ')).each(function (y, careerCharacteristics) {
+                        oThat.testData(el.label + ' Characteristics', CharGen.allCharacteristics, careerCharacteristics, careerCharacteristics);
+                    });
+                    $(el.talents.split(', ')).each(function (y, careerTalents) {
+                        $(careerTalents.split(' or ')).each(function (z, careerTalent) {
+                          oThat.testData(el.label + ' Talents', CharGen.allTalents, Helper.sanitarize(careerTalent), careerTalent);
+                        });
+                    });
+                    $(el.trappings.split(', ')).each(function (y, careerTrappings) {
+                        $(careerTrappings.split(' or ')).each(function (z, careerTrapping) {
+                   //     oThat.testData(CharGen.allTrappings, Helper.removePlural(careerTrapping));
+                        });
+                    });
+                });
+                
+                alert('OK');
+            });*/
+
+        };
+        oThat.testData = function (debug, list, el, original) {
+            var test = list[el];
+            if (typeof test !== 'undefined') {
+                if (test.desc !== '') {
+                    return true;
+                }
+            }
+            console.log(debug + ': ' + original);
+        }
+        return oThat;
+    }
+</script>

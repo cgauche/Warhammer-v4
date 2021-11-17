@@ -1,0 +1,180 @@
+<script>
+    var StepCareers = function (i, CharGen) {
+        var oThat = {};
+        var character;
+        var $careers;
+
+        oThat.stepName = "Carrière";
+        oThat.desc = function () {
+            return 'Votre Classe détermine votre place dans ma société. Votre carrière décrit votre travail actuel et détermine votre Statut, qui influence également l\'importance de vos revenus <br><br>Vous pouvez simplement choisir votre Classe et votre Carrière avec l\'option <b>Choisir</b>. Autrement, si vous ne savez pas lesquelles choisir, ou si vous voulez simplement choisir au hasard pour obtenir le bonus de PX: <ol> <li> Cliquez sur <b>Aléatoire</b>. Si le résultat vous satisfait, conservez-le et gagnez +50 PX. Sinon, passez à l\'étape 2.</li> <li> Cliquez une nouvelle fois sur <b>Aléatoire</b> pour avoir un total de 3 choix. Si l\'un des trois vous convient à présent, sélectionnez-le et gagnez +25 PX. Sinon, passez à l\'étape 3.</li> <li> Cliquez sur <b>Choisir</b> et faites votre choix. Dans ce cas, il n\'y a pas de bonus de PX.</li> </ol>'
+        };
+        oThat.title = function () {
+            return 'Choisissez l\'une des Carrières'
+        };
+        oThat.initAction = function () {
+            character = CharGen.character.clone();
+        };
+
+        oThat.cancelAction = true;
+        oThat.validateAction = true;
+        oThat.resetAction = function () {
+            CharGen.character.career = null;
+        };
+        oThat.saveAction = function () {
+            var ret = CharGen.character.career && CharGen.character.career.id === character.career.id;
+            if (character.randomState.career > 0) {
+                character.addXP('Carrière Aléatoire', (character.randomState.career === 1 ? 50 : (character.randomState.career === 2 ? 25 : 0)), true);
+            }
+            character.randomState.career = -2;
+            CharGen.saveCharacter(character);
+
+            return ret;
+        };
+        oThat.randomAllAction = function () {
+            var value = Helper.getRandomInt(100);
+            var elems = CharGen.data.careers;
+            for (var i = 0; i < elems.length; ++i) {
+                var el = elems[i];
+                var rand = el.rand[character.getSpecie().data.index];
+                if (rand) {
+                    if (rand >= value) {
+                        character.setCareer(el);
+                        break;
+                    }
+                }
+            }
+            character.randomState.career = 1;
+            oThat.saveAction();
+        };
+
+        oThat.randomAction = function (el) {
+            el.off('click').on('click', function () {
+                var nb = 2;
+                if (character.randomState.career === 0) {
+                    $careers.find('li[data-line]').hide();
+                    nb = 1;
+                }
+                var careers = $(CharGen.data.careers);
+                while (nb > 0) {
+                    var value = Helper.getRandomInt(100);
+                    careers.each(function (i, el) {
+                        var rand = el.rand[character.getSpecie().data.index];
+                        if (rand) {
+                            if (rand >= value) {
+                                var $el = $careers.find('li[data-id="' + el.id + '"]');
+                                if ($el.is('.disabled')) {
+                                    character.randomState.imposedCareers[character.randomState.imposedCareers.length] = el.id;
+                                    $el.prev('.listchild2').show();
+                                    $el.show();
+                                    $el.removeClass('disabled');
+                                    if (character.randomState.career === 0) {
+                                        $el.click();
+                                    }
+                                    --nb;
+                                }
+                                return false;
+                            }
+                        }
+                    });
+                }
+                if (character.randomState.career === 1) {
+                    el.prop('disabled', true);
+                    character.randomState.career = 2;
+                } else {
+                    character.randomState.career = 1;
+                }
+                CharGen.saveRandomState(character);
+            });
+        };
+        oThat.otherAction = function (el) {
+            el.html('Choisir');
+            el.off('click').on('click', function () {
+                $(this).prop('disabled', true);
+                $careers.find('li[data-line]').show();
+                $('.random').prop('disabled', true);
+                $careers.find('li[data-line].listchild2').next('.listchild3').removeClass('disabled');
+                character.randomState.career = -1;
+            });
+        };
+
+
+        oThat.show = function () {
+            var careers = CharGen.data.careers;
+            var currentClass = '';
+            var currentCareer = '';
+            var displayedCareers = [];
+            var rand = '';
+            $(careers).each(function (i, el) {
+                if (currentClass !== careers[i].class && careers[i].rand[character.getSpecie().data.index]) {
+                    currentClass = careers[i].class;
+                    displayedCareers[displayedCareers.length] = {
+                        label: currentClass,
+                        id: currentClass,
+                        desc: CharGen.allClasses[Helper.toId(currentClass)].desc,
+                        rand: careers[i].rand,
+                        level: 1,
+                        getLabel: function () {
+                            return this.label;
+                        }
+                    };
+                }
+                if (currentCareer !== careers[i].label) {
+                    rand = careers[i].rand;
+                    currentCareer = careers[i].label;
+                    displayedCareers[displayedCareers.length] = {
+                        label: currentCareer,
+                        id: currentCareer,
+                        desc: careers[i].desc,
+                        rand: rand,
+                        level: 2,
+                        getLabel: function () {
+                            return this.label;
+                        }
+                    };
+                }
+                var myCareer = Helper.clone(careers[i]);
+                myCareer.level = 3;
+                myCareer.rand = rand;
+                myCareer.label = careers[i].careerLevelName;
+                displayedCareers[displayedCareers.length] = myCareer;
+            });
+
+            $careers = Helper.generateNormalList(
+                displayedCareers,
+                function (i, el) {
+                    return el.rand[character.getSpecie().data.index]
+                }, function (i, el) {
+                    character.setCareer(el);
+                    $('.validate').prop('disabled', false)
+                }
+            );
+
+            $careers.find('li[data-line]').addClass('disabled');
+            if (character.getCareer() !== null) {
+                var $el = $careers.find('li[data-id="' + character.getCareer().id + '"]');
+                $el.removeClass('disabled');
+                $el.click();
+            }
+            if (character.randomState.career !== 0) {
+                $('.random').prop('disabled', true);
+                $('.other').prop('disabled', true);
+                if (character.randomState.career === -1) {
+                    $careers.find('li[data-line].listchild2').next('.listchild3').removeClass('disabled');
+                } else if (character.randomState.career >= 1) {
+                    $('.random').prop('disabled', character.randomState.career === 2);
+                    $('.other').prop('disabled', false);
+                    $careers.find('li[data-line]').hide();
+                    $(character.randomState.imposedCareers).each(function (i, el) {
+                        var $el = $careers.find('li[data-id="' + el + '"]');
+                        $el.prev('.listchild2').show();
+                        $el.show();
+                        $el.removeClass('disabled');
+                    });
+                }
+            }
+
+        };
+        return oThat;
+    }
+    this.StepCareers = StepCareers;
+</script>

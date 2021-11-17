@@ -1,0 +1,511 @@
+<script>
+    var CharacterGenerator = function () {
+        var oThat = this;
+        oThat.data;
+        oThat.stepIndex = 0;
+        var i = 0;
+        oThat.stepList = [
+            StepSpecies(i++, oThat),
+            StepCareers(i++, oThat),
+            StepCharacteristics(i++, oThat),
+            StepTalents(i++, oThat),
+            StepSkills(i++, oThat),
+            StepTrappings(i++, oThat),
+            StepDetail(i++, oThat),
+            StepExperience(i++, oThat),
+            StepResume(i++, oThat),
+        ];
+        oThat.saveName = '';
+        oThat.character;
+        oThat.allSpecies;
+        oThat.allCareers;
+        oThat.allCareersByGroup;
+        oThat.allTalents;
+        oThat.allCharacteristics;
+        oThat.allSkills;
+        oThat.allTrappings;
+        oThat.allSpells;
+        oThat.elemIdToFoundryId;
+        oThat.foundryIdToElemId;
+        oThat.allGods;
+
+
+        oThat.showMainMenu = function () {
+            oThat.showPanel(0, MainMenu(oThat.stepIndex, oThat));
+        };
+
+        oThat.showMenu = function () {
+            oThat.showPanel(0, Menu(oThat.stepIndex, oThat));
+        };
+
+        oThat.nextStep = function (i) {
+            oThat.stepIndex = Math.max(oThat.stepIndex, i + 1);
+            oThat.showMenu();
+        };
+
+        oThat.activeButtonAction = function (el, stepAction, defaultAction) {
+            el.off('click');
+            if (stepAction) {
+                el.show();
+                if (stepAction === true) {
+                    defaultAction(el);
+                } else {
+                    stepAction(el);
+                }
+            } else {
+                el.hide();
+            }
+        };
+
+        oThat.defaultAction = {
+            cancel: function () {
+                oThat.showMenu()
+            },
+            validate: function (el, i) {
+                if (!el.saveAction()) {
+                    oThat.stepIndex = i;
+                }
+                oThat.nextStep(i);
+            }
+        };
+
+        oThat.showPanel = function (i, el) {
+            Helper.addDescription(el.desc());
+            $('.left_panel').html("");
+            $('.header_panel .text').html(el.title());
+            $('.other').prop('disabled', false);
+            $('.cancel').prop('disabled', false);
+            $('.random').prop('disabled', false);
+            oThat.activeButtonAction($('.other'), el.otherAction);
+            $('.cancel').html('Annuler');
+            oThat.activeButtonAction($('.cancel'), el.cancelAction, function (ele) {
+                ele.on('click', oThat.defaultAction.cancel)
+            });
+            $('.validate').html('OK');
+            oThat.activeButtonAction($('.validate'), el.validateAction, function (ele) {
+                $('.validate').prop('disabled', true);
+                ele.on('click', function () {
+                    oThat.defaultAction.validate(el, i);
+                })
+            });
+            $('.random').html('Aléatoire');
+            oThat.activeButtonAction($('.random'), el.randomAction);
+
+            if (el.resetAction && i >= oThat.stepIndex) {
+                el.resetAction();
+            }
+            el.initAction();
+            el.show();
+        };
+
+        oThat.addSpecie = function (el) {
+            oThat.allSpecies[el.id] = el;
+            el.getLabel = function () {
+                return this.label;
+            };
+            el.getSkills = function () {
+                var skills = [];
+                var elems = el.skills.split(", ");
+                for (var i = 0; i < elems.length; ++i) {
+                    var el2 = elems[i];
+                    var skill = Helper.formatSkill(oThat, el2);
+                    if (skill) {
+                        skill.origins = [el.id];
+                        skills[skills.length] = skill;
+                    } else {
+                        console.log(el2)
+                    }
+                }
+                return skills;
+
+            };
+            el.getTalents = function () {
+                var talents = [];
+                var elems = el.talents.split(", ");
+                for (var i = 0; i < elems.length; ++i) {
+                    var el1 = elems[i];
+                    talents[i] = [];
+                    var elems2 = el1.split(" ou ");
+                    for (var i2 = 0; i2 < elems2.length; ++i2) {
+                        var el2 = elems2[i2];
+                        var talent = Helper.formatTalent(oThat, el2);
+                        if (talent) {
+                            talent.origins = [el.id];
+                            talents[i][talents[i].length] = talent;
+                        } else {
+                            console.log(el2)
+                        }
+                    }
+                }
+                return talents;
+            };
+            var elems = el.getSkills();
+            for (var i = 0; i < elems.length; ++i) {
+                var el1 = elems[i];
+                if (el1.spec && !oThat.allSkills[Helper.toId(el1.id)].specs.includes(el1.spec)) {
+                    if (!testSkills[el1.label]) {
+                        testSkills[el1.label] = {}
+                    }
+                    testSkills[el1.label][el1.spec] = el1.spec;
+                }
+            }
+            elems = el.getTalents();
+            for (i = 0; i < elems.length; ++i) {
+                el1 = elems[i];
+                if (el1.spec && !oThat.allTalents[Helper.toId(el1.id)].specs.includes(el1.spec)) {
+                    if (!testTalents[el1.label]) {
+                        testTalents[el1.label] = {}
+                    }
+                    testTalents[el1.label][el1.spec] = el1.spec;
+                }
+            }
+        }
+
+        oThat.addCharacteristic = function (el) {
+            oThat.allCharacteristics[el.id] = el;
+            el.getLabel = function () {
+                return this.label;
+            };
+        }
+        oThat.addSkill = function (el) {
+            oThat.allSkills[Helper.toId(el.id)] = el;
+            el.getSpecs = function () {
+                return this.specs.split(', ');
+            };
+            el.getLabel = function () {
+                var spec = this.spec ? this.spec : this.specName;
+                return this.label + (spec !== '' ? ' (' + spec + ')' : '');
+            };
+        }
+        oThat.addTalent = function (el) {
+            oThat.allTalents[Helper.toId(el.id)] = el;
+            el.getSpecs = function () {
+                return this.specs.split(', ');
+            };
+            el.getSkill = function () {
+                var skill = '';
+                if (this.addSkill) {
+                    skill = Helper.formatSkill(oThat, this.addSkill);
+                    if (skill) {
+                        if (this.specs) {
+                            skill.spec = this.spec;
+                            skill.specs = this.specs;
+                        }
+                        skill.origins = ['talent'];
+                    } else {
+                        console.log(this.addSkill)
+                    }
+                }
+                return skill;
+            };
+            el.getTalent = function () {
+                var talent = '';
+                if (this.addTalent) {
+                    talent = Helper.formatTalent(oThat, this.addTalent);
+                    if (talent) {
+                        talent.origins = ['talent'];
+                    } else {
+                        console.log(this.addTalent)
+                    }
+                }
+                return talent;
+            };
+            el.getLabel = function () {
+                var spec = this.spec ? this.spec : this.specName;
+                return this.label + (spec !== '' ? ' (' + spec + ')' : '');
+            };
+        }
+
+        oThat.addTrapping = function (el) {
+            oThat.allTrappings[Helper.removePlural(el.id)] = el;
+            el.getLabel = function () {
+                return this.label;
+            };
+        }
+
+        oThat.addSpell = function (el) {
+            oThat.allSpells[el.id] = el;
+            el.getLabel = function () {
+                return this.label;
+            };
+        }
+
+        oThat.addGod = function (el) {
+            oThat.allGods[el.id] = el;
+            el.getLabel = function () {
+                return this.label + ', ' + this.title;
+            };
+            el.getSpells = function () {
+                var result = [];
+                var elems = el.spells;
+                for (var i = 0; i < elems.length; ++i) {
+                    var el2 = elems[i];
+                    var spell = Helper.clone(oThat.allSpells[Helper.toId('Bénédiction de ' + el2)]);
+                    if (spell) {
+                        spell.spec = el.label;
+                        result[result.length] = spell;
+                    } else {
+                        console.log('Bénédiction de ' + el2)
+                    }
+                }
+                return result;
+            }
+        }
+
+        oThat.addClass = function (el) {
+            oThat.allClasses[el.id] = el;
+            el.getLabel = function () {
+                return this.label;
+            };
+        }
+
+        oThat.addFoundry = function (el) {
+            var type = el.type;
+            if (!oThat.elemIdToFoundryId[type]) {
+                oThat.elemIdToFoundryId[type] = {};
+                oThat.foundryIdToElemId[type] = {};
+            }
+            oThat.elemIdToFoundryId[type][el.label] = el.foundryName;
+            oThat.foundryIdToElemId[type][el.foundryName] = el.label;
+        }
+        var testSkills = {};
+        var testTalents = {};
+        oThat.addCareer = function (el) {
+            oThat.allCareers[el.id] = el;
+            var careerGroupId = Helper.toId(el.careerGroup);
+            if (!oThat.allCareersByGroup[careerGroupId]) {
+                oThat.allCareersByGroup[careerGroupId] = [];
+            }
+            oThat.allCareersByGroup[careerGroupId][el.careerLevel] = el;
+            oThat.allCareersByGroup[el.id] = el;
+            el.getLabel = function () {
+                return this.label;
+            };
+            el.getSkills = function () {
+                var skills = [];
+                var elems = el.getPastLevelCareers();
+                for (var i = 0; i < elems.length; ++i) {
+                    var elem = elems[i];
+                    var elems2 = elem.skills.split(', ');
+                    for (var i2 = 0; i2 < elems2.length; ++i2) {
+                        var el2 = elems2[i2];
+                        var skill = Helper.formatSkill(oThat, el2);
+                        if (skill) {
+                            skill.origins = [elem.id];
+                            skills[skills.length] = skill;
+                        } else {
+                            console.log(el2)
+                        }
+                    }
+                }
+                return skills;
+            };
+            el.getCharacteristics = function () {
+                var characteristics = [];
+                var elems = el.getPastLevelCareers();
+                for (var i = 0; i < elems.length; ++i) {
+                    var elem = elems[i];
+                    var elems2 = elem.characteristics.split(', ');
+                    for (var i2 = 0; i2 < elems2.length; ++i2) {
+                        var el2 = elems2[i2];
+                        var characteristic = Helper.clone(oThat.allCharacteristics[Helper.toId(el2)]);
+                        if (characteristic) {
+                            characteristics[characteristics.length] = characteristic;
+                        } else {
+                            console.log(el2)
+                        }
+                    }
+                }
+                return characteristics;
+            };
+            el.getTalents = function () {
+                var talents = [];
+                var elems = el.talents.split(', ');
+                for (var i = 0; i < elems.length; ++i) {
+                    var el2 = elems[i];
+                    var talent = Helper.formatTalent(oThat, el2);
+                    if (talent) {
+                        talent.origins = [el.id];
+                        talents[talents.length] = talent;
+                    } else {
+                        console.log(el2)
+                    }
+                }
+                return talents;
+            };
+            el.getPastLevelCareers = function () {
+                var pastCareerLevel = this.pastCareerLevel;
+                var result = []
+                var elems = pastCareerLevel.split(', ');
+                for (var i = 0; i < elems.length; ++i) {
+                    var el1 = elems[i];
+                    var career = oThat.allCareers[Helper.toId(el1)];
+                    if (career) {
+                        result[result.length] = career;
+                    } else {
+                        console.log(el1)
+                    }
+                }
+                return result;
+            }
+            var elems = el.getSkills();
+            for (var i = 0; i < elems.length; ++i) {
+                var el1 = elems[i];
+                if (el1.spec && !oThat.allSkills[Helper.toId(el1.id)].specs.includes(el1.spec)) {
+                    if (!testSkills[el1.label]) {
+                        testSkills[el1.label] = {}
+                    }
+                    testSkills[el1.label][el1.spec] = el1.spec;
+                }
+            }
+            elems = el.getTalents();
+            for (i = 0; i < elems.length; ++i) {
+                el1 = elems[i];
+                if (el1.spec && !oThat.allTalents[Helper.toId(el1.id)].specs.includes(el1.spec)) {
+                    if (!testTalents[el1.label]) {
+                        testTalents[el1.label] = {}
+                    }
+                    testTalents[el1.label][el1.spec] = el1.spec;
+                }
+            }
+        }
+        oThat.loadDataAndDisplay = function (jNames) {
+            Helper.loader.remove();
+            oThat.loadData(jNames);
+            var labels = {};
+            var doublon = [];
+            for (let [i, e] of Object.entries(oThat.data)) {
+                $(e).each(function (j, el) {
+                    if (typeof el.label != 'undefined' && typeof el.desc != 'undefined'
+                        && (i !== 'careers' || typeof labels[el.label] == 'undefined')) {
+                        if (typeof labels[el.label] != 'undefined') {
+                            if (typeof doublon[el.label] == 'undefined') {
+                                doublon[el.label] = [labels[el.label]];
+                            }
+                            doublon[el.label][doublon[el.label].length] = {type: i, index: j};
+
+                        }
+                        labels[el.label] = {type: i, index: j};
+                    }
+                });
+            }
+            labels = Object.entries(labels).sort(function (a, b) {
+                return b[0].length - a[0].length;
+            });
+            for (let [i, e] of Object.entries(oThat.data)) {
+                $(e).each(function (j, el) {
+                    if (typeof el.desc != 'undefined') {
+                        for (let [label, data] of labels) {
+                            if (label !== el.id) {
+                                var regexp = new RegExp('(' + label + ')(\\W|$)', "gm");
+                                var replace = '<span class="showHelp" data-type-parent="' + i + '" data-index-parent="' + j + '" data-type="' + data.type + '" data-index="' + data.index + '">$1</span>$2';
+                                if (typeof el.desc == 'object') {
+                                    $(el.desc).each(function (k, desc) {
+                                        el.desc[k] = el.desc[k].replace(regexp, replace);
+                                    });
+                                } else {
+                                    el.desc = el.desc.replace(regexp, replace);
+                                }
+                            }
+                        }
+                    }
+                })
+            }
+
+
+            $('body').on('click', '.showHelp', function () {
+                var $el = $(this);
+                Helper.showPopin('', Helper.getHelpFormat(oThat.data[$el.data('type')][$el.data('index')]))
+            });
+            oThat.showPanel(null, MainMenu(null, oThat));
+            $('.main_panel').show();
+        }
+
+        oThat.loadData = function (jNames) {
+            oThat.data = jNames;
+            oThat.allSkills = {};
+            var i;
+            var elems;
+            var el;
+            elems = oThat.data.skills;
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                oThat.addSkill(el);
+            }
+            oThat.allCharacteristics = {};
+            elems = oThat.data.characteristics;
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                oThat.addCharacteristic(el);
+            }
+            oThat.allTalents = {};
+            elems = oThat.data.talents;
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                oThat.addTalent(el);
+            }
+            oThat.allTrappings = {};
+            elems = oThat.data.trappings;
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                oThat.addTrapping(el);
+            }
+            oThat.allSpells = {};
+            elems = oThat.data.spells;
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                oThat.addSpell(el);
+            }
+            oThat.allGods = {};
+            elems = oThat.data.gods;
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                oThat.addGod(el);
+            }
+            oThat.allClasses = {};
+            elems = oThat.data.classes;
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                oThat.addClass(el);
+            }
+            oThat.allCareers = {};
+            oThat.allCareersByGroup = {};
+            elems = oThat.data.careers;
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                oThat.addCareer(el);
+            }
+            oThat.allSpecies = {};
+            elems = oThat.data.species;
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                oThat.addSpecie(el);
+            }
+            oThat.elemIdToFoundryId = {};
+            oThat.foundryIdToElemId = {};
+            elems = oThat.data.foundry;
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                oThat.addFoundry(el);
+            }
+            console.log(testSkills);
+            console.log(testTalents);
+
+        };
+        oThat.saveRandomState = function (character) {
+            oThat.character.randomState = Helper.clone(character.randomState);
+        }
+        oThat.saveCharacter = function (character) {
+            oThat.character = character;
+        }
+        oThat.init = function () {
+            Helper.initPopin();
+            Helper.loader = new Helper.ajaxLoader("body");
+            google.script.run.withSuccessHandler(oThat.loadDataAndDisplay).getAllData();
+        };
+
+        //oThat.init();
+        return oThat;
+    };
+    this.CharacterGenerator = CharacterGenerator;
+</script>

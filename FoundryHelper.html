@@ -1,0 +1,390 @@
+<script>
+    var FoundryHelper = {
+        export: function (CharGen, character) {
+            var characteristics = {};
+            var status = {};
+            var details = {};
+            var items = [];
+            var name = '';
+            var baseValue;
+            var i;
+            var j;
+            var elems;
+            var el;
+            /* SPECIE */
+            details['species'] = {'value': character.getSpecie().data.foundryName};
+            /* CHARACTERISTIC */
+            elems = character.getCharacteristics();
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                var tmpchar = el.data;
+                if (!tmpchar.foundryName) {
+                    continue;
+                }
+                baseValue = el.getBase() - el.talent;
+                if (tmpchar.class === 'roll') {
+                    characteristics[el.data.foundryName] = {
+                        'initial': baseValue,
+                        'advances': el.getAdvance()
+                    }
+                } else if (tmpchar.foundryName === 'move') {
+                    details[tmpchar.foundryName] = {
+                        'value': baseValue
+                    }
+                } else {
+                    status[tmpchar.foundryName] = {
+                        'value': baseValue
+                    }
+                }
+            }
+            /* DETAILS */
+            elems = CharGen.data.details;
+            j = 0;
+            for (i = 0; i < CharGen.data.details.length; ++i) {
+                el = elems[i];
+                if (el.foundryName) {
+                    var detail = character.details[i];
+                    if (el.foundryName === 'name') {
+                        name = detail;
+                    } else if (el.foundrySubName) {
+                        if (!details[el.foundryName]) {
+                            details[el.foundryName] = {};
+                        }
+                        details[el.foundryName][el.foundrySubName] = detail;
+                    } else {
+                        details[el.foundryName] = {'value': detail};
+                    }
+                    ++j;
+                }
+            }
+            /* SKILLS */
+            elems = character.getAllSkills();
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                baseValue = el.getBase() - el.talent;
+                items[items.length] = {
+                    "name": el.getLabel(),
+                    "type": "skill",
+                    "data": {
+                        'advances': {
+                            "value": el.getAdvance()
+                        }
+                    }
+                }
+            }
+            /* TALENTS */
+            elems = character.getTalents();
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                items[items.length] = {
+                    "name": el.getLabel(),
+                    "type": "talent",
+                    "data": {
+                        'advances': {
+                            "value": el.getAdvance()
+                        }
+                    }
+                }
+            }
+            /* SPELLS */
+            elems = character.getSpells();
+            var specFoundryName = {
+                '': 'petty',
+                'Invocation': 'miracle',
+                'Béni': 'blessing',
+                'Magie Naturelle': 'hedgecraft'
+            }
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                var type = ['Magie mineure', 'Magie des Arcanes'].includes(el.data.type) ? 'spell' : 'prayer';
+                var spell = {
+                    "name": el.getLabel(),
+                    "type": type
+                }
+                if (type === 'spell') {
+                    spell['data'] = {
+                        "lore": {"value": specFoundryName[el.spec]}
+                    }
+                } else {
+                    spell['data'] = {
+                        "type": {"value": specFoundryName[el.data.type]}
+                    }
+                }
+                items[items.length] = spell;
+            }
+            /* Career */
+            var career = character.getCareer();
+            var skills = [];
+            elems = career.getSkills();
+            for (i = 0; i < elems.length; ++i) {
+                skills[skills.length] = elems[i].getLabel();
+            }
+            var talents = [];
+            elems = career.getTalents();
+            for (i = 0; i < elems.length; ++i) {
+                talents[talents.length] = elems[i].getLabel();
+            }
+            items[items.length] = {
+                "name": career.data.careerLevelName,
+                "type": "career",
+                "data": {
+                    "careergroup": {
+                        "value": career.data.label
+                    },
+                    "current": {
+                        "value": true
+                    },
+                    "skills": skills,
+                    "talents": talents,
+                },
+            }
+
+            return {
+                "name": name ? name : 'New Actor',
+                "type": "character",
+                "data": {
+                    'characteristics': characteristics,
+                    'status': status,
+                    'details': details
+                },
+                "items": items,
+            };
+
+        },
+        getElemId: function (CharGen, type, foundryName) {
+            //if (CharGen.foundryIdToElemId[type] && CharGen.foundryIdToElemId[type][foundryName]) {
+            //    return CharGen.foundryIdToElemId[type][foundryName]
+            //}
+            if (foundryName === 'Voile') {
+                return 'Voile (Au choix)'
+            }
+            return foundryName;
+        },
+        getFoundryId: function (CharGen, type, elemId) {
+            if (CharGen.elemIdToFoundryId[type] && CharGen.elemIdToFoundryId[type][foundryName]) {
+                return CharGen.elemIdToFoundryId[type][foundryName]
+            }
+            return elemId;
+        },
+        import: function (CharGen, data) {
+            data = JSON.parse(data);
+            console.log(data);
+            var newCharacter = createNewCharacter(CharGen);
+            var i;
+            var j;
+            var elemId;
+            /* SPECIE */
+            var foundrySpecie = Helper.toId(this.getElemId(CharGen, 'specie', data.data.details.species.value));
+            var specie = null;
+            for (i = 0; i < CharGen.data.species.length; ++i) {
+                var tmpSpecie = CharGen.data.species[i];
+                if (tmpSpecie.foundryName === foundrySpecie) {
+                    specie = tmpSpecie;
+                    break;
+                }
+            }
+            if (!specie) {
+                console.log('Specie: ' + foundrySpecie);
+                var index = CharGen.data.species.length;
+                specie = {
+                    index: index,
+                    id: foundrySpecie,
+                    foundryName: foundrySpecie,
+                    label: foundrySpecie,
+                    rand: '',
+                    desc: '',
+                    skills: '',
+                    talents: '',
+                    randomTalents: '',
+                    age: '',
+                    rollAge: '',
+                    height: '',
+                    rollHeight: '',
+                }
+                CharGen.addSpecie(specie);
+                CharGen.data.species[index] = specie;
+            }
+            var specieIndex = specie.index;
+            newCharacter.setSpecie(specie);
+            /* CHARACTERISTIC */
+            for (i = 0; i < CharGen.data.characteristics.length; ++i) {
+                var tmpchar = CharGen.data.characteristics[i];
+                var newChar = newCharacter.setCharacteristic(tmpchar);
+                if (tmpchar.foundryName) {
+                    if (typeof tmpchar.rand[specieIndex] === 'undefined') {
+                        tmpchar.rand[specieIndex] = 0;
+                    }
+                    newChar.roll = -newChar.getBase();
+                    if (tmpchar.class === 'roll') {
+                        var foundryChar = data.data.characteristics[tmpchar.foundryName];
+                        newChar.roll += foundryChar.initial;
+                        newChar.advance = foundryChar.advances;
+                    } else if (tmpchar.foundryName === 'move') {
+                        newChar.roll += data.data.details[tmpchar.foundryName].value;
+                    } else if (typeof data.data.status[tmpchar.foundryName] !== 'undefined') {
+                        newChar.roll += data.data.status[tmpchar.foundryName].value;
+                    }
+                }
+            }
+            /* DETAILS */
+            var details = [];
+            for (i = 0; i < CharGen.data.details.length; ++i) {
+                var tmpDetails = CharGen.data.details[i];
+                if (tmpDetails.foundryName) {
+                    var detail = '';
+                    if (tmpDetails.foundryName === 'name') {
+                        detail = data.name;
+                    } else if (tmpDetails.foundrySubName && typeof data.data.details[tmpDetails.foundryName] !== 'undefined') {
+                        detail = data.data.details[tmpDetails.foundryName][tmpDetails.foundrySubName];
+                    } else if (typeof data.data.details[tmpDetails.foundryName] !== 'undefined') {
+                        detail = data.data.details[tmpDetails.foundryName].value;
+                    }
+                    details[details.length] = detail;
+                }
+            }
+            newCharacter.details = details;
+            var trappings = [];
+            var prayers = [];
+            var careers = [];
+            for (i = 0; i < data.items.length; ++i) {
+                var tmpItem = data.items[i];
+                if (tmpItem.type === 'career') {
+                    var foundryCareerGroupId = this.getElemId(CharGen, 'careergroup', tmpItem.data.careergroup.value);
+                    var careerGroup = CharGen.allCareersByGroup[Helper.toId(foundryCareerGroupId)];
+                    if (!careerGroup) {
+                        //console.log('Career group: ' + foundryCareerGroupId);
+                        continue;
+                    } else {
+                    //tmpItem.name
+                        var foundryCareerId = this.getElemId(CharGen, tmpItem.type, tmpItem.name);
+                        var career = careerGroup[tmpItem.data.level.value];
+                        if (Helper.toId(career.careerLevelName) !== Helper.toId(foundryCareerId)) {
+                            console.log('Career ' + foundryCareerGroupId + ': ' + foundryCareerId + ' != ' + career.careerLevelName);
+                        }
+                        var pastLevelCareer = career.getPastLevelCareers();
+                        var skills = tmpItem.data.skills;
+                        var pastCareer;
+                        for (j = 0; j < pastLevelCareer.length; ++j) {
+                            pastCareer = pastLevelCareer[j];
+                            var currentSkills = skills.splice(0, 8 - (j * 2));
+                            if (!pastCareer.modified) {
+                                var newSkills = currentSkills.map(x => this.getElemId(CharGen, 'skill', x)).sort().join(', ');
+                                var oldSkills = Helper.toId(pastCareer.skills).split(', ').sort().join(', ')
+                                if (j + 1 === pastLevelCareer.length && Helper.toId(newSkills).split(', ').sort().join(', ') !== oldSkills) {
+                                    console.log('Compétence de ' + foundryCareerGroupId + ' - ' + career.careerLevelName);
+                                    console.log('VF     : ' + oldSkills);
+                                    console.log('FOUNDRY: ' + Helper.toId(newSkills).split(', ').sort().join(', '));
+                                    console.log('');
+                                    pastCareer.skills = newSkills;
+                                }
+                            }
+                        }
+                        var newTalents = tmpItem.data.talents.map(x => this.getElemId(CharGen, 'talent', x)).sort().join(', ');
+                        var oldTalents = Helper.toId(career.talents).split(', ').sort().join(', ')
+                        if (Helper.toId(newTalents).split(', ').sort().join(', ') !== oldTalents) {
+                            console.log('Talent de ' + foundryCareerGroupId + ' - ' + career.careerLevelName);
+                            console.log('VF     : ' + oldTalents);
+                            console.log('FOUNDRY: ' + Helper.toId(newTalents).split(', ').sort().join(', '));
+                            console.log('');
+                        }
+                        /*var newTrappings = tmpItem.data.trappings.map(x => this.getElemId(CharGen, 'trapping', x)).sort().join(', ');
+                        if (Helper.toId(newTrappings) !== Helper.toId(career.trappings)) {
+                            console.log('Talent de ' + foundryCareerGroupId + ' - ' + career.careerLevelName);
+                            console.log('VF     : ' + career.trappings);
+                            console.log('FOUNDRY: ' + newTrappings);
+                            console.log('');
+                        }*/
+                        career.modified = 1;
+                        career.talents = newTalents;
+                    }
+                    careers[careers.length] = career;
+                    if (tmpItem.data.current.value) {
+                        newCharacter.setCareer(career);
+                    }
+                } else if (tmpItem.type === 'skill') {
+                    elemId = this.getElemId(CharGen, tmpItem.type, tmpItem.name);
+                    var skill = Helper.formatSkill(CharGen, elemId);
+                    if (!skill) {
+                        console.log('Skill: ' + tmpItem.name);
+                        continue;
+                    }
+                    /*if (skill.getLabel() !== elemId) {
+                        console.log('skill: ' + skill.getLabel() + ' != ' + elemId);
+                    }*/
+                    var newSkill = newCharacter.setSkill(skill);
+                    newSkill.advance = tmpItem.data.advances.value;
+                } else if (tmpItem.type === 'talent') {
+                    elemId = this.getElemId(CharGen, tmpItem.type, tmpItem.name);
+                    var talent = Helper.formatTalent(CharGen, elemId);
+                    if (!talent) {
+                        console.log('Talent: ' + tmpItem.name);
+                        continue;
+                    }
+                    /*if (talent.getLabel() !== elemId) {
+                        console.log('talent: ' + talent.getLabel() + ' != ' + elemId);
+                    }*/
+                    var newTalent = newCharacter.setTalent(talent);
+                    newTalent.advance = tmpItem.data.advances.value;
+                } else if (tmpItem.type === 'prayer'
+                    || tmpItem.type === 'spell') {
+                    var foundrySpellId = this.getElemId(CharGen, tmpItem.type, tmpItem.name);
+                    var spell = Helper.formatSpell(CharGen, foundrySpellId);
+                    if (!spell) {
+                        continue;
+                    }
+                    var newSpell = newCharacter.setSpell(spell);
+                    if (tmpItem.type === 'prayer') {
+                        prayers[prayers.length] = newSpell;
+                    }
+                } else {
+                    if (tmpItem.data.quantity) {
+                        if (tmpItem.data.quantity.value > 0) {
+                            trappings[trappings.length] = tmpItem.name + (tmpItem.data.quantity.value > 1 ? ' (x' + tmpItem.data.quantity.value + ')' : '');
+                        }
+                    } else {
+                        console.log(tmpItem);
+                    }
+                }
+            }
+            var god = data.data.details.god ? data.data.details.god.value : null;
+            if (!god) {
+                var godTalent = newCharacter.searchTalent('Béni', '', false);
+                if (godTalent) {
+                    god = godTalent.spec;
+                }
+            }
+            var elems;
+            var el;
+            if (prayers.length && god) {
+                elems = prayers;
+                for (i = 0; i < elems.length; ++i) {
+                    el = elems[i];
+                    el.spec = god;
+                }
+            }
+            for (j = 0; j < careers.length; ++j) {
+                career = careers[j];
+                var talentsList = career.getTalents();
+                for (i = 0; i < talentsList.length; ++i) {
+                    el = talentsList[i];
+                    var spec = el.spec ? el.spec : el.specs;
+                    var charTalent = newCharacter.searchTalent(el.id, spec, false);
+                    if (charTalent) {
+                        charTalent.addOrigins([career.id]);
+                    }
+                }
+            }
+            newCharacter.trappings = trappings;
+            newCharacter.applyTalent();
+            newCharacter.xp = {
+                max: 100000,
+                log: {},
+                used: 0,
+            };
+            console.log(CharGen);
+            console.log(newCharacter);
+            return newCharacter;
+        },
+    }
+    this.FoundryHelper = FoundryHelper;
+</script>

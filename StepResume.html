@@ -1,0 +1,285 @@
+<script>
+    var StepResume = function (i, CharGen) {
+        var oThat = {};
+        var character;
+        oThat.stepName = "Résumé";
+        oThat.desc = function () {
+            return ''
+        };
+        oThat.title = function () {
+            return 'Resumé'
+        };
+
+        oThat.cancelAction = function () {
+            $('.cancel').off('click').on('click', function () {
+                $('.left_panel').addClass('overflow_panel');
+                $('.left_panel').addClass('pretty_panel');
+                CharGen.showMenu(i);
+            });
+        };
+        oThat.initAction = function () {
+            character = CharGen.character.clone();
+        };
+        oThat.otherAction = function (el) {
+            el.html('Sauvegarder');
+            el.on('click', function () {
+                google.script.run.withSuccessHandler(function (data) {
+                    if (data) {
+                        if (data !== CharGen.saveName) {
+                            CharGen.saveName = data;
+
+                            $("#save").dialog({
+                                resizable: false,
+                                height: "auto",
+                                open: function (event, ui) {
+
+                                    $('.codesave').html(data)
+                                },
+                                buttons: []
+                            });
+
+                        } else {
+                            alert("Personnage sauvegardé");
+                        }
+                    } else {
+                        alert('Echec de la sauvegarde.');
+                    }
+                }).save(CharGen.saveName, JSON.stringify(character.save()));
+            });
+        };
+
+        oThat.show = function () {
+            var con = $('.left_panel').html('');
+            con.removeClass('overflow_panel');
+            con.removeClass('pretty_panel');
+            con.append('<div class="tabs"></div>');
+            var tabs = con.find('.tabs');
+            tabs.append('<ul><li><a href="#tabs-1">Perso</a></li><li><a href="#tabs-2">Attributs</a></li><li><a href="#tabs-3">Talents</a></li><li><a href="#tabs-4">Poss</a></li><li><a href="#tabs-5">Sorts</a></li></ul>');
+            tabs.append('<div id="tabs-1" class="pretty_panel paneltabs overflow_panel"></div>');
+            var specie = tabs.find('#tabs-1');
+            var details = CharGen.data.details;
+            var career = character.getCareer() ? character.getCareer().data : '';
+            var detailDescription = function (i) {
+                return {
+                    label: details[i].label,
+                    value: character.details[i],
+                    desc: function () {
+                        Helper.addDescription(Helper.getHelpFormat({
+                            getLabel: function () {
+                                return details[i].label;
+                            },
+                            desc: (details[i].allDesc ? details[i].allDesc : details[i].desc[character.getSpecie().data.index])
+                        }))
+                    }
+                }
+            };
+            var allDetails = [
+                detailDescription(0),
+                {
+                    label: 'Race', value: character.getSpecie().getLabel(), desc: function () {
+                        Helper.addDescription(Helper.getHelpFormat(character.getSpecie().data))
+                    }
+                },
+                {
+                    label: 'Classe', value: career ? career.class : '', desc: function () {
+                        if (career) {
+                            Helper.addDescription(Helper.getHelpFormat(CharGen.allClasses[Helper.toId(career.class)]))
+                        }
+                    }
+                },
+                {
+                    label: 'Carrière', value: career ? career.label : '', desc: function () {
+                        if (career) {
+                            Helper.addDescription(Helper.getHelpFormat(career))
+                        }
+                    }
+                },
+                {
+                    label: 'Niveau de Carrière', value: career ? career.careerLevelName : '', desc: function () {
+                    }
+                },
+                {
+                    label: 'Schéma de Carrière', value: career ? career.careerLevelName : '', desc: function () {
+                    }
+                },
+                {
+                    label: 'Statut', value: career ? career.status : '', desc: function () {
+                    }
+                },
+                {
+                    label: 'Expérience Actuelle',
+                    value: character.xp.max - character.xp.used,
+                    desc: function () {
+                    }
+                },
+                {
+                    label: 'Expérience Dépensée', value: character.xp.used, desc: function () {
+                    }
+                },
+                {
+                    label: 'Expérience Totale', value: character.xp.max, desc: function () {
+                    }
+                },
+                detailDescription(1),
+                detailDescription(4),
+                detailDescription(3),
+                detailDescription(2),
+                detailDescription(5),
+                detailDescription(6),
+                detailDescription(7),
+            ]
+            $(allDetails).each(function (i, el) {
+                specie.append('<div data-id="detail_' + i + '"><b>' + el.label + ':</b> ' + el.value + '</div><br>');
+                $('[data-id="detail_' + i + '"]').off('click').on('click', function () {
+                    el.desc();
+                });
+            });
+
+            tabs.append('<div id="tabs-2" class="pretty_panel paneltabs overflow_panel"></div>');
+            var skillstab = tabs.find('#tabs-2');
+            /** CHARACTERISTICS **/
+            skillstab.append('<div><b>Carractéristiques:</b></div>');
+            var caracs = character.getCharacteristics();
+            Helper.generateListWithRankAndHelp(
+                caracs,
+                ['', 'Base', 'Aug', 'Total'],
+                function (i, el) {
+                    return el.data.class !== 'points'
+                },
+                skillstab,
+                [
+                    function (i, el) {
+                        return el.getLabel()
+                    },
+                    function (i, el) {
+                        return el.getBase();
+                    },
+                    function (i, el) {
+                        return el.getAdvance() ? el.getAdvance() : '';
+                    },
+                    function (i, el) {
+                        return el.getTotal();
+                    }
+                ],
+                function () {
+                },
+                function () {
+                },
+                function (i, el) {
+                    Helper.addDescription(Helper.getHelpFormat(el.data))
+                },
+                1
+            );
+            /** SKILLS **/
+            skillstab.append('<br><br><div><b>Compétences:</b></div>');
+            var skills = character.getAllSkills();
+            Helper.generateListWithRankAndHelp(
+                skills,
+                ['', 'Base', 'Aug', 'Total'],
+                function () {
+                    return true
+                },
+                skillstab,
+                [
+                    function (i, el) {
+                        return el.getLabel()
+                    },
+                    function (i, el) {
+                        return el.getBase();
+                    },
+                    function (i, el) {
+                        return el.getAdvance() ? el.getAdvance() : '';
+                    },
+                    function (i, el) {
+                        return el.getTotal();
+                    }
+                ],
+                function (mode, el) {
+                },
+                function (t) {
+                },
+                function (i, el) {
+                    Helper.addDescription(Helper.getHelpFormat(el.data))
+                },
+                1
+            );
+
+            /** TALENTS **/
+            tabs.append('<div id="tabs-3" class="pretty_panel paneltabs overflow_panel"></div>');
+            var talentstab = tabs.find('#tabs-3');
+            var talents = character.getTalents();
+            Helper.generateListWithHelp(
+                talents,
+                function (i, el) {
+                    return el.getAdvance()
+                },
+                talentstab,
+                function (i, el) {
+                    return el.getLabel()
+                },
+                function (i) {
+                    Helper.addDescription(Helper.getHelpFormat(talents[i].data));
+                },
+                true
+            );
+
+            /** TRAPPINGS **/
+            tabs.append('<div id="tabs-4" class="pretty_panel paneltabs overflow_panel"></div>');
+            var trappingstab = tabs.find('#tabs-4');
+            var trappings = character.trappings;
+            Helper.generateListWithHelp(
+                trappings,
+                function () {
+                    return true
+                },
+                trappingstab,
+                function (i, el) {
+                    return el
+                },
+                function (i) {
+                    var trapp = CharGen.allTrappings[Helper.toId(Helper.removePlural(trappings[i]))];
+                    $('.right_panel').html('');
+                    if (typeof trapp !== 'undefined') {
+                        if (trapp.desc !== '') {
+                            Helper.addDescription(Helper.getHelpFormat(trapp));
+                        }
+                    }
+                },
+                true
+            );
+
+            /** GODS **/
+            tabs.append('<div id="tabs-5" class="pretty_panel paneltabs overflow_panel"></div>');
+            var spellstab = tabs.find('#tabs-5');
+            var spells = character.getSpells();
+            var godTalent = character.searchTalent('Béni', '', false);
+            var god = godTalent ? CharGen.allGods[Helper.toId(godTalent.spec)] : '';
+            if (spells) {
+                if (god) {
+                    spellstab.append('<br><div class="gods"><b>Dieu:</b> ' + god.getLabel() + '</div>');
+                    spellstab.append('<br><div><b>Bénédictions:</b></div>');
+                }
+                Helper.generateListWithHelp(
+                    spells,
+                    function () {
+                        return true
+                    },
+                    spellstab,
+                    function (i, el) {
+                        return el.getLabel()
+                    },
+                    function (i) {
+                        Helper.addDescription(Helper.getHelpFormat(spells[i].data));
+                    },
+                    true
+                );
+                spellstab.find('.gods').on('click', function () {
+                    Helper.addDescription(Helper.getHelpFormat(god))
+                });
+            }
+            tabs.tabs();
+        };
+        return oThat;
+    }
+    this.StepResume = StepResume;
+</script>

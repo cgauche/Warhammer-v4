@@ -1,0 +1,714 @@
+<script>
+    function ajaxLoader(el, options) {
+        // Becomes this.options
+        var defaults = {
+            bgColor: '#fff', // Defines the color of the layer
+            ldColor: '#000', // Defines the color of the loader
+            duration: 800,
+            opacity: 0.7, // Defines the opacity of the layer if one
+            classOveride: false,
+            layer: true, // Defines if there will be a layer or not
+            size: '2.5em', // Size of the loader
+        };
+        this.options = jQuery.extend(defaults, options);
+        this.container = $(el);
+
+        this.init = function () {
+            var container = this.container;
+            // Delete any other loaders
+            this.remove();
+            // Create the overlay
+            var overlay = $('<section></section>').css({
+                'background-color': this.options.bgColor,
+                'opacity': this.options.opacity,
+                'z-index': 999
+            }).addClass('ajax_loader');
+            var loader = $('<div class="loader" style="height:' + this.options.size + ';width:' + this.options.size + '">' +
+                '<div class="ldr-blk an_delay one" style="background-color:' + this.options.ldColor + '"></div>' +
+                '<div class="ldr-blk an_delay two" style="background-color:' + this.options.ldColor + '"></div>' +
+                '<div class="ldr-blk an_delay three" style="background-color:' + this.options.ldColor + '"></div>' +
+                '<div class="ldr-blk an_delay four" style="background-color:' + this.options.ldColor + '"></div>' +
+                '</div>');
+            if (this.options.layer) {
+                overlay.append(loader);
+            } else {
+                overlay = loader.addClass('ajax_loader');
+            }
+            // add an overiding class name to set new loader style
+            if (this.options.classOveride) {
+                overlay.addClass(this.options.classOveride);
+            }
+            // insert overlay and loader into DOM
+            container.append(overlay).fadeIn(this.options.duration);
+        };
+
+        this.remove = function (callback) {
+            var overlay = this.container.children(".ajax_loader");
+            if (overlay.length) {
+                overlay.fadeOut(this.options.classOveride, function () {
+                    overlay.remove();
+                    if (typeof callback === "function")
+                        callback();
+                });
+            }
+        };
+
+        this.init();
+    }
+
+    $(function () {
+        var data;
+        var allTalents;
+        var allSkills;
+        var allTrappings;
+        var allSpells;
+        var popin = $("#dialog").dialog({
+            autoOpen: false,
+            width: 800
+        });
+
+        function sanitarize(text) {
+            return text.split(' (')[0].replace(' ', '_').toLowerCase();
+        }
+
+        function removePlural(text) {
+            return text.replace(/(s|es|e)\b/ig, '');
+        }
+
+        function help(label, desc) {
+            translate(desc, function (text) {
+                showPopin(label, text)
+            });
+        }
+
+        function onSuccessgetTranslate(text) {
+            popin.html(text);
+        }
+
+        function getRandomInt(max) {
+            return Math.floor(1 + Math.random() * Math.floor(max));
+        }
+
+        function getLang() {
+            return $('#lang').val();
+        }
+
+        function translate(message, func) {
+            var lang = getLang();
+            if (lang !== 'en') {
+                loader = new ajaxLoader(".mainpage");
+                google.script.run.withSuccessHandler(function () {
+                    func();
+                    loader.remove();
+                }).translate(message, lang, 1);
+            } else {
+                func(message);
+            }
+        }
+
+        function showPopin(title, message) {
+            var lang = getLang();
+            $('.ui-dialog-title').html(title);
+            popin.html(message);
+            popin.dialog("open");
+        }
+
+        /** DATA **/
+        var loader = new ajaxLoader(".mainpage");
+        google.script.run.withSuccessHandler(loadData).getAllData();
+
+        function loadData(jNames) {
+            data = jNames;
+            onSuccessgetSpecies();
+        }
+
+        /** SPECIES **/
+        function onSuccessgetSpecies() {
+            var species = $(data.species);
+            var $species = $('#species');
+            $species.find('option').remove();
+            $species.append($('<option>', {disabled: 'disabled', selected: 'selected'}));
+            var val = 1;
+            species.each(function (i, el) {
+                var rand = el.rand;
+                $species.append($('<option>', {
+                    value: i,
+                    text: el.label + ' (' + (val == rand ? '' : val + ' - ') + rand + ')'
+                }));
+                val = rand + 1;
+            });
+            $("#roll_species").val('Roll');
+            $('#validate_species').hide();
+            $("#roll_species").off('click').on('click', function () {
+                var value = getRandomInt(100);
+                $(this).val(value);
+                species.each(function (i, el) {
+                    if (el.rand >= value) {
+                        $species.val(i);
+                        $species.trigger("change");
+                        return false;
+                    }
+                });
+            });
+            $("#help_species").off('click').on('click', function () {
+                if ($('#species').val() !== null) {
+                    var spec = species[parseInt($('#species').val())];
+                    help(spec.label, spec.desc);
+                }
+            });
+            $species.off('change').on('change', function () {
+                $('#div_classes').hide();
+                $('.characteristics').hide();
+                $('.talents').hide();
+                $('.details').hide();
+                $('.blessing').hide();
+                $('.petty_magic').hide();
+                $('.trappings').hide();
+                $('.skills').hide();
+                $('#validate_species').show();
+            });
+            $('#validate_species').off('click').on('click', function () {
+                $('#validate_species').hide();
+                onSuccessGetCareers();
+            });
+            loader.remove();
+        }
+
+        /** CLASSES **/
+        function onSuccessGetCareers() {
+            var classes = $(data.careers);
+            var $classes = $('#classes');
+            $classes.find('option').remove();
+            $classes.append($('<option>', {disabled: 'disabled', selected: 'selected'}));
+            var val = 1;
+            classes.each(function (i, el) {
+                var rand = el.rand[parseInt($('#species').val())];
+                if (rand) {
+                    $classes.append($('<option>', {
+                        value: i,
+                        text: el.label + ' (' + (val == rand ? '' : val + ' - ') + rand + ')'
+                    }));
+                    val = rand + 1;
+                }
+            });
+            $('#div_classes').show();
+            $("#roll_classes").val('Roll');
+            $('#validate_classes').hide();
+            $('.desc_classes').html('');
+            $("#roll_classes").off('click').on('click', function () {
+                var value = getRandomInt(100);
+                $(this).val(value);
+                classes.each(function (i, el) {
+                    var rand = el.rand[parseInt($('#species').val())];
+                    if (rand >= value) {
+                        $classes.val(i);
+                        $classes.trigger("change");
+                        return false;
+                    }
+                });
+            });
+            $("#help_classes").off('click').on('click', function () {
+                if ($('#classes').val() !== null) {
+                    var spec = classes[parseInt($('#classes').val())];
+                    help(spec.label, spec.desc);
+                }
+            });
+            $classes.off('change').on('change', function () {
+                $('.characteristics').hide();
+                $('.talents').hide();
+                $('.blessing').hide();
+                $('.petty_magic').hide();
+                $('.trappings').hide();
+                $('.details').hide();
+                $('.skills').hide();
+                $('#validate_classes').show();
+                var spec = classes[parseInt($('#classes').val())];
+                translate(spec.resume, function (text) {
+                    $('.desc_classes').html(text);
+                });
+            });
+            $('#validate_classes').off('click').on('click', function () {
+                $('#validate_classes').hide();
+                onSuccessCharacteristics();
+                onSuccessTalents();
+                onSuccessSpells();
+                onSuccessSkills();
+                onSuccessTrappings();
+                onSuccessGetEyes();
+                onSuccessGetHairs();
+                onSuccessDetails();
+            });
+        }
+
+        /** EYES **/
+        function onSuccessGetEyes() {
+            var eyes = $(data.eyes);
+            var $eyes = $('#eye');
+            $eyes.find('option').remove();
+            $eyes.append($('<option>', {disabled: 'disabled', selected: 'selected'}));
+            var val = 2;
+            eyes.each(function (i, el) {
+                var rand = el.rand;
+                if (rand) {
+                    $eyes.append($('<option>', {
+                        value: i,
+                        text: el.label[parseInt($('#species').val())] + ' (' + (val == rand ? '' : val + ' - ') + rand + ')'
+                    }));
+                    val = rand + 1;
+                }
+            });
+            $("#roll_eye").off('click').on('click', function () {
+                var value = getRandomInt(10) + getRandomInt(10);
+                $(this).val(value);
+                eyes.each(function (i, el) {
+                    if (el.rand >= value) {
+                        $eyes.val(i);
+                        $eyes.trigger("change");
+                        return false;
+                    }
+                });
+            });
+        }
+
+        /** HAIRS **/
+        function onSuccessGetHairs(jNames) {
+            var hairs = $(data.hairs);
+            var $hairs = $('#hair');
+            $hairs.find('option').remove();
+            $hairs.append($('<option>', {disabled: 'disabled', selected: 'selected'}));
+            var val = 2;
+            hairs.each(function (i, el) {
+                var rand = el.rand;
+                if (rand) {
+                    $hairs.append($('<option>', {
+                        value: i,
+                        text: el.label[parseInt($('#species').val())] + ' (' + (val == rand ? '' : val + ' - ') + rand + ')'
+                    }));
+                    val = rand + 1;
+                }
+            });
+            $("#roll_hair").off('click').on('click', function () {
+                var value = getRandomInt(10) + getRandomInt(10);
+                $(this).val(value);
+                hairs.each(function (i, el) {
+                    if (el.rand >= value) {
+                        $hairs.val(i);
+                        $hairs.trigger("change");
+                        return false;
+                    }
+                });
+            });
+        }
+
+        /** DETAILS **/
+        function onSuccessDetails() {
+            var spec = data.species[parseInt($('#species').val())];
+            $('.details').show();
+            $('#help_name').off('click').on('click', function () {
+                help(spec.label + ' Names', spec.name);
+            });
+            $('#age').val('');
+            $('#roll_age').off('click').on('click', function () {
+                var value = spec.age;
+                var i = spec.rollAge;
+                while (i > 0) {
+                    value += getRandomInt(10);
+                    --i;
+                }
+                $('#age').val(value);
+            });
+            $('#height').val('');
+            $('#roll_height').off('click').on('click', function () {
+                var value = spec.height;
+                var i = spec.rollHeight;
+                while (i > 0) {
+                    value += (getRandomInt(10));
+                    --i;
+                }
+                $('#height').val(Math.round(value * 100) / 100);
+            });
+
+        }
+
+        /** CHARACTERISTICS **/
+        function onSuccessCharacteristics() {
+            var characteristics = $(data.characteristics);
+            var classes = data.careers;
+            var $characteristics = $('.characteristics table');
+            $characteristics.find('tr.characteristics_tr').remove();
+            $('.roll_total').html('');
+            characteristics.each(function (i, el) {
+                var rand = el.rand[parseInt($('#species').val())];
+                var html = '<td>' + el.label + '</td>';
+                html += '<td><input type="button" class="help_characteristics" value="?" data-id="' + i + '"/></td>';
+                html += '<td class="right base">' + rand + '</td>';
+                if (el.class) {
+                    html += '<td><input class="right add ' + el.class + '" type="number" min="0" max="20" value="0"/></td>';
+                } else {
+                    html += '<td></td>';
+                }
+                html += '<td data-id="' + el.label + '"></td>';
+                html += '<td class="right total">' + rand + '</td>';
+                $characteristics.find('tr:last').after('<tr class="characteristics_tr">' + html + '</tr>');
+                $('.help_characteristics').off('click').on('click', function (el) {
+                    var spec = characteristics[$(this).data('id')];
+                    help(spec.label, spec.desc);
+                });
+            });
+            var careersCharacteristics = classes[parseInt($('#classes').val())].characteristics;
+            $(careersCharacteristics.split(', ')).each(function () {
+                $('[data-id="' + this + '"]').html('<input class="right add" type="number" min="0" max="5" value="0"/>');
+            });
+            $('.characteristics').show();
+            $('#validate_characteristics').hide();
+            $("#roll_characteristics").off('click').on('click', function () {
+                var total = 0;
+                $characteristics.find('.characteristics_tr').each(function (i, el) {
+                    var $this = $(this);
+                    if ($this.find('.roll').length) {
+                        var value = getRandomInt(10) + getRandomInt(10);
+                        $this.find('.roll').val(value);
+                        value = 0;
+                        $this.find('.add').each(function () {
+                            var val = parseInt($(this).val());
+                            value += (val ? val : 0);
+                        })
+                        $this.find('.total').html(value + parseInt($this.find('.base').html()));
+                        total += value;
+                    }
+                });
+                $('.roll_total').html(total);
+            });
+            $(".characteristics .add").off('change').on('change', function () {
+                var total = 0;
+                $characteristics.find('.characteristics_tr').each(function (i, el) {
+                    var $this = $(this);
+                    if ($this.find('.add').length) {
+                        var value = 0;
+                        $this.find('.add').each(function () {
+                            var val = parseInt($(this).val());
+                            value += (val ? val : 0);
+                            if ($(this).is('.roll')) {
+                                total += value;
+                            }
+                        });
+                        $this.find('.total').html(value + parseInt($this.find('.base').html()));
+                    }
+                });
+                $('.roll_total').html(total);
+            });
+            $('#validate_characteristics').off('click').on('click', function () {
+                $('#validate_characteristics').hide();
+            });
+        }
+
+        /** TALENTS **/
+        function onSuccessTalents() {
+            var talents = $(data.talents);
+            var $talents = $('.talents ol');
+            var randomTalentHtml = '';
+            $talents.find('li').remove()
+            allTalents = {};
+            var val = 1;
+            talents.each(function (i, el) {
+                var rand = el.rand
+                if (rand) {
+                    randomTalentHtml += '<option value="' + el.label + '">' + el.label + ' (' + (val == rand ? '' : val + ' - ') + rand + ')' + '</option>';
+                    val = rand + 1;
+                }
+                allTalents[sanitarize(el.id)] = el;
+            });
+            var speciesTalent = data.species[parseInt($('#species').val())];
+            $((speciesTalent.talents + ', ' + data.careers[parseInt($('#classes').val())].talents.replace(/, /g, ' or ')).split(", ")).each(function (i, el) {
+                var or = el.split(' or ');
+                if (or.length > 1) {
+                    var html = '<select class="change_talent"><option disabled selected></option>';
+                    $(or).each(function () {
+                        html += '<option>' + this + '</option>';
+                    });
+                    html += '</select>';
+                } else {
+                    var html = '<select disabled style="display:none"><option>' + el + '</option></select>' + el;
+                }
+                $talents.append("<li>" + html + '<input type="button" class="help_talents" value="?"/></li>');
+            });
+            var randomTalent = speciesTalent.randomTalents;
+            while (randomTalent != 0) {
+                $talents.append("<li><select class='change_talent'><option disabled selected></option>" + randomTalentHtml + '</select><input type="button" class="help_talents" value="?"/><input type="button" class="roll_talents" value="Roll"/></li>');
+                --randomTalent;
+            }
+            $('.talents').show();
+            $('#validate_talents').hide();
+            $(".roll_talents").off('click').on('click', function () {
+                var select = $(this).parent().find('select');
+                var value = getRandomInt(100);
+                $(this).val(value);
+                talents.each(function (i, el) {
+                    if (el.rand >= value) {
+                        select.val(el.label);
+                        select.trigger("change");
+                        return false;
+                    }
+                });
+            });
+            $(".help_talents").off('click').on('click', function (i, el) {
+                var val = $(this).parent().find('select').val();
+                if (val !== null) {
+                    var spec = allTalents[sanitarize(val)];
+                    help(spec.label, spec.desc);
+                }
+            });
+            $('.change_talent').off('change').on('change', function (i, el) {
+                var $this = $(this);
+                var old = $this.data('old');
+                if (old) {
+                    var oldSpec = allTalents[sanitarize(old)];
+                    if (oldSpec.addSkill) {
+                        var target = $('.special_' + sanitarize(oldSpec.id));
+                        if (target.length) {
+                            var select = target.find('.add');
+                            select.val(0);
+                            select.trigger("change");
+                            target.remove();
+                        }
+                    }
+                    if (oldSpec.addMagic) {
+                        $('.' + sanitarize(oldSpec.addMagic)).hide();
+                    }
+                }
+                var val = $this.parent().find('select').val();
+                if (val !== null) {
+                    var spec = allTalents[sanitarize(val)];
+                    if (spec.addSkill) {
+                        addSkill(spec.addSkill, 1, 'special_' + sanitarize(spec.id));
+                    }
+                    if (spec.addMagic) {
+                        $('.' + sanitarize(spec.addMagic)).show();
+                    }
+                }
+                $this.data('old', val);
+            });
+        }
+
+        /** TRAPPINGS **/
+        function onSuccessTrappings() {
+            var trappings = $(data.trappings);
+            var $trappings = $('.trappings table');
+            $trappings.find('.trappings_tr').remove()
+            allTappings = {};
+            trappings.each(function (i, el) {
+                allTappings[removePlural(el.id)] = el;
+            });
+            var careersTrapping = data.careers[parseInt($('#classes').val())].trappings;
+            $((careersTrapping).split(", ")).each(function (i, el) {
+                if (el) {
+                    var or = el.split(' or ');
+                    var enc = '';
+                    var help = ' style="display:none"';
+                    var qte = '';
+                    var carry = '';
+                    if (or.length > 1) {
+                        var html = '<select class="select_trapping"><option disabled selected></option>';
+                        qte = 1;
+                        $(or).each(function () {
+                            html += '<option>' + this + '</option>';
+                        });
+                        html += '</select>';
+                    } else {
+                        var match = el.match(/([0-9d]* )?([A-Z].*)/);
+                        qte = typeof match[1] == 'undefined' ? '1' : match[1];
+                        el = match[2];
+                        var html = '<select disabled style="display:none"><option>' + el + '</option></select>' + el;
+                    }
+                    var san = removePlural(el);
+                    if (typeof allTappings[san] !== 'undefined') {
+                        var trapping = allTappings[san];
+                        enc = trapping.enc;
+                        if (trapping.carry) {
+                            carry = trapping.carry;
+                        }
+                        if (trapping.desc != '') {
+                            help = '';
+                        }
+                    }
+                    $trappings.append("<tr class='trappings_tr'><td class='qty'>" + qte + "</td><td>" + html + '</td><td class="help"><input ' + help + ' type="button" class="help_trappings" value="?"/></td><td class="right enc">' + enc + '</td><td class="right carry">' + carry + '</td></tr>');
+                }
+            });
+            $('.trappings').show();
+            $('.select_trapping').off('change').on('change', function () {
+                var el = $(this).val();
+                var carry = '';
+                var enc = '';
+                var help = 0;
+                var san = removePlural(el);
+                if (typeof allTappings[san] !== 'undefined') {
+                    var trapping = allTappings[san];
+                    enc = trapping.enc;
+                    if (trapping.carry) {
+                        carry = trapping.carry;
+                    }
+                    if (trapping.desc != '') {
+                        help = 1;
+                    }
+                }
+                var tr = $(this).parents('tr');
+                tr.find('.enc').html(enc);
+                if (help) {
+                    tr.find('.help_trappings').show();
+                } else {
+                    tr.find('.help_trappings').hide();
+                }
+                tr.find('.carry').html(carry);
+            });
+            $(".help_trappings").off('click').on('click', function (i, el) {
+                var val = $(this).parents('tr').find('select').val();
+                if (val !== null) {
+                    var spec = allTappings[removePlural(val)];
+                    help(spec.label, spec.desc);
+                }
+            })
+        }
+
+        /** SKILLS **/
+        function addSkill(el, type, flag) {
+            var $skills = $('.skills table');
+            var skill = allSkills[sanitarize(el)];
+            var html = '<td>' + el + ' ' + skill.characteristic + '</td>';
+            html += '<td><input type="button" class="help_skills" value="?" data-id="' + el + '"/></td>';
+            html += '<td class="right base">';
+            if (type <= 0) {
+                html += '<select class="add"><option></option><option>3</option><option>5</option></select>';
+            }
+            html += '</td>';
+            html += '<td>' + (type >= 0 ? '<input class="right add" value="0" min="0" max="10" type="number" />' : '') + '</td>';
+            html += '<td class="right total">0</td>';
+            $skills.find('tr:last').after('<tr class="skills_tr ' + flag + '">' + html + '</tr>');
+            $('.help_skills').off('click').on('click', function (el) {
+                var spec = allSkills[sanitarize($(this).data('id'))];
+                help(spec.label + ' ' + spec.characteristic, spec.desc);
+            });
+        }
+
+        function onSuccessSkills() {
+            var skills = $(data.skills);
+            allSkills = {};
+            skills.each(function (i, el) {
+                allSkills[sanitarize(el.id)] = el;
+            });
+            var speciesSkills = data.species[parseInt($('#species').val())];
+            var classesSkills = data.careers[parseInt($('#classes').val())];
+            var $skills = $('.skills table');
+            var charSkillsObject = {};
+            var charSkills = [];
+            $skills.find('tr.skills_tr').remove();
+            $(speciesSkills.skills.split(', ')).each(function (i, el) {
+                charSkillsObject[el] = -1;
+                charSkills[charSkills.length] = el;
+            });
+            $(classesSkills.skills.split(', ')).each(function (i, el) {
+                if (typeof charSkillsObject[el] == 'undefined') {
+                    charSkills[charSkills.length] = el;
+                    charSkillsObject[el] = 1;
+                } else {
+                    charSkillsObject[el] = 0;
+                }
+            });
+            charSkills.sort();
+            $(charSkills).each(function (i, el) {
+                addSkill(el, charSkillsObject[el], '');
+            });
+            $('.skills').show();
+            $(".skills .add").off('change').on('change', function () {
+                var total = 0;
+                $skills.find('.skills_tr').each(function (i, el) {
+                    var $this = $(this);
+                    if ($this.find('.add').length) {
+                        var value = 0;
+                        $this.find('.add').each(function () {
+                            var val = parseInt($(this).val());
+                            value += (val ? val : 0);
+                            if ($(this).is('.roll')) {
+                                total += value;
+                            }
+                        });
+                        $this.find('.total').html(value);
+                    }
+                });
+            });
+        }
+
+        /** MAGIC **/
+        function onSuccessSpells() {
+            var spells = $(data.spells);
+            var $petty_magic = $('.magie_mineure ol');
+            var randomPettyMagicHtml = '';
+            var randomBlessingHtml = '';
+            $petty_magic.find('li').remove()
+            allSpells = {};
+            var val = 1;
+            spells.each(function (i, el) {
+                var type = el.type
+                if (type == 'Magie mineure') {
+                    randomPettyMagicHtml += '<option value="' + el.label + '">' + el.label + '</option>';
+                } else if (type == 'Béni') {
+                    randomBlessingHtml += '<option value="' + el.label + '">' + el.label + '</option>';
+                }
+                allSpells[sanitarize(el.id)] = el;
+            });
+            var randomPettyMagic = 8;
+            while (randomPettyMagic != 0) {
+                $petty_magic.append("<li><select><option disabled selected></option>" + randomPettyMagicHtml + '</select><input type="button" class="help_spells" value="?"/></li>');
+                --randomPettyMagic;
+            }
+            onSuccessGods(randomBlessingHtml);
+        }
+
+        /** BLESSING **/
+        function onSuccessGods(randomBlessingHtml) {
+            var gods = $(data.gods);
+            var $blessing = $('.béni ol');
+            $blessing.find('li').remove()
+            var blessingNb = 6;
+            while (blessingNb != 0) {
+                $blessing.append("<li><select class='change_blessing' style='display:none'><option disabled selected></option>" + randomBlessingHtml + '</select><span></span><input type="button" class="help_spells" value="?"/></li>');
+                --blessingNb;
+            }
+            $(".help_spells").off('click').on('click', function (i, el) {
+                var val = $(this).parent().find('select').val();
+                if (val !== null) {
+                    var spec = allSpells[sanitarize(val)];
+                    help(spec.label, spec.desc);
+                }
+            });
+            $('.change_blessing').off('change').on('change', function (i, el) {
+                var $this = $(this);
+                var val = $this.parent().find('select').val();
+                $this.parent().find('span').html(val);
+            });
+            var $gods = $('#gods');
+            $gods.find('option').remove();
+            $gods.append($('<option>', {disabled: 'disabled', selected: 'selected'}));
+            var val = 1;
+            gods.each(function (i, el) {
+                $gods.append($('<option>', {value: i, text: el.id}));
+            });
+            $("#help_gods").off('click').on('click', function () {
+                if ($('#gods').val() !== null) {
+                    var spec = gods[parseInt($('#gods').val())];
+                    help(spec.label, spec.desc);
+                }
+            });
+            $('#gods').off('change').on('change', function (i, el) {
+                var spec = gods[parseInt($('#gods').val())];
+                $('.change_blessing').each(function (i, el) {
+                    var val = 'Bénédiction de ' + spec.spells[i];
+                    $(el).val(val);
+                    $(el).trigger("change");
+
+                });
+            });
+
+        }
+
+    });
+</script>

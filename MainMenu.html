@@ -1,0 +1,122 @@
+<script>
+    var MainMenu = function (i, CharGen) {
+        var oThat = {};
+        oThat.stepName = "Menu";
+        oThat.desc = function () {
+            return ''
+        };
+        oThat.title = function () {
+            return 'Générateur de personnage'
+        };
+        oThat.initAction = function () {
+
+        };
+
+        oThat.otherAction = false;
+
+        oThat.randomAction = false;
+        oThat.show = function (currentStep) {
+            $('.left_panel').hide();
+            $('.right_panel').hide();
+            $('.all_panel').show();
+            var stepList = [
+                Menu(0, CharGen),
+                {
+                    stepName: "Création de personnage aléatoire", onClick: function () {
+                        var i = 0;
+                        var max = 8;
+                        Menu(0, CharGen).createNewCharacter();
+                        //CharGen.character.xp.max = 50000;
+                        while (i < max) {
+                            var step = CharGen.stepList[i++];
+                            step.resetAction();
+                            step.initAction();
+                            step.randomAllAction();
+                            /*if (i === 1) {
+                                CharGen.data.species[1].talents = 'Flagellant, Sens aiguisé (Goût), Vision nocturne, Résistance (Chaos), Petit, Bon marcheur (Littoral), Bon marcheur (Au choix), Bon marcheur (Au choix), Artiste (Au choix), Maître artisan (Au choix)';
+                                CharGen.character.setSpecie(CharGen.data.species[1]);
+                            } else if (i === 2) {
+                                CharGen.data.careers[236].talents = 'Oreille absolue, Frénésie, Sens aiguisé (Goût), Nomade, Résistance (Au choix), Bon marcheur (Littoral ou Déserts), Magie mineure, Béni (Au choix), Maître artisan (Au choix)';
+                                CharGen.data.careers[236].skills = 'Emprise sur les animaux, Escalade, Résistance, Savoir (Herbes), Survie en extérieur, Perception, Natation, Discrétion (Rurale), Métier (Au choix)';
+                                CharGen.character.setCareer(CharGen.data.careers[236]);
+                            }*/
+                        }
+
+                        CharGen.stepIndex = i;
+                        $('.all_panel').hide();
+                        $('.left_panel').show();
+                        $('.right_panel').show();
+                        CharGen.showPanel(CharGen.stepIndex, CharGen.stepList[CharGen.stepIndex]);
+                    }
+                },
+                {
+                    stepName: "Charger", onClick: function () {
+                        $("#load").dialog({
+                            resizable: false,
+                            height: "auto",
+                            buttons: {
+                                "Charger": function () {
+                                    var dial = $(this);
+                                    google.script.run.withSuccessHandler(function (data, dial) {
+                                        if (data) {
+                                            CharGen.character = createNewCharacter(CharGen)
+                                            CharGen.character.load(data);
+                                            CharGen.saveName = $('.code').val();
+                                            CharGen.stepIndex = CharGen.stepList.length - 1;
+                                            $('.all_panel').hide();
+                                            $('.left_panel').show();
+                                            $('.right_panel').show();
+                                            CharGen.showPanel(CharGen.stepIndex, CharGen.stepList[CharGen.stepIndex]);
+                                            dial.dialog("destroy");
+                                        } else {
+                                            alert('Ce personnage n\'existe pas.');
+                                        }
+                                    }).withUserObject(dial).load($('.code').val());
+                                },
+                                "Annuler": function () {
+                                    $(this).dialog("destroy");
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    stepName: "Importer de Foundry", onClick: function () {
+                        $("#load").dialog({
+                            resizable: false,
+                            height: "auto",
+                            buttons: {
+                                "Importer": function () {
+                                    var dial = $(this);
+                                    CharGen.character = FoundryHelper.import(CharGen, $('.code').val());
+                                    CharGen.stepIndex = CharGen.stepList.length - 1;
+                                    $('.all_panel').hide();
+                                    $('.left_panel').show();
+                                    $('.right_panel').show();
+                                    CharGen.showPanel(CharGen.stepIndex, CharGen.stepList[CharGen.stepIndex]);
+                                    dial.dialog("destroy");
+                                },
+                                "Annuler": function () {
+                                    $(this).dialog("destroy");
+                                }
+                            }
+                        });
+                    }
+                },
+                Compendium(0, CharGen)
+            ];
+            Helper.generateMenu(stepList, null, $('.all_panel'),
+                function (i, el) {
+                    $('.all_panel').hide();
+                    $('.left_panel').show();
+                    $('.right_panel').show();
+                    if (el.createNewCharacter) {
+                        el.createNewCharacter();
+                    }
+                    CharGen.showPanel(0, el);
+                }
+            );
+        };
+        return oThat;
+    }
+</script>
