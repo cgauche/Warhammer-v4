@@ -20,6 +20,17 @@
             $('.right_panel').hide();
             $('.all_panel').show();
             var stepList = [
+                {
+                    stepName: "Continuer", onClick: function () {
+                        $('.all_panel').hide();
+                        $('.left_panel').show();
+                        $('.right_panel').show();
+                        CharGen.showPanel(0, Menu(0, CharGen));
+                    },
+                    isDisabled: function (i, el) {
+                        return !CharGen.stepIndex
+                    }
+                },
                 Menu(0, CharGen),
                 {
                     stepName: "Création de personnage aléatoire", onClick: function () {
@@ -59,10 +70,10 @@
                                     var dial = $(this);
                                     google.script.run.withSuccessHandler(function (data, dial) {
                                         if (data) {
-                                            CharGen.character = createNewCharacter(CharGen)
+                                            Menu(0, CharGen).createNewCharacter();
                                             CharGen.character.load(data);
                                             CharGen.saveName = $('.code').val();
-                                            CharGen.stepIndex = CharGen.stepList.length - 1;
+                                            CharGen.stepIndex = 8;
                                             $('.all_panel').hide();
                                             $('.left_panel').show();
                                             $('.right_panel').show();
@@ -88,8 +99,9 @@
                             buttons: {
                                 "Importer": function () {
                                     var dial = $(this);
+                                    Menu(0, CharGen).createNewCharacter();
                                     CharGen.character = FoundryHelper.import(CharGen, $('.code').val());
-                                    CharGen.stepIndex = CharGen.stepList.length - 1;
+                                    CharGen.stepIndex = 8;
                                     $('.all_panel').hide();
                                     $('.left_panel').show();
                                     $('.right_panel').show();

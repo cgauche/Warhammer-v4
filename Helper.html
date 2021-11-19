@@ -182,10 +182,13 @@
                 return e;
             });
         },
-        generateMenu: function (list, index, el, onClick) {
+        generateMenu: function (list, index, el, onClick, isDisabled, filter) {
             var html = '<div class="steplist">';
             $(list).each(function (i, e) {
-                html += '<button class="ui-button ui-widget button" data-line="' + i + '" ' + (index === null || i <= index ? '' : 'disabled') + ' >' + e.stepName + '</button>';
+                var elIsDisabled = e.isDisabled ? e.isDisabled(i, e) : (isDisabled ? isDisabled(i, e) : false);
+                if (e.filter ? e.filter(i, e) : (filter ? filter(i, e) : true)) {
+                    html += '<button class="ui-button ui-widget button" data-line="' + i + '" ' + (elIsDisabled ? 'disabled' : '') + ' >' + e.stepName + '</button>';
+                }
             });
             html += '</div>';
             el.html(html);
@@ -195,7 +198,7 @@
                 var el = list[i];
                 if (el.onClick) {
                     el.onClick(i, el);
-                } else {
+                } else if (onClick) {
                     onClick(i, el);
                 }
             });

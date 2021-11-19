@@ -22,7 +22,8 @@ function random(code) {
     loadJSFromHTMLFile('FoundryHelper');
     loadJSFromHTMLFile('CharacterGenerator');
     var CharGen = CharacterGenerator();
-    CharGen.loadData(getAllData());
+    CharGen.jData = getAllData();
+    CharGen.loadData();
     if (code === 'random') {
         CharGen.character = createNewCharacter(CharGen);
         var i = 0;

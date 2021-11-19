@@ -15,6 +15,7 @@
                 max: 0,
                 log: {},
                 used: 0,
+                tmp_used: 0,
             },
             randomState: {
                 specie: 0,
@@ -235,6 +236,7 @@
                     newCharacteristic.roll = characteristic.roll;
                     newCharacteristic.talent = characteristic.talent;
                     newCharacteristic.advance = characteristic.advance;
+                    newCharacteristic.tmpadvance = characteristic.tmpadvance;
                     newCharacteristic.career = characteristic.career;
                 } else {
                     newCharacteristic = this.createCharacteristic(characteristic);
@@ -250,6 +252,7 @@
                     roll: 0,
                     talent: 0,
                     advance: 0,
+                    tmpadvance: 0,
                     career: 0,
                     data: characteristic,
                     getType: function () {
@@ -280,7 +283,7 @@
                         return this.getSpecie() + this.roll + this.talent;
                     },
                     getAdvance: function () {
-                        return this.advance + this.career;
+                        return this.advance + this.career + this.tmpadvance;
                     },
                     getTotal: function () {
                         return this.getBase() + this.getAdvance();
@@ -322,6 +325,7 @@
                 if (typeof talent.data !== 'undefined') {
                     newTalent = this.createTalent(talent.data);
                     newTalent.advance = talent.advance;
+                    newTalent.tmpadvance = talent.tmpadvance;
                     newTalent.spec = talent.spec;
                     newTalent.specs = talent.specs;
                     newTalent.roll = talent.roll;
@@ -338,6 +342,7 @@
                 return {
                     id: talent.id,
                     advance: 0,
+                    tmpadvance: 0,
                     roll: 0,
                     spec: talent.spec,
                     specs: talent.specs,
@@ -354,7 +359,7 @@
                         return 0;
                     },
                     getAdvance: function () {
-                        return this.advance + this.roll;
+                        return this.advance + this.roll +  this.tmpadvance;
                     },
                     getTotal: function () {
                         return this.getBase() + this.getAdvance();
@@ -548,6 +553,7 @@
                     newSkill = this.createSkill(skill.data);
                     newSkill.specie = skill.specie;
                     newSkill.advance = skill.advance;
+                    newSkill.tmpadvance = skill.tmpadvance;
                     newSkill.spec = skill.spec;
                     newSkill.specs = skill.specs;
                     newSkill.career = skill.career;
@@ -564,6 +570,7 @@
                 return {
                     id: skill.id,
                     advance: 0,
+                    tmpadvance: 0,
                     specie: 0,
                     career: 0,
                     spec: skill.spec,
@@ -581,7 +588,7 @@
                         return oThat.searchCharacteristic(this.data.characteristic).getTotal();
                     },
                     getAdvance: function () {
-                        return this.advance + this.specie + this.career;
+                        return this.advance + this.specie + this.career  + this.tmpadvance;
                     },
                     getTotal: function () {
                         return this.getBase() + this.getAdvance();
@@ -610,11 +617,13 @@
             },
             getAllSkills: function () {
                 var skills = CharGen.data.skills;
-                for (var j = 0; j < skills.length; ++j) {
-                    var skill = Helper.clone(skills[j]);
-                    if (skill.type === 'base' && !this.searchSkill(skill.id, '', true, '', false)) {
-                        skill.specName = '';
-                        this.setSkill(skill)
+                if (this.getSpecie()) {
+                    for (var j = 0; j < skills.length; ++j) {
+                        var skill = Helper.clone(skills[j]);
+                        if (skill.type === 'base' && !this.searchSkill(skill.id, '', true, '', false)) {
+                            skill.specName = '';
+                            this.setSkill(skill)
+                        }
                     }
                 }
                 return this.getSkills();

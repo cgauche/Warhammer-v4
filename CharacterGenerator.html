@@ -2,6 +2,7 @@
     var CharacterGenerator = function () {
         var oThat = this;
         oThat.data;
+        oThat.jData;
         oThat.stepIndex = 0;
         var i = 0;
         oThat.stepList = [
@@ -12,8 +13,9 @@
             StepSkills(i++, oThat),
             StepTrappings(i++, oThat),
             StepDetail(i++, oThat),
-            StepExperience(i++, oThat),
+            StepExperience(i++, oThat, 'creation'),
             StepResume(i++, oThat),
+            StepExperience(i++, oThat, 'final'),
         ];
         oThat.saveName = '';
         oThat.character;
@@ -39,7 +41,9 @@
         };
 
         oThat.nextStep = function (i) {
-            oThat.stepIndex = Math.max(oThat.stepIndex, i + 1);
+            if (oThat.stepIndex !== -1) {
+                oThat.stepIndex = Math.max(oThat.stepIndex, i + 1);
+            }
             oThat.showMenu();
         };
 
@@ -62,7 +66,7 @@
                 oThat.showMenu()
             },
             validate: function (el, i) {
-                if (!el.saveAction()) {
+                if (!el.saveAction() && oThat.stepIndex !== -1) {
                     oThat.stepIndex = i;
                 }
                 oThat.nextStep(i);
@@ -369,9 +373,7 @@
                 }
             }
         }
-        oThat.loadDataAndDisplay = function (jNames) {
-            Helper.loader.remove();
-            oThat.loadData(jNames);
+        oThat.initHelp = function () {
             var labels = {};
             var doublon = [];
             for (let [i, e] of Object.entries(oThat.data)) {
@@ -417,12 +419,17 @@
                 var $el = $(this);
                 Helper.showPopin('', Helper.getHelpFormat(oThat.data[$el.data('type')][$el.data('index')]))
             });
+        }
+
+        oThat.loadDataAndDisplay = function (jNames) {
+            Helper.loader.remove();
+            oThat.jData = jNames;
             oThat.showPanel(null, MainMenu(null, oThat));
             $('.main_panel').show();
         }
 
-        oThat.loadData = function (jNames) {
-            oThat.data = jNames;
+        oThat.loadData = function () {
+            oThat.data = Helper.clone(oThat.jData);
             oThat.allSkills = {};
             var i;
             var elems;

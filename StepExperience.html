@@ -1,5 +1,5 @@
 <script>
-    var StepExperience = function (i, CharGen) {
+    var StepExperience = function (i, CharGen, type) {
         var oThat = {};
         var character;
         var tab;
@@ -27,10 +27,20 @@
         };
         oThat.cancelAction = true;
         oThat.validateAction = true;
+        oThat.type = type;
+
+        oThat.characterOnCreation = function() {
+            return oThat.type === 'creation';
+        }
 
         oThat.resetAction = function () {
         };
         oThat.saveAction = function () {
+            /*var elems = [].concat(tab['skill'], tab['characteristic'], tab['talent']);
+            $(elems).each(function (i, elem) {
+                elem.advance += elem.tmpadvance;
+                elem.tmpadvance = 0;
+            });*/
             character.deleteEmpty();
             CharGen.saveCharacter(character);
             return true;
@@ -39,7 +49,7 @@
             Helper.showSpecialisationPopin(character, elem, change, null, true);
         };
         oThat.refreshXP = function () {
-            var used = 0;
+            var used =  character.xp.used;
             var currentExperience = character.xp.max;
             var base = $('.body_panel')
             var elems = [].concat(tab['skill'], tab['characteristic'], tab['talent']);
@@ -57,12 +67,12 @@
                 if (typeof elem.getMax !== 'undefined') {
                     var max = elem.getMax();
                     if (max && val > max) {
-                        elem.advance -= (val - max);
+                        elem.tmpadvance -= (val - max);
                         el.val(elem.getAdvance() + (max ? '/' + max : ''));
                         val = elem.getAdvance();
                     }
                 }
-                var oldValue = elem.getAdvance() - elem.advance;
+                var oldValue = elem.getAdvance() - elem.tmpadvance;
                 used += Helper.getXPCost(elem, oldValue, val);
                 parent.find('.down').prop('disabled', val === oldValue);
             });
@@ -80,7 +90,7 @@
                 var val = oldValue + 1;
                 var cost = Helper.getXPCost(elem, oldValue, val);
                 $($(el).parents('tr').find('td').length > 4 ? $(el).parents('tr').find('td')[3] : $(el).parents('tr').find('td')[2]).html('<span style="color: yellow">' + cost + '</span>');
-                var disabled = used + cost > character.xp.max;
+                var disabled = oThat.characterOnCreation() ? used + cost > character.xp.max : false;
                 if (typeof elem.getMax !== 'undefined') {
                     var max = elem.getMax();
                     if (max) {
@@ -90,26 +100,30 @@
                 parent.find('.up').prop('disabled', disabled);
             });
             base.find('.experience').html(currentExperience - used);
-            $('.validate').prop('disabled', currentExperience - used < 0);
-            character.xp.used = used;
+            $('.validate').prop('disabled', oThat.characterOnCreation() ? currentExperience - used < 0 : false);
+            character.xp.tmp_used = used;
         }
 
         oThat.show = function () {
             var rightPanel = $('.right_panel').html('');
-            rightPanel.append(this.desc());
+            var leftPanel = $('.left_panel').html('');
+            if (oThat.characterOnCreation()) {
+                rightPanel.append('<div class="description">' + this.desc() + '</div>');
+            }
+            leftPanel.append("<div class='description_title'><span class='experience'></span> Points d\'Expérience à dépenser" + "</div>");
+            var tmpPanel = oThat.characterOnCreation() ? leftPanel : rightPanel;
             /** CHARACTERISTICS **/
-            rightPanel.append('<br><br><div><b>Caractéristiques:</b></div><div class="experience_div" data-type="characteristic"><div>');
-            oThat.refreshCharacteristicTab(rightPanel);
+            tmpPanel.append('<div><b>Caractéristiques:</b></div><div class="experience_div" data-type="characteristic"><div>');
+            oThat.refreshCharacteristicTab(tmpPanel);
+            tmpPanel.append('</div>')
 
             /** Talents **/
-            rightPanel.append('</div><br><div><b>Talents:</b></div><div class="experience_div" data-type="talent"><div>');
-            oThat.refreshTalentTab(rightPanel);
-            rightPanel.append('</div>')
+            tmpPanel.append('<br><div><b>Talents:</b></div><div class="experience_div" data-type="talent"><div>');
+            oThat.refreshTalentTab(tmpPanel);
+            tmpPanel.append('</div>')
 
-            var leftPanel = $('.left_panel').html('');
-            leftPanel.append("<div class='description_title'><span class='experience'></span> Points d\'Expérience à dépenser" + "</div>");
             /** SKILLS **/
-            leftPanel.append('<div><b>Compétences:</b></div><div class="experience_div" data-type="skill"><div>');
+            leftPanel.append('<br><div><b>Compétences:</b></div><div class="experience_div" data-type="skill"><div>');
             oThat.refreshSkillTab(leftPanel);
             leftPanel.append('</div>')
 
@@ -152,9 +166,9 @@
                     }
                 ],
                 function (i, carac, mode, $el) {
-                    var oldValue = carac.getAdvance() - carac.advance;
+                    var oldValue = carac.getAdvance() - carac.tmpadvance;
                     var value = Math.max(oldValue, carac.getAdvance() + mode);//Math.max(baseCarac.getAdvance(), carac.getAdvance() + mode);
-                    carac.advance = value - oldValue;
+                    carac.tmpadvance = value - oldValue;
                     $el.val(value);
                 },
                 oThat.refreshAll,
@@ -213,19 +227,19 @@
                 if (veryOldValue !== elem.getAdvance()) {
                     mode = 0;
                 }
-                var oldAdvance = elem.advance;
+                var oldAdvance = elem.tmpadvance;
                 var oldValue = elem.getAdvance() - oldAdvance;
                 var value = Math.max(oldValue, elem.getAdvance() + mode);
                 var max = elem.getMax ? elem.getMax() : '';
                 if (max) {
                     value = Math.min(max, value);
                 }
-                elem.advance = value - oldValue;
+                elem.tmpadvance = value - oldValue;
                 if (veryOldValue === 0 && value && mode) {
                     character.applyTalent();
                     if (magic) {
                         var cancelAction = function () {
-                            elem.advance = oldAdvance;
+                            elem.tmpadvance = oldAdvance;
                             character.applyTalent();
                             oThat.refreshAll();
                         }
@@ -288,7 +302,7 @@
 
                 } else {
                     if ((el = Helper.randomSpecialisation(character, allValls, el, index, oldValue))) {
-                        el.advance += 1;
+                        el.tmpadvance += 1;
                         Helper.randomMagicTalent(CharGen, character, el);
                         used += cost;
                         oThat.refreshData();
@@ -296,7 +310,7 @@
                     }
                 }
             }
-            character.xp.used = used;
+            character.xp.tmp_used = used;
             oThat.saveAction();
         };
 

@@ -1,5 +1,5 @@
 <script>
-    var StepResume = function (i, CharGen) {
+    var StepResume = function (number, CharGen) {
         var oThat = {};
         var character;
         oThat.stepName = "Résumé";
@@ -9,13 +9,27 @@
         oThat.title = function () {
             return 'Resumé'
         };
-
+        oThat.validateAction = true;
         oThat.cancelAction = function () {
             $('.cancel').off('click').on('click', function () {
                 $('.left_panel').addClass('overflow_panel');
                 $('.left_panel').addClass('pretty_panel');
-                CharGen.showMenu(i);
+                CharGen.showMenu();
             });
+        };
+        oThat.saveAction = function () {
+            var elems = [].concat(character.getSkills(), character.getCharacteristics(), character.getTalents());
+            var j;
+            for (j = 0; j < elems.length; ++j) {
+                var el = elems[j];
+                el.advance += el.tmpadvance;
+                el.tmpadvance = 0;
+            }
+            character.xp.used = character.xp.tmp_used;
+            character.xp.tmp_used = 0;
+            character.deleteEmpty();
+            CharGen.saveCharacter(character);
+            return true;
         };
         oThat.initAction = function () {
             character = CharGen.character.clone();
@@ -61,14 +75,14 @@
             var career = character.getCareer() ? character.getCareer().data : '';
             var detailDescription = function (i) {
                 return {
-                    label: details[i].label,
-                    value: character.details[i],
+                    label: details[i] ? details[i].label : '',
+                    value: character.details[i] ? character.details[i] : '',
                     desc: function () {
                         Helper.addDescription(Helper.getHelpFormat({
                             getLabel: function () {
                                 return details[i].label;
                             },
-                            desc: (details[i].allDesc ? details[i].allDesc : details[i].desc[character.getSpecie().data.index])
+                            desc: (details[i].allDesc ? details[i].allDesc : (character.getSpecie() ? details[i].desc[character.getSpecie().data.index] : ''))
                         }))
                     }
                 }
@@ -76,8 +90,12 @@
             var allDetails = [
                 detailDescription(0),
                 {
-                    label: 'Race', value: character.getSpecie().getLabel(), desc: function () {
-                        Helper.addDescription(Helper.getHelpFormat(character.getSpecie().data))
+                    label: 'Race',
+                    value: character.getSpecie() ? character.getSpecie().getLabel() : '',
+                    desc: function () {
+                        if (character.getSpecie()) {
+                            Helper.addDescription(Helper.getHelpFormat(character.getSpecie().data))
+                        }
                     }
                 },
                 {
@@ -108,12 +126,12 @@
                 },
                 {
                     label: 'Expérience Actuelle',
-                    value: character.xp.max - character.xp.used,
+                    value: character.xp.max - character.xp.tmp_used,
                     desc: function () {
                     }
                 },
                 {
-                    label: 'Expérience Dépensée', value: character.xp.used, desc: function () {
+                    label: 'Expérience Dépensée', value: character.xp.tmp_used, desc: function () {
                     }
                 },
                 {
@@ -215,7 +233,8 @@
                 },
                 talentstab,
                 function (i, el) {
-                    return el.getLabel()
+                    var max = el.getMax();
+                    return el.getLabel() + ' ' + el.getAdvance() + (max ? '/' + max : '')
                 },
                 function (i) {
                     Helper.addDescription(Helper.getHelpFormat(talents[i].data));
@@ -278,6 +297,20 @@
                 });
             }
             tabs.tabs();
+            $('.validate').off('click');
+            $('.validate').prop('disabled', CharGen.stepIndex !== number || CharGen.stepIndex === -1)
+            if (CharGen.stepIndex !== -1) {
+                if (!$('.validate').prop('disabled')) {
+                    $('.validate').on('click', function () {
+                        $('.left_panel').addClass('overflow_panel');
+                        $('.left_panel').addClass('pretty_panel');
+                        CharGen.stepIndex = -1;
+                        CharGen.defaultAction.validate(oThat, number);
+                    });
+                }
+            } else {
+                $('.validate').hide();
+            }
         };
         return oThat;
     }

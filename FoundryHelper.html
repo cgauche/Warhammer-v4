@@ -308,9 +308,9 @@
                         console.log('Skill: ' + tmpItem.name);
                         continue;
                     }
-                    /*if (skill.getLabel() !== elemId) {
-                        console.log('skill: ' + skill.getLabel() + ' != ' + elemId);
-                    }*/
+                    if (!CharGen.allSkills[Helper.toId(skill.id)].specs.includes(skill.spec)) {
+                        console.log('skill: ' + skill.getLabel());
+                    }
                     var newSkill = newCharacter.setSkill(skill);
                     newSkill.advance = tmpItem.data.advances.value;
                 } else if (tmpItem.type === 'talent') {
@@ -320,9 +320,9 @@
                         console.log('Talent: ' + tmpItem.name);
                         continue;
                     }
-                    /*if (talent.getLabel() !== elemId) {
-                        console.log('talent: ' + talent.getLabel() + ' != ' + elemId);
-                    }*/
+                    if (!CharGen.allTalents[Helper.toId(talent.id)].specs.includes(talent.spec)) {
+                        console.log('talent: ' + talent.getLabel());
+                    }
                     var newTalent = newCharacter.setTalent(talent);
                     newTalent.advance = tmpItem.data.advances.value;
                 } else if (tmpItem.type === 'prayer'
