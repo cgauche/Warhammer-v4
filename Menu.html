@@ -1,12 +1,17 @@
 <script>
-    var Menu = function (stepIndex, CharGen) {
+    var Menu = function (CharGen, mode) {
         var oThat = {};
-        oThat.stepName = "Création de personnage";
+        mode = mode ? mode : (CharGen.character && CharGen.character.mode ? CharGen.character.mode : 'normal');
+        if (mode === 'normal') {
+            oThat.stepName = "Nouveau";
+        } else {
+            oThat.stepName = "Nouveau (libre)";
+        }
         oThat.desc = function () {
             return ''
         };
         oThat.title = function () {
-            return 'Création de personnage'
+            return oThat.stepName
         };
         oThat.initAction = function () {
         };
@@ -20,17 +25,16 @@
             });
         };
         oThat.createNewCharacter = function () {
-            CharGen.stepIndex = 0;
             CharGen.saveName = "";
             CharGen.loadData();
             CharGen.initHelp();
-            CharGen.character = createNewCharacter(CharGen);
+            CharGen.character = createNewCharacter(CharGen, mode);
         };
         oThat.show = function () {
             $('.left_panel').hide();
             $('.right_panel').hide();
             $('.all_panel').show();
-            Helper.generateMenu(CharGen.stepList, CharGen.stepIndex, $('.all_panel'),
+            Helper.generateMenu(CharGen.stepList, CharGen.character.stepIndex, $('.all_panel'),
                 function (i, el) {
                     $('.all_panel').hide();
                     $('.left_panel').show();
@@ -38,13 +42,13 @@
                     CharGen.showPanel(i, el);
                 },
                 function (i, el) {
-                    return el.type === 'creation' && i > CharGen.stepIndex && CharGen.stepIndex !== -1;
+                    return el.type === 'creation' && i > CharGen.character.stepIndex && CharGen.character.stepIndex !== -1;
                 },
                 function (i, el) {
                     return !el.type || (
-                        el.type === 'creation' && CharGen.stepIndex !== -1
+                        el.type === 'creation' && CharGen.character.stepIndex !== -1
                     ) || (
-                        el.type === 'final' && CharGen.stepIndex === -1
+                        el.type === 'final' && CharGen.character.stepIndex === -1
                     );
                 }
             );

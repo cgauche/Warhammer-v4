@@ -1,6 +1,8 @@
 <script>
-    var createNewCharacter = function (CharGen) {
+    var createNewCharacter = function (CharGen, mode) {
         return {
+            mode: mode,
+            stepIndex: null,
             specie: null,
             career: null,
             characteristics: [],
@@ -25,6 +27,9 @@
                 characteristic: 0,
                 imposedCharacteristics: {},
                 imposedTalents: [],
+            },
+            isFreeMode: function () {
+                return this.mode === 'libre';
             },
             deleteEmpty: function () {
                 var skills = this.getSkills();
@@ -615,13 +620,16 @@
             getSkills: function () {
                 return Helper.sort(this.skills);
             },
-            getAllSkills: function () {
+            getAllSkills: function (all) {
+                all = all ? all : false;
                 var skills = CharGen.data.skills;
-                if (this.getSpecie()) {
+                if (this.getSkills().length) {
                     for (var j = 0; j < skills.length; ++j) {
                         var skill = Helper.clone(skills[j]);
-                        if (skill.type === 'base' && !this.searchSkill(skill.id, '', true, '', false)) {
-                            skill.specName = '';
+                        if ((all || skill.type === 'base') && !this.searchSkill(skill.id, '', true, '', false)) {
+                            if (!all) {
+                                skill.specName = '';
+                            }
                             this.setSkill(skill)
                         }
                     }
@@ -712,14 +720,18 @@
                     }
                 }
             },
-            save: function () {
+            save: function (step) {
                 this.deleteEmpty();
                 var clone = this.clone();
                 var elems;
                 var i;
                 var el;
-                delete clone.getSpecie().data;
-                delete clone.getCareer().data;
+                if (clone.getSpecie()) {
+                    delete clone.getSpecie().data;
+                }
+                if (clone.getCareer()) {
+                    delete clone.getCareer().data;
+                }
                 elems = clone.getCharacteristics();
                 for (i = 0; i < elems.length; ++i) {
                     el = elems[i];
@@ -740,6 +752,9 @@
                     el = elems[i];
                     delete el.data;
                 }
+                if (step && clone.stepIndex !== -1) {
+                    clone.stepIndex += step;
+                }
                 return clone;
             },
             load: function (data) {
@@ -750,8 +765,13 @@
                 var elem;
                 var char;
                 data = JSON.parse(data);
-                this.setSpecie(CharGen.allSpecies[data.specie.id]);
-                this.setCareer(CharGen.allCareers[data.career.id]);
+                this.stepIndex = data.stepIndex;
+                if (data.specie) {
+                    this.setSpecie(CharGen.allSpecies[data.specie.id]);
+                }
+                if (data.career) {
+                    this.setCareer(CharGen.allCareers[data.career.id]);
+                }
                 elems = data.characteristics;
                 for (i = 0; i < elems.length; ++i) {
                     el = elems[i];
@@ -789,6 +809,7 @@
                 this.details = data.details;
                 this.xp = data.xp;
                 this.randomState = data.randomState;
+                this.mode = data.mode;
                 return this;
             }
         };

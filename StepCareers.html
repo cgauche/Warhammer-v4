@@ -23,7 +23,7 @@
         };
         oThat.saveAction = function () {
             var ret = CharGen.character.career && CharGen.character.career.id === character.career.id;
-            if (character.randomState.career > 0) {
+            if (!character.isFreeMode() && character.randomState.career > 0) {
                 character.addXP('Carrière Aléatoire', (character.randomState.career === 1 ? 50 : (character.randomState.career === 2 ? 25 : 0)), true);
             }
             character.randomState.career = -2;
@@ -95,6 +95,7 @@
                 $('.random').prop('disabled', true);
                 $careers.find('li[data-line].listchild2').next('.listchild3').removeClass('disabled');
                 character.randomState.career = -1;
+                CharGen.saveRandomState(character);
             });
         };
 
@@ -105,8 +106,10 @@
             var currentCareer = '';
             var displayedCareers = [];
             var rand = '';
+            var previousRand = 1;
+            var specie = character.getSpecie().data.index;
             $(careers).each(function (i, el) {
-                if (currentClass !== careers[i].class && careers[i].rand[character.getSpecie().data.index]) {
+                if (currentClass !== careers[i].class && careers[i].rand[specie]) {
                     currentClass = careers[i].class;
                     displayedCareers[displayedCareers.length] = {
                         label: currentClass,
@@ -120,6 +123,9 @@
                     };
                 }
                 if (currentCareer !== careers[i].label) {
+                    if (rand[specie]) {
+                        previousRand = rand[specie];
+                    }
                     rand = careers[i].rand;
                     currentCareer = careers[i].label;
                     displayedCareers[displayedCareers.length] = {
@@ -136,14 +142,16 @@
                 var myCareer = Helper.clone(careers[i]);
                 myCareer.level = 3;
                 myCareer.rand = rand;
-                myCareer.label = careers[i].careerLevelName;
+                myCareer.label = character.isFreeMode() && myCareer.rand[specie] && myCareer.careerLevel === 1 ?
+                    '<span class="highlighting">' + careers[i].careerLevelName + ' ' + previousRand + '-' + rand[specie] + '<span>' :
+                    careers[i].careerLevelName;
                 displayedCareers[displayedCareers.length] = myCareer;
             });
 
             $careers = Helper.generateNormalList(
                 displayedCareers,
                 function (i, el) {
-                    return el.rand[character.getSpecie().data.index]
+                    return character.isFreeMode() ? true : el.rand[character.getSpecie().data.index];
                 }, function (i, el) {
                     character.setCareer(el);
                     $('.validate').prop('disabled', false)
@@ -156,7 +164,11 @@
                 $el.removeClass('disabled');
                 $el.click();
             }
-            if (character.randomState.career !== 0) {
+            if (character.isFreeMode()) {
+                $('.random').hide();
+                $('.other').hide();
+                $careers.find('li[data-line].listchild3').removeClass('disabled');
+            } else if (character.randomState.career !== 0) {
                 $('.random').prop('disabled', true);
                 $('.other').prop('disabled', true);
                 if (character.randomState.career === -1) {

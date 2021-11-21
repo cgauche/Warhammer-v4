@@ -110,14 +110,16 @@
             Helper.addDescription(oThat.desc(0));
             $('.left_panel').html("<div class='description_title'><span class='skills_specie_5points'></span> Compétences auxquelles ajouter 5 Augmentations</div>"
                 + "<div class='description_title'><span class='skills_specie_3points'></span> Compétences auxquelles ajouter 3 Augmentations</div>");
-            var $skills = Helper.generateListWithRankAndHelp(currentSpecieSkills,
+            var $skills = Helper.generateListWithRankAndHelp(character.isFreeMode() ? [].concat(currentSpecieSkills, character.getAllSkills(true)) : currentSpecieSkills,
                 ['', 'Base', 'Augm', 'Total'],
-                function () {
-                    return true
+                function (i, el) {
+                    return i < currentSpecieSkills.length || !currentSpecieSkills.some((item => item.getLabel() === el.getLabel()))
                 },
                 $('.left_panel'),
                 [function (i, el) {
-                    return el.getLabel();
+                    return (character.isFreeMode() && currentSpecieSkills.some((item => item.getLabel() === el.getLabel())) ?
+                        '<span class="highlighting">' + el.getLabel() + '<span>' :
+                        el.getLabel()) + (currentCareerSkills.some(item => item.getLabel() === el.getLabel()) ? ' *' : '');
                 },
                     function (i, el) {
                         return el.getBase()
@@ -151,7 +153,7 @@
                     });
                     total.parents('.left_panel').find('.skills_specie_5points').html(remaining5);
                     total.parents('.left_panel').find('.skills_specie_3points').html(remaining3);
-                    $('.validate').prop('disabled', remaining5 !== 0 || remaining3 !== 0);
+                    $('.validate').prop('disabled', !character.isFreeMode() && (remaining5 !== 0 || remaining3 !== 0));
                 },
                 function (i, el) {
                     Helper.showPopin('', Helper.getHelpFormat(el.data))
@@ -188,14 +190,16 @@
             $('.validate').prop('disabled', true);
             $('.left_panel').html("<div class='description_title'><span class='skills_career'></span> Points à allouer" + "</div>");
             Helper.addDescription(oThat.desc(1));
-            var $skills = Helper.generateListWithRankAndHelp(currentCareerSkills,
+            var $skills = Helper.generateListWithRankAndHelp(character.isFreeMode() ? [].concat(currentCareerSkills, character.getAllSkills(true)) : currentCareerSkills,
                 ['', 'Base', 'Augmentation', 'Total'],
-                function () {
-                    return true
+                function (i, el) {
+                    return i < currentCareerSkills.length || !currentCareerSkills.some((item => item.getLabel() === el.getLabel()))
                 },
                 $('.left_panel'),
                 [function (i, el) {
-                    return el.getLabel()
+                    return character.isFreeMode() && currentCareerSkills.some((item => item.getLabel() === el.getLabel())) ?
+                        '<span class="highlighting">' + el.getLabel() + '<span>' :
+                        el.getLabel();
                 },
                     function (i, el) {
                         return el.getBase();
@@ -221,14 +225,14 @@
                             var val = el.career;
                             remaining -= val;
                             parent.find('.down').prop('disabled', val === 0);
-                            parent.find('.up').prop('disabled', val === 10);
+                            parent.find('.up').prop('disabled', !character.isFreeMode() && val === 10);
                         }
                     });
                     base.parents('.left_panel').find('.skills_career').html(remaining);
                     if (remaining <= 0) {
                         base.find('.up').prop('disabled', true);
                     }
-                    $('.validate').prop('disabled', remaining !== 0);
+                    $('.validate').prop('disabled', !character.isFreeMode() && remaining !== 0);
                 },
                 function (i, el) {
                     Helper.showPopin('', Helper.getHelpFormat(el.data))

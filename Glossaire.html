@@ -1,5 +1,5 @@
 <script>
-    var Compendium = function (i, CharGen) {
+    var Compendium = function (CharGen) {
         var oThat = {};
         oThat.stepName = "Compendium";
         oThat.desc = function () {
@@ -9,6 +9,10 @@
             return 'Compendium'
         };
         oThat.initAction = function () {
+            if (!CharGen.data) {
+                CharGen.loadData();
+                CharGen.initHelp();
+            }
         };
 
         oThat.cancelAction = function () {
@@ -16,7 +20,7 @@
             $('.cancel').off('click').on('click', function () {
                 $('.left_panel').addClass('overflow_panel');
                 $('.left_panel').addClass('pretty_panel');
-                CharGen.showMainMenu(i);
+                CharGen.showMainMenu();
             });
         };
 

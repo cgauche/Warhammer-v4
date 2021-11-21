@@ -4,7 +4,7 @@ function doGet(request) {
         //return ContentService.createTextOutput(JSON.stringify(request)).setMimeType(ContentService.MimeType.JSON);
     }
     return HtmlService.createTemplateFromFile('NewPage')
-        .evaluate();
+        .evaluate().setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function random(code) {
@@ -35,7 +35,7 @@ function random(code) {
             step.initAction();
             step.randomAllAction();
         }
-        CharGen.stepIndex = i;
+        CharGen.character.stepIndex = i;
     } else {
         CharGen.character = createNewCharacter(CharGen).load(load(code));
     }

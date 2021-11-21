@@ -11,6 +11,7 @@
         };
         oThat.validateAction = true;
         oThat.cancelAction = function () {
+            $('.cancel').html('Retour');
             $('.cancel').off('click').on('click', function () {
                 $('.left_panel').addClass('overflow_panel');
                 $('.left_panel').addClass('pretty_panel');
@@ -35,30 +36,32 @@
             character = CharGen.character.clone();
         };
         oThat.otherAction = function (el) {
+            if (CharGen.saveName) {
+                el.hide();
+                return;
+            }
             el.html('Sauvegarder');
             el.on('click', function () {
-                google.script.run.withSuccessHandler(function (data) {
+                CharGen.saveDatabaseCharacter(function (data) {
                     if (data) {
                         if (data !== CharGen.saveName) {
                             CharGen.saveName = data;
-
                             $("#save").dialog({
                                 resizable: false,
                                 height: "auto",
                                 open: function (event, ui) {
-
                                     $('.codesave').html(data)
                                 },
                                 buttons: []
                             });
-
+                            el.hide();
                         } else {
                             alert("Personnage sauvegardé");
                         }
                     } else {
                         alert('Echec de la sauvegarde.');
                     }
-                }).save(CharGen.saveName, JSON.stringify(character.save()));
+                })
             });
         };
 
@@ -126,12 +129,12 @@
                 },
                 {
                     label: 'Expérience Actuelle',
-                    value: character.xp.max - character.xp.tmp_used,
+                    value: character.xp.max - character.xp.tmp_used - character.xp.used,
                     desc: function () {
                     }
                 },
                 {
-                    label: 'Expérience Dépensée', value: character.xp.tmp_used, desc: function () {
+                    label: 'Expérience Dépensée', value: character.xp.tmp_used + character.xp.used, desc: function () {
                     }
                 },
                 {
@@ -298,13 +301,13 @@
             }
             tabs.tabs();
             $('.validate').off('click');
-            $('.validate').prop('disabled', CharGen.stepIndex !== number || CharGen.stepIndex === -1)
-            if (CharGen.stepIndex !== -1) {
+            $('.validate').prop('disabled', character.stepIndex !== number || character.stepIndex === -1)
+            if (character.stepIndex !== -1) {
                 if (!$('.validate').prop('disabled')) {
                     $('.validate').on('click', function () {
                         $('.left_panel').addClass('overflow_panel');
                         $('.left_panel').addClass('pretty_panel');
-                        CharGen.stepIndex = -1;
+                        character.stepIndex = -1;
                         CharGen.defaultAction.validate(oThat, number);
                     });
                 }

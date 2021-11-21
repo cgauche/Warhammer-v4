@@ -3,7 +3,6 @@
         var oThat = this;
         oThat.data;
         oThat.jData;
-        oThat.stepIndex = 0;
         var i = 0;
         oThat.stepList = [
             StepSpecies(i++, oThat),
@@ -33,16 +32,16 @@
 
 
         oThat.showMainMenu = function () {
-            oThat.showPanel(0, MainMenu(oThat.stepIndex, oThat));
+            oThat.showPanel(0, MainMenu(oThat));
         };
 
         oThat.showMenu = function () {
-            oThat.showPanel(0, Menu(oThat.stepIndex, oThat));
+            oThat.showPanel(0, Menu(oThat));
         };
 
         oThat.nextStep = function (i) {
-            if (oThat.stepIndex !== -1) {
-                oThat.stepIndex = Math.max(oThat.stepIndex, i + 1);
+            if (oThat.character.stepIndex !== -1) {
+                oThat.character.stepIndex = Math.max(oThat.character.stepIndex, i + 1);
             }
             oThat.showMenu();
         };
@@ -66,8 +65,8 @@
                 oThat.showMenu()
             },
             validate: function (el, i) {
-                if (!el.saveAction() && oThat.stepIndex !== -1) {
-                    oThat.stepIndex = i;
+                if (!el.saveAction() && oThat.character.stepIndex !== -1) {
+                    oThat.character.stepIndex = i;
                 }
                 oThat.nextStep(i);
             }
@@ -95,7 +94,7 @@
             $('.random').html('Aléatoire');
             oThat.activeButtonAction($('.random'), el.randomAction);
 
-            if (el.resetAction && i >= oThat.stepIndex) {
+            if (el.resetAction && i >= oThat.character.stepIndex) {
                 el.resetAction();
             }
             el.initAction();
@@ -424,7 +423,7 @@
         oThat.loadDataAndDisplay = function (jNames) {
             Helper.loader.remove();
             oThat.jData = jNames;
-            oThat.showPanel(null, MainMenu(null, oThat));
+            oThat.showPanel(null, MainMenu(oThat));
             $('.main_panel').show();
         }
 
@@ -499,11 +498,28 @@
             console.log(testTalents);
 
         };
+        oThat.saveDatabaseCharacter = function (afterFunction, step) {
+            Helper.loader = new Helper.ajaxLoader("body");
+            google.script.run.withSuccessHandler(function (data) {
+                Helper.loader.remove();
+                if (afterFunction) {
+                    afterFunction(data);
+                }
+            }).save(oThat.saveName, JSON.stringify(oThat.character.save(step)));
+        };
         oThat.saveRandomState = function (character) {
-            oThat.character.randomState = Helper.clone(character.randomState);
+            if (!character.isFreeMode()) {
+                oThat.character.randomState = Helper.clone(character.randomState);
+                if (oThat.saveName) {
+                    oThat.saveDatabaseCharacter();
+                }
+            }
         }
         oThat.saveCharacter = function (character) {
             oThat.character = character;
+            if (!character.isFreeMode() && oThat.saveName) {
+                oThat.saveDatabaseCharacter(null, 1);
+            }
         }
         oThat.init = function () {
             Helper.initPopin();

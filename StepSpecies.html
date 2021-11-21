@@ -35,7 +35,7 @@
             oThat.saveAction();
         }
         oThat.saveAction = function () {
-            if (character.randomState.specie > 0) {
+            if (!character.isFreeMode() && character.randomState.specie > 0) {
                 character.addXP('Race Aléatoire', 20, true);
             }
             character.randomState.specie = -2;
@@ -65,6 +65,7 @@
             el.html('Choisir');
             el.off('click').on('click', function () {
                 character.randomState.specie = -1;
+                CharGen.saveRandomState(character);
                 $(this).prop('disabled', true);
                 $('.random').prop('disabled', true);
                 $species.find('li[data-line]').removeClass('disabled');
@@ -79,11 +80,16 @@
                 character.setSpecie(el);
                 $('.validate').prop('disabled', false);
             });
-            if (character.randomState.specie !== -1) {
-                $species.find('li[data-line]').addClass('disabled');
+            if (character.isFreeMode()) {
+                $('.random').hide();
+                $('.other').hide();
+            } else {
+                if (character.randomState.specie !== -1) {
+                    $species.find('li[data-line]').addClass('disabled');
+                }
+                $('.random').prop('disabled', character.randomState.specie !== 0);
+                $('.other').prop('disabled', character.randomState.specie <= -1);
             }
-            $('.random').prop('disabled', character.randomState.specie !== 0);
-            $('.other').prop('disabled', character.randomState.specie <= -1);
             var specieId = character.getSpecie() !== null ? character.getSpecie().id : character.randomState.imposedSpecie;
             if (specieId !== null) {
                 var $el = $species.find('li[data-id="' + specieId + '"]');

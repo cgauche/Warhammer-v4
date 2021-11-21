@@ -22,20 +22,22 @@
             var nbSpecieTalent = specieTalent.length
             var el;
             var number;
+            var i;
             var elems;
             var talent;
             allTalentsToChoose = specieTalent;
-            elems = character.randomState.imposedTalents;
-            for (number = 0; number < elems.length; ++number) {
-                el = elems[number];
-                if (el) {
-                    talent = CharGen.allTalents[el.id];
-                    talent.spec = el.spec;
-                    allTalentsToChoose[allTalentsToChoose.length] = [talent];
+            allTalentsToChoose[nbSpecieTalent + character.getSpecie().data.randomTalents] = character.getCareer().data.getTalents();
+            if (!character.isFreeMode()) {
+                elems = character.randomState.imposedTalents;
+                for (number = 0; number < elems.length; ++number) {
+                    el = elems[number];
+                    if (el) {
+                        talent = CharGen.allTalents[el.id];
+                        talent.spec = el.spec;
+                        allTalentsToChoose[allTalentsToChoose.length] = [talent];
+                    }
                 }
             }
-            allTalentsToChoose[nbSpecieTalent + character.getSpecie().data.randomTalents] = character.getCareer().data.getTalents();
-
             elems = allTalentsToChoose;
             for (number = 0; number < elems.length; ++number) {
                 el = elems[number];
@@ -185,11 +187,19 @@
                 } else {
                     var filter;
                     var funcDisabled;
+                    var previousRand = 1;
                     var label = function (i, el) {
                         return el.getLabel();
                     };
                     var initHelp = function (i, el) {
-                        Helper.showPopin('', Helper.getHelpFormat(el.data));
+                        Helper.showPopin('', Helper.getHelpFormat(el.data ? el.data : el));
+                    };
+
+                    talents = CharGen.data.talents;
+
+                    funcDisabled = function (i, el) {
+                        var spec = el.spec ? el.spec : el.specs;
+                        return character.searchTalent(el.id, spec, false, el.origins) || character.searchTalent(el.id, spec);
                     };
 
                     if (currentTalentToChoose) {
@@ -202,25 +212,34 @@
                             return true
                         };
 
-                        funcDisabled = function (i, el) {
-                            var spec = el.spec ? el.spec : el.specs;
-                            return character.searchTalent(el.id, spec, false, el.origins) || character.searchTalent(el.id, spec);
-                        };
-
-                        talents = currentTalentToChoose;
+                        talents = character.isFreeMode() ? [].concat(currentTalentToChoose, talents) : currentTalentToChoose;
+                        if (character.isFreeMode()) {
+                            label = function (i, el) {
+                                return i < currentTalentToChoose.length ? '<span class="highlighting">' + el.getLabel() + '</span>' : el.getLabel();
+                            };
+                        }
 
                         $('.random').hide();
                     } else {
                         $('.left_panel').html("<div class='description_title'>" + (total - number - 1) + ' Talents Aléatoire à déterminer' + "</div>");
 
                         filter = function (i, el) {
-                            return el.rand;
+                            return character.isFreeMode() ? true : el.rand;
                         };
-                        talents = CharGen.data.talents;
 
-                        funcDisabled = function () {
-                            return true;
-                        };
+                        if (character.isFreeMode()) {
+                            label = function (i, el) {
+                                var result = el.rand ? '<span class="highlighting">' + el.getLabel() + ' ' + previousRand + '-' + el.rand + '</span>' : el.getLabel();
+                                if (el.rand) {
+                                    previousRand = el.rand;
+                                }
+                                return result;
+                            };
+                        } else {
+                            funcDisabled = function () {
+                                return true;
+                            };
+                        }
 
                         $('.random').show();
                         $('.random').off('click').on('click', function () {
@@ -253,7 +272,7 @@
                 $('.left_panel').html('');
             }
             $('.right_panel').html('<div class="description">' + oThat.desc(0) + '</div>');
-            $('.validate').prop('disabled', remaining > 0);
+            $('.validate').prop('disabled', !character.isFreeMode() && remaining > 0);
             var charTalents = character.getTalents();
             Helper.generateListWithHelpPopin(
                 charTalents,
@@ -266,7 +285,7 @@
                     return el.getLabel()
                 },
                 function (i, el) {
-                    return !allTalentsToChoose[i] || (allTalentsToChoose[i].length === 1 && el.specs === el.spec);
+                    return !character.isFreeMode() && (!allTalentsToChoose[i] || (allTalentsToChoose[i].length === 1 && el.specs === el.spec));
                 },
                 function (i, el) {
                     Helper.showPopin('', Helper.getHelpFormat(el.data))

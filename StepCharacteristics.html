@@ -31,13 +31,15 @@
             for (var i = 0; i < elems.length; ++i) {
                 var el = elems[i];
                 var char = CharGen.character.setCharacteristic(el);
-                if (typeof CharGen.character.randomState.imposedCharacteristics[el.id] != 'undefined') {
-                    char.roll = CharGen.character.randomState.imposedCharacteristics[el.id];
+                if (!CharGen.character.isFreeMode()) {
+                    if (typeof CharGen.character.randomState.imposedCharacteristics[el.id] != 'undefined') {
+                        char.roll = CharGen.character.randomState.imposedCharacteristics[el.id];
+                    }
                 }
             }
         };
         oThat.saveAction = function () {
-            if (character.randomState.characteristic === 1 || character.randomState.characteristic === 2) {
+            if (!CharGen.character.isFreeMode() && (character.randomState.characteristic === 1 || character.randomState.characteristic === 2)) {
                 character.addXP('Attributs Aléatoire', (character.randomState.characteristic === 1 ? 50 : 25), true);
             }
             character.randomState.characteristic = -2;
@@ -87,27 +89,33 @@
             $('.left_panel').html("");
             var funcMoveUpDown = false;
             if (mode === 'roll') {
-                $('.validate').prop('disabled', true);
-                $('.random').show();
-                $('.other').show().html('Choisir');
                 Helper.addDescription(oThat.desc(0));
-                funcMoveUpDown = function (el, el2) {
-                    var id1 = el.parents('tr').data('line');
-                    var id2 = el2.parents('tr').data('line');
-                    var char1 = character.getCharacteristic(id1);
-                    var char2 = character.getCharacteristic(id2);
-                    var current = char1.roll;
-                    char1.roll = char2.roll;
-                    char2.roll = current;
-                    el.val(char1.roll);
-                    el2.val(char2.roll);
-                    if (character.randomState.characteristic === 1) {
-                        character.randomState.characteristic = 2;
-                    }
-                };
+                $('.validate').prop('disabled', !character.isFreeMode());
+                if (!character.isFreeMode()) {
+                    $('.random').show();
+                    $('.other').show().html('Choisir');
+                    funcMoveUpDown = function (el, el2) {
+                        var id1 = el.parents('tr').data('line');
+                        var id2 = el2.parents('tr').data('line');
+                        var char1 = character.getCharacteristic(id1);
+                        var char2 = character.getCharacteristic(id2);
+                        var current = char1.roll;
+                        char1.roll = char2.roll;
+                        char2.roll = current;
+                        el.val(char1.roll);
+                        el2.val(char2.roll);
+                        if (!character.isFreeMode() && character.randomState.characteristic === 1) {
+                            character.randomState.characteristic = 2;
+                            CharGen.saveRandomState(character);
+                        }
+                    };
+                } else {
+                    $('.random').hide();
+                    $('.other').hide();
+                }
                 $('.left_panel').html("<div class='description_title' style='display:none'><span class='char_specie_points'></span> Points à allouer" + "</div>");
             } else {
-                $('.validate').prop('disabled', true);
+                $('.validate').prop('disabled', character.isFreeMode());
                 $('.random').hide();
                 $('.other').hide();
                 Helper.addDescription(oThat.desc(2));
@@ -139,7 +147,7 @@
                     }
                 ],
                 function (i, el, mode, $el) {
-                    var value = Math.max(0, Math.min(el.roll + mode, 20));
+                    var value = character.isFreeMode() ? Math.max(0, el.roll + mode) : Math.max(0, Math.min(el.roll + mode, 20));
                     el.roll = value;
                     $el.val(value);
                 },
@@ -156,17 +164,17 @@
                                 var $el = base.find('tr[data-line="' + i + '"]');
                                 var val = el.roll;
                                 remaining -= val;
-                                $el.find('.down').prop('disabled', val === 4);
-                                $el.find('.up').prop('disabled', val === 18);
+                                $el.find('.down').prop('disabled', !character.isFreeMode() ? val === 4 : val === 0);
+                                $el.find('.up').prop('disabled', !character.isFreeMode() && val === 18);
                                 $el.find('.moveup').prop('disabled', i === 0);
                                 $el.find('.movedown').prop('disabled', i === length - 1);
                             }
                         });
                         base.parents('.left_panel').find('.char_specie_points').html(remaining);
-                        if (remaining <= 0) {
+                        if (remaining <= 0 && !character.isFreeMode()) {
                             base.find('.up').prop('disabled', true);
                         }
-                        $('.validate').prop('disabled', character.randomState.characteristic === -1 && remaining !== 0);
+                        $('.validate').prop('disabled', !character.isFreeMode() && character.randomState.characteristic === -1 && remaining !== 0);
                     } else {
                         remaining = character.searchCharacteristic('Extra Points').getTotal();
                         $(elems).each(function (i, el) {
@@ -179,10 +187,10 @@
                             }
                         });
                         base.parents('.left_panel').find('.char_career_points').html(remaining);
-                        if (remaining <= 0) {
+                        if (remaining <= 0 && !character.isFreeMode()) {
                             base.find('.up').prop('disabled', true);
                         }
-                        $('.validate').prop('disabled', remaining !== 0);
+                        $('.validate').prop('disabled', !character.isFreeMode() && remaining !== 0);
                     }
                 },
                 function (i, el) {
@@ -192,22 +200,25 @@
                 funcMoveUpDown
             );
             if (mode === 'roll') {
-                $characteristics.find('.down, .up, .moveup, .movedown').hide();
-                if (character.getCharacteristic(0).roll) {
-                    $('.random').prop('disabled', true);
-                    $('.other').prop('disabled', true);
-                    $('.validate').prop('disabled', false);
-                }
-                if (character.randomState.characteristic !== 0) {
-                    $('.random').prop('disabled', true);
-                    $('.other').prop('disabled', true);
-                    if (character.randomState.characteristic === -1) {
-                        $characteristics.find('.down, .up').show();
-                        $('.description_title').show();
-                    } else if (character.randomState.characteristic >= 1) {
-                        $characteristics.find('.moveup, .movedown').show();
-                        $('.random').prop('disabled', character.randomState.characteristic === 3);
-                        $('.other').prop('disabled', character.randomState.characteristic === 3);
+                $characteristics.find('.moveup, .movedown').hide();
+                if (!character.isFreeMode()) {
+                    $characteristics.find('.down, .up').hide();
+                    if (character.getCharacteristic(0).roll) {
+                        $('.random').prop('disabled', true);
+                        $('.other').prop('disabled', true);
+                        $('.validate').prop('disabled', false);
+                    }
+                    if (character.randomState.characteristic !== 0) {
+                        $('.random').prop('disabled', true);
+                        $('.other').prop('disabled', true);
+                        if (character.randomState.characteristic === -1) {
+                            $characteristics.find('.down, .up').show();
+                            $('.description_title').show();
+                        } else if (character.randomState.characteristic >= 1) {
+                            $characteristics.find('.moveup, .movedown').show();
+                            $('.random').prop('disabled', character.randomState.characteristic === 3);
+                            $('.other').prop('disabled', character.randomState.characteristic === 3);
+                        }
                     }
                 }
             }
@@ -238,13 +249,16 @@
                 $characteristics.find('input.number').each(function (i) {
                     var value = 4;
                     var el = character.getCharacteristic(i);
+                    character.randomState.imposedCharacteristics[el.id] = value;
                     el.roll = value;
                     $(this).val(value);
                     $(this).trigger('change');
                 });
                 $(this).prop('disabled', true);
                 $('.random').prop('disabled', true);
+                $('.validate').prop('disabled', true);
                 character.randomState.characteristic = -1;
+                CharGen.saveRandomState(character);
             });
             $characteristics.find('.number').first().change();
 
@@ -274,17 +288,18 @@
             $('.left_panel').html("<div class='description_title'><span class='char_career_points'></span> Points à allouer" + "</div>");
 
             var careersCharacteristics = character.getCareer().data.getCharacteristics();
-            var characteristics = character.getCharacteristics();
             var $characteristics = Helper.generateListWithRankAndHelp(
                 character.getCharacteristics(),
                 ['', 'Base', 'Aug', 'Total'],
                 function (i, el) {
-                    return careersCharacteristics.some((item => item.id === el.id))
+                    return character.isFreeMode() ? el.data.class === 'roll' : careersCharacteristics.some((item => item.id === el.id))
                 },
                 $('.left_panel'),
                 [
                     function (i, el) {
-                        return el.getLabel()
+                        return character.isFreeMode() && careersCharacteristics.some((item => item.id === el.id)) ?
+                            '<span class="highlighting">' + el.getLabel() + '<span>' :
+                            el.getLabel()
                     },
                     function (i, el) {
                         return el.getSpecie()
@@ -300,7 +315,7 @@
                     }
                 ],
                 function (i, el, mode, $el) {
-                    var value = Math.max(0, Math.min(el.career + mode, 5));
+                    var value = character.isFreeMode() ? Math.max(0, el.career + mode) : Math.max(0, Math.min(el.career + mode, 5));
                     el.career = value;
                     $el.val(value);
                 },
@@ -313,14 +328,14 @@
                             var val = el.career;
                             remaining -= val;
                             parent.find('.down').prop('disabled', val === 0);
-                            parent.find('.up').prop('disabled', val === 5);
+                            parent.find('.up').prop('disabled', !character.isFreeMode() && val === 5);
                         }
                     });
                     base.parents('.left_panel').find('.char_career_points').html(remaining);
-                    if (remaining <= 0) {
+                    if (remaining <= 0 && !character.isFreeMode()) {
                         base.find('.up').prop('disabled', true);
                     }
-                    $('.validate').prop('disabled', remaining !== 0);
+                    $('.validate').prop('disabled', !character.isFreeMode() && remaining !== 0);
                     total.html(char.getSpecie()
                         + char.career
                         + char.roll);

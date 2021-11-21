@@ -1,5 +1,5 @@
 <script>
-    var MainMenu = function (i, CharGen) {
+    var MainMenu = function (CharGen) {
         var oThat = {};
         oThat.stepName = "Menu";
         oThat.desc = function () {
@@ -15,7 +15,7 @@
         oThat.otherAction = false;
 
         oThat.randomAction = false;
-        oThat.show = function (currentStep) {
+        oThat.show = function () {
             $('.left_panel').hide();
             $('.right_panel').hide();
             $('.all_panel').show();
@@ -25,18 +25,19 @@
                         $('.all_panel').hide();
                         $('.left_panel').show();
                         $('.right_panel').show();
-                        CharGen.showPanel(0, Menu(0, CharGen));
+                        CharGen.showPanel(0, Menu(CharGen));
                     },
                     isDisabled: function (i, el) {
-                        return !CharGen.stepIndex
+                        return !CharGen.character
                     }
                 },
-                Menu(0, CharGen),
+                Menu(CharGen, 'normal'),
+                Menu(CharGen, 'libre'),
                 {
-                    stepName: "Création de personnage aléatoire", onClick: function () {
+                    stepName: "Nouveau (aléatoire)", onClick: function () {
                         var i = 0;
                         var max = 8;
-                        Menu(0, CharGen).createNewCharacter();
+                        Menu(CharGen, 'normal').createNewCharacter();
                         //CharGen.character.xp.max = 50000;
                         while (i < max) {
                             var step = CharGen.stepList[i++];
@@ -53,11 +54,11 @@
                             }*/
                         }
 
-                        CharGen.stepIndex = i;
+                        CharGen.character.stepIndex = i;
                         $('.all_panel').hide();
                         $('.left_panel').show();
                         $('.right_panel').show();
-                        CharGen.showPanel(CharGen.stepIndex, CharGen.stepList[CharGen.stepIndex]);
+                        CharGen.showPanel(CharGen.character.stepIndex, CharGen.stepList[CharGen.character.stepIndex]);
                     }
                 },
                 {
@@ -70,14 +71,18 @@
                                     var dial = $(this);
                                     google.script.run.withSuccessHandler(function (data, dial) {
                                         if (data) {
-                                            Menu(0, CharGen).createNewCharacter();
+                                            Menu(CharGen).createNewCharacter();
                                             CharGen.character.load(data);
                                             CharGen.saveName = $('.code').val();
-                                            CharGen.stepIndex = 8;
                                             $('.all_panel').hide();
                                             $('.left_panel').show();
                                             $('.right_panel').show();
-                                            CharGen.showPanel(CharGen.stepIndex, CharGen.stepList[CharGen.stepIndex]);
+
+                                            if (CharGen.character.stepIndex === 8) {
+                                                CharGen.showPanel(CharGen.character.stepIndex, CharGen.stepList[CharGen.character.stepIndex]);
+                                            } else {
+                                                CharGen.showPanel(0, Menu(CharGen));
+                                            }
                                             dial.dialog("destroy");
                                         } else {
                                             alert('Ce personnage n\'existe pas.');
@@ -99,13 +104,13 @@
                             buttons: {
                                 "Importer": function () {
                                     var dial = $(this);
-                                    Menu(0, CharGen).createNewCharacter();
+                                    Menu(CharGen, 'libre').createNewCharacter();
                                     CharGen.character = FoundryHelper.import(CharGen, $('.code').val());
-                                    CharGen.stepIndex = 8;
+                                    CharGen.character.stepIndex = -1;
                                     $('.all_panel').hide();
                                     $('.left_panel').show();
                                     $('.right_panel').show();
-                                    CharGen.showPanel(CharGen.stepIndex, CharGen.stepList[CharGen.stepIndex]);
+                                    CharGen.showPanel(8, CharGen.stepList[8]);
                                     dial.dialog("destroy");
                                 },
                                 "Annuler": function () {
@@ -115,7 +120,7 @@
                         });
                     }
                 },
-                Compendium(0, CharGen)
+                Compendium(CharGen)
             ];
             Helper.generateMenu(stepList, null, $('.all_panel'),
                 function (i, el) {
