@@ -2,6 +2,8 @@ function doGet(request) {
     if (request['parameter']['foundryExport']) {
         return random(request['parameter']['foundryExport']);
         //return ContentService.createTextOutput(JSON.stringify(request)).setMimeType(ContentService.MimeType.JSON);
+    } else if (request['parameter']['json']) {
+        return ContentService.createTextOutput(JSON.stringify(getAllData())).setMimeType(ContentService.MimeType.JSON);
     }
     return HtmlService.createTemplateFromFile('NewPage')
         .evaluate().setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);

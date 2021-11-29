@@ -108,15 +108,17 @@
             };
             el.getSkills = function () {
                 var skills = [];
-                var elems = el.skills.split(", ");
-                for (var i = 0; i < elems.length; ++i) {
-                    var el2 = elems[i];
-                    var skill = Helper.formatSkill(oThat, el2);
-                    if (skill) {
-                        skill.origins = [el.id];
-                        skills[skills.length] = skill;
-                    } else {
-                        console.log(el2)
+                if (el.skills) {
+                    var elems = el.skills.split(", ");
+                    for (var i = 0; i < elems.length; ++i) {
+                        var el2 = elems[i];
+                        var skill = Helper.formatSkill(oThat, el2);
+                        if (skill) {
+                            skill.origins = [el.id];
+                            skills[skills.length] = skill;
+                        } else {
+                            console.log(el2)
+                        }
                     }
                 }
                 return skills;
@@ -124,19 +126,21 @@
             };
             el.getTalents = function () {
                 var talents = [];
-                var elems = el.talents.split(", ");
-                for (var i = 0; i < elems.length; ++i) {
-                    var el1 = elems[i];
-                    talents[i] = [];
-                    var elems2 = el1.split(" ou ");
-                    for (var i2 = 0; i2 < elems2.length; ++i2) {
-                        var el2 = elems2[i2];
-                        var talent = Helper.formatTalent(oThat, el2);
-                        if (talent) {
-                            talent.origins = [el.id];
-                            talents[i][talents[i].length] = talent;
-                        } else {
-                            console.log(el2)
+                if (el.talents) {
+                    var elems = el.talents.split(", ");
+                    for (var i = 0; i < elems.length; ++i) {
+                        var el1 = elems[i];
+                        talents[i] = [];
+                        var elems2 = el1.split(" ou ");
+                        for (var i2 = 0; i2 < elems2.length; ++i2) {
+                            var el2 = elems2[i2];
+                            var talent = Helper.formatTalent(oThat, el2);
+                            if (talent) {
+                                talent.origins = [el.id];
+                                talents[i][talents[i].length] = talent;
+                            } else {
+                                console.log(el2)
+                            }
                         }
                     }
                 }
@@ -496,6 +500,7 @@
             }
             console.log(testSkills);
             console.log(testTalents);
+            console.log(oThat);
 
         };
         oThat.saveDatabaseCharacter = function (afterFunction, step) {

@@ -64,6 +64,16 @@
                 })
             });
         };
+        oThat.randomAction = function (el) {
+            el.html('Export Foundry');
+            el.on('click', function () {
+                var a = document.createElement("a");
+                var foundryChar = FoundryHelper.fullExport(CharGen, character);
+                a.href = window.URL.createObjectURL(new Blob([JSON.stringify(foundryChar)], {type: "application/json"}));
+                a.download = foundryChar['name'] + ".json";
+                a.click();
+            })
+        };
 
         oThat.show = function () {
             var con = $('.left_panel').html('');

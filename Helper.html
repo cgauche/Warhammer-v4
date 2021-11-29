@@ -380,7 +380,7 @@
             var majType = type[0].toUpperCase() + type.substring(1);
             text = string[0].trim();
             var elem = Helper.clone(CharGen['all' + majType + 's'][Helper.toId(text)]);
-            if (!elem.id) {
+            if (!elem) {
                 return false;
             }
             var displayedSpec = '';
@@ -510,7 +510,10 @@
             return typeof Ctor === "function" && class2type.hasOwnProperty.toString.call( Ctor ) === class2type.hasOwnProperty.toString.call( Object );
         },
         clone: function (el) {
-            return Helper.extend(true, {}, el);
+            if (el) {
+                return Helper.extend(true, {}, el);
+            }
+            return null;
         },
         initPopin: function () {
             Helper.popin = $("#dialog").dialog({

@@ -516,7 +516,7 @@
                     spec: spell.spec,
                     data: spell,
                     getLabel: function () {
-                        return this.data.label + (this.data.type !== 'Béni' && this.spec ? ' (' + this.spec + ')' : '');
+                        return this.data.label + (this.data.type === 'Magie des Arcanes' && this.spec ? ' (' + this.spec + ')' : '');
                     },
                 };
 
@@ -623,7 +623,7 @@
             getAllSkills: function (all) {
                 all = all ? all : false;
                 var skills = CharGen.data.skills;
-                if (this.getSkills().length) {
+                if (this.getSkills()) {
                     for (var j = 0; j < skills.length; ++j) {
                         var skill = Helper.clone(skills[j]);
                         if ((all || skill.type === 'base') && !this.searchSkill(skill.id, '', true, '', false)) {
@@ -785,6 +785,7 @@
                     elem = Helper.clone(CharGen.allSkills[el.id]);
                     elem.specs = el.specs;
                     elem.spec = el.spec;
+                    elem.specName = '';
                     char = oThat.setSkill(elem, i);
                     Helper.merge(el, char);
                 }
@@ -795,6 +796,7 @@
                         elem = Helper.clone(CharGen.allTalents[el.id]);
                         elem.specs = el.specs;
                         elem.spec = el.spec;
+                        elem.specName = '';
                         char = oThat.setTalent(elem, i);
                         Helper.merge(el, char);
                     }

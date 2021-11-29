@@ -1,5 +1,191 @@
 <script>
     var FoundryHelper = {
+        fullExport: function (CharGen, character) {
+            var result = JSON.parse(FoundryCharacterData);
+            delete result['_id'];
+            console.log(result);
+            var characteristics = result['data']['characteristics'];
+            var status = result['data']['status'];
+            var details = result['data']['details'];
+            var baseValue;
+            var i;
+            var j;
+            var elems;
+            var el;
+            var foundryEl;
+            /* SPECIE */
+            details['species'] = {'value': character.getSpecie().data.foundryName};
+            /* CHARACTERISTIC */
+            elems = character.getCharacteristics();
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                var tmpchar = el.data;
+                if (!tmpchar.foundryName) {
+                    continue;
+                }
+                baseValue = el.getTotal() - el.talent;
+                if (tmpchar.class === 'roll') {
+                    baseValue = el.getBase() - el.talent;
+                    foundryEl = characteristics[el.data.foundryName]
+                    foundryEl['initial'] = baseValue;
+                    foundryEl['advances'] = el.getAdvance();
+                } else if (tmpchar.foundryName === 'move') {
+                    foundryEl = details[tmpchar.foundryName]
+                    foundryEl['value'] = baseValue
+                } else {
+                    foundryEl = status[tmpchar.foundryName]
+                    foundryEl['value'] = baseValue
+                }
+            }
+            /* DETAILS */
+            elems = CharGen.data.details;
+            for (i = 0; i < CharGen.data.details.length; ++i) {
+                el = elems[i];
+                if (el.foundryName) {
+                    var detail = character.details[i];
+                    if (el.foundryName === 'name') {
+                        var name = detail ? detail : 'New Actor';
+                        result['name'] = name;
+                        result['token']['name'] = name;
+                    } else if (el.foundrySubName) {
+                        if (!details[el.foundryName]) {
+                            details[el.foundryName] = {};
+                        }
+                        details[el.foundryName][el.foundrySubName] = detail;
+                    } else {
+                        foundryEl = details[el.foundryName];
+                        foundryEl['value'] = detail;
+                    }
+                }
+            }
+            var foundryItems = {};
+            var tmpItem;
+            var string;
+            for (i = 0; i < result.items.length; ++i) {
+                tmpItem = result.items[i];
+                delete tmpItem['_id'];
+                if (!foundryItems[tmpItem.type]) {
+                    foundryItems[tmpItem.type] = {};
+                }
+                var elemId = Helper.toId(tmpItem.name);
+                if (!foundryItems[tmpItem.type][elemId]) {
+                    foundryItems[tmpItem.type][elemId] = tmpItem;
+                }
+            }
+            for (const [i, elem] of Object.entries(foundryItems['career'])) {
+                for (j = 0; j < elem.data.skills.length; ++j) {
+                    el = elem.data.skills[j];
+                    if (!foundryItems['skill'][Helper.toId(el)]) {
+                        string = el.split('(')[0].trim();
+                        if ((tmpItem = foundryItems['skill'][Helper.toId(string)])) {
+                            tmpItem = Helper.clone(tmpItem);
+                            tmpItem.name = el;
+                            foundryItems['skill'][Helper.toId(el)] = tmpItem;
+                        }
+                    }
+                }
+                for (j = 0; j < elem.data.talents.length; ++j) {
+                    el = elem.data.talents[j];
+                    if (!foundryItems['talent'][Helper.toId(el)]) {
+                        string = el.split('(')[0].trim();
+                        if ((tmpItem = foundryItems['talent'][Helper.toId(string)])) {
+                            tmpItem = Helper.clone(tmpItem);
+                            tmpItem.name = el;
+                            foundryItems['talent'][Helper.toId(el)] = tmpItem;
+                        }
+                    }
+                }
+            }
+            var items = [];
+            var effects = [];
+            /* SKILLS */
+            elems = character.getAllSkills();
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                if (!(foundryEl = Helper.clone(foundryItems['skill'][Helper.toId(el.getLabel())]))) {
+                    if (!(foundryEl = Helper.clone(foundryItems['skill'][Helper.toId(el.id)]))) {
+                        console.log(el.getLabel());
+                        continue;
+                    }
+                    foundryEl['name'] = foundryEl['name'] + ' (' + el.spec + ')';
+                    foundryItems['skill'][Helper.toId(foundryEl['name'])] = foundryEl;
+                }
+                foundryEl['data']['advances']['value'] = el.getAdvance();
+                items[items.length] = foundryEl;
+            }
+            elems = character.getTalents();
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                if (!(foundryEl = Helper.clone(foundryItems['talent'][Helper.toId(el.getLabel())]))) {
+                    if (!(foundryEl = Helper.clone(foundryItems['talent'][Helper.toId(el.id)]))) {
+                        console.log(el.getLabel());
+                        continue;
+                    }
+                    foundryEl['name'] = foundryEl['name'] + ' (' + el.spec + ')';
+                    foundryItems['talent'][Helper.toId(foundryEl['name'])] = foundryEl;
+                }
+                foundryEl['data']['advances']['value'] = el.getAdvance();
+                items[items.length] = foundryEl;
+                if (foundryEl['effects']) {
+                    effects = effects.concat(foundryEl['effects']);
+                }
+            }
+            /* Career */
+            var career = character.getCareer();
+            var skills = [];
+            foundryEl = Helper.clone(foundryItems['career'][Helper.toId(career.data.careerLevelName)]);
+            elems = career.getSkills();
+            for (i = 0; i < elems.length; ++i) {
+                skills[skills.length] = foundryItems['skill'][Helper.toId(elems[i].getLabel())] ?
+                    foundryItems['skill'][Helper.toId(elems[i].getLabel())]['name'] : foundryEl['data']['skills'][i];
+            }
+            var talents = [];
+            elems = career.getTalents();
+            for (i = 0; i < elems.length; ++i) {
+                talents[talents.length] = foundryItems['talent'][Helper.toId(elems[i].getLabel())] ?
+                    foundryItems['talent'][Helper.toId(elems[i].getLabel())]['name'] : foundryEl['data']['talents'][i];
+            }
+            foundryEl['data']['current']['value'] = true;
+            foundryEl['data']['skills'] = skills;
+            foundryEl['data']['talents'] = talents;
+            items[items.length] = foundryEl;
+            /* SPELLS */
+            var specFoundryName = {
+                '': 'petty',
+                'Invocation': 'miracle',
+                'Béni': 'blessing',
+                'Magie Naturelle': 'hedgecraft'
+            }
+            elems = character.getSpells();
+            console.log(foundryItems);
+            for (i = 0; i < elems.length; ++i) {
+                el = elems[i];
+                var type = ['Magie mineure', 'Magie des Arcanes'].includes(el.data.type) ? 'spell' : 'prayer';
+                if (!(foundryEl = Helper.clone(foundryItems[type][Helper.toId(el.getLabel())]))) {
+                    if (!(foundryEl = Helper.clone(foundryItems[type][Helper.toId(el.id)]))) {
+                        console.log(el.getLabel());
+                        continue;
+                    }
+                    foundryEl['name'] = foundryEl['name'] + ' (' + el.spec + ')';
+                    if (type === 'spell') {
+                        foundryEl['data']["lore"]['value'] = specFoundryName[el.spec];
+                    }
+                    foundryItems[type][Helper.toId(foundryEl['name'])] = foundryEl;
+                }
+                items[items.length] = foundryEl;
+
+            }
+            var godTalent = character.searchTalent('Béni', '', false);
+            if (godTalent) {
+                result.data.details.god.value = godTalent.spec;
+            }
+            result['items'] = items;
+            result['effects'] = effects;
+            console.log(result);
+
+            return result;
+
+        },
         export: function (CharGen, character) {
             var characteristics = {};
             var status = {};
@@ -168,7 +354,6 @@
         },
         import: function (CharGen, data) {
             data = JSON.parse(data);
-            console.log(data);
             var newCharacter = createNewCharacter(CharGen);
             var i;
             var j;
@@ -255,7 +440,7 @@
                         //console.log('Career group: ' + foundryCareerGroupId);
                         continue;
                     } else {
-                    //tmpItem.name
+                        //tmpItem.name
                         var foundryCareerId = this.getElemId(CharGen, tmpItem.type, tmpItem.name);
                         var career = careerGroup[tmpItem.data.level.value];
                         if (Helper.toId(career.careerLevelName) !== Helper.toId(foundryCareerId)) {
@@ -381,7 +566,6 @@
                 log: {},
                 used: 0,
             };
-            console.log(CharGen);
             console.log(newCharacter);
             return newCharacter;
         },
