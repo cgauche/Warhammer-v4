@@ -73,7 +73,7 @@
         };
 
         oThat.showPanel = function (i, el) {
-            Helper.addDescription(el.desc());
+            Helper.addDescription(el.desc(), oThat);
             $('.left_panel').html("");
             $('.header_panel .text').html(el.title());
             $('.other').prop('disabled', false);
@@ -226,7 +226,7 @@
         oThat.addTrapping = function (el) {
             oThat.allTrappings[Helper.removePlural(el.id)] = el;
             el.getLabel = function () {
-                return this.label;
+                return this.label + (this.title ? ' ' + this.title : '');
             };
         }
 
@@ -397,17 +397,25 @@
             labels = Object.entries(labels).sort(function (a, b) {
                 return b[0].length - a[0].length;
             });
+            function escapeRegExp(string) {
+                return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+            }
             for (let [i, e] of Object.entries(oThat.data)) {
                 $(e).each(function (j, el) {
+                    if (el.desc && el.desc[0] === '{') {
+                        el.desc = JSON.parse(el.desc);
+                    }
                     if (typeof el.desc != 'undefined') {
                         for (let [label, data] of labels) {
-                            if (label !== el.id) {
-                                var regexp = new RegExp('(' + label + ')(\\W|$)', "gm");
+                            if (label !== el.label) {
+                                var regexp = new RegExp('(' + escapeRegExp(label) + ')(\\W|$)', "gm");
                                 var replace = '<span class="showHelp" data-type-parent="' + i + '" data-index-parent="' + j + '" data-type="' + data.type + '" data-index="' + data.index + '">$1</span>$2';
                                 if (typeof el.desc == 'object') {
-                                    $(el.desc).each(function (k, desc) {
-                                        el.desc[k] = el.desc[k].replace(regexp, replace);
-                                    });
+                                    for (var k in el.desc) {
+                                      if (el.desc.hasOwnProperty(k)) {
+                                          el.desc[k] = el.desc[k].replace(regexp, replace);
+                                      }
+                                    }
                                 } else {
                                     el.desc = el.desc.replace(regexp, replace);
                                 }
@@ -420,7 +428,7 @@
 
             $('body').on('click', '.showHelp', function () {
                 var $el = $(this);
-                Helper.showPopin('', Helper.getHelpFormat(oThat.data[$el.data('type')][$el.data('index')]))
+                Helper.showPopin('', Helper.getHelpFormat(oThat.data[$el.data('type')][$el.data('index')]), oThat)
             });
         }
 

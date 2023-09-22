@@ -46,7 +46,7 @@
                     return el.label
                 },
                 function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(species[i]));
+                    Helper.addDescription(Helper.getHelpFormat(species[i]), CharGen);
                 },
                 true
             );
@@ -64,7 +64,7 @@
                     return el.label
                 },
                 function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(characteristics[i]));
+                    Helper.addDescription(Helper.getHelpFormat(characteristics[i]), CharGen);
                 },
                 true
             );
@@ -82,7 +82,7 @@
                     return el.label
                 },
                 function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(classes[i]));
+                    Helper.addDescription(Helper.getHelpFormat(classes[i]), CharGen);
                 },
                 true
             );
@@ -126,7 +126,7 @@
                     return el.label;
                 },
                 function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(displayedCareers[i]));
+                    Helper.addDescription(Helper.getHelpFormat(displayedCareers[i]), CharGen);
                 },
                 true,
                 null,
@@ -148,7 +148,7 @@
                     return el.label
                 },
                 function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(talents[i]));
+                    Helper.addDescription(Helper.getHelpFormat(talents[i]), CharGen);
                 },
                 true
             );
@@ -167,7 +167,7 @@
                     return el.label
                 },
                 function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(skills[i]));
+                    Helper.addDescription(Helper.getHelpFormat(skills[i]), CharGen);
                 },
                 true
             );
@@ -185,7 +185,7 @@
                     return el.label
                 },
                 function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(gods[i]));
+                    Helper.addDescription(Helper.getHelpFormat(gods[i]), CharGen);
                 },
                 true,
             );
@@ -214,7 +214,7 @@
                     };
                 }
                 displayedSpells[displayedSpells.length] = {
-                    label: spells[i].label,
+                    label: spells[i].getLabel(),
                     desc: spells[i].desc,
                     level: 3
                 };
@@ -230,7 +230,7 @@
                     return el.label
                 },
                 function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(displayedSpells[i]));
+                    Helper.addDescription(Helper.getHelpFormat(displayedSpells[i]), CharGen);
                 },
                 true,
                 null,
@@ -242,8 +242,36 @@
             tabs.append('<div id="tabs-9" class="pretty_panel paneltabs overflow_panel"></div>');
             talentstab = tabs.find('#tabs-9');
             var trappings = CharGen.data.trappings;
+            var currentType = '';
+            var currentSpec = '';
+            var displayedTrappings = [];
+
+            $(trappings).each(function (i, el) {
+                if (trappings[i].type && currentType !== trappings[i].type) {
+                    currentType = trappings[i].type;
+                    displayedTrappings[displayedTrappings.length] = {
+                        label: currentType,
+                        desc: '',
+                        level: 1
+                    };
+                }
+                if (trappings[i].spec && currentSpec !== trappings[i].spec) {
+                    currentSpec = trappings[i].spec;
+                    displayedTrappings[displayedTrappings.length] = {
+                        label: currentSpec,
+                        desc: '',
+                        level: 2
+                    };
+                }
+                displayedTrappings[displayedTrappings.length] = {
+                    label: trappings[i].getLabel(),
+                    desc: trappings[i].desc,
+                    level: 3
+                };
+            });
+
             Helper.generateListWithHelp(
-                trappings,
+                displayedTrappings,
                 function () {
                     return true
                 },
@@ -252,9 +280,14 @@
                     return el.label
                 },
                 function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(trappings[i]));
+                    Helper.addDescription(Helper.getHelpFormat(displayedTrappings[i]), CharGen);
                 },
-                true
+                true,
+                null,
+                function (i, el) {
+                    return el.level;
+                }
+
             );
             /** Lore **/
             tabs.append('<div id="tabs-10" class="pretty_panel paneltabs overflow_panel"></div>');
@@ -270,7 +303,7 @@
                     return el.label
                 },
                 function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(lore[i]));
+                    Helper.addDescription(Helper.getHelpFormat(lore[i]), CharGen);
                 },
                 true,
                 null,

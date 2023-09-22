@@ -107,7 +107,7 @@
                 }
             };
             $('.validate').prop('disabled', true);
-            Helper.addDescription(oThat.desc(0));
+            Helper.addDescription(oThat.desc(0), CharGen);
             $('.left_panel').html("<div class='description_title'><span class='skills_specie_5points'></span> Compétences auxquelles ajouter 5 Augmentations</div>"
                 + "<div class='description_title'><span class='skills_specie_3points'></span> Compétences auxquelles ajouter 3 Augmentations</div>");
             var $skills = Helper.generateListWithRankAndHelp(character.isFreeMode() ? [].concat(currentSpecieSkills, character.getAllSkills(true)) : currentSpecieSkills,
@@ -156,7 +156,7 @@
                     $('.validate').prop('disabled', !character.isFreeMode() && (remaining5 !== 0 || remaining3 !== 0));
                 },
                 function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el.data))
+                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
                 }
             );
 
@@ -189,7 +189,7 @@
             };
             $('.validate').prop('disabled', true);
             $('.left_panel').html("<div class='description_title'><span class='skills_career'></span> Points à allouer" + "</div>");
-            Helper.addDescription(oThat.desc(1));
+            Helper.addDescription(oThat.desc(1), CharGen);
             var $skills = Helper.generateListWithRankAndHelp(character.isFreeMode() ? [].concat(currentCareerSkills, character.getAllSkills(true)) : currentCareerSkills,
                 ['', 'Base', 'Augmentation', 'Total'],
                 function (i, el) {
@@ -235,7 +235,7 @@
                     $('.validate').prop('disabled', !character.isFreeMode() && remaining !== 0);
                 },
                 function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el.data))
+                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
             }
             );
 

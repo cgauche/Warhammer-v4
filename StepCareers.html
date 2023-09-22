@@ -36,7 +36,7 @@
             var elems = CharGen.data.careers;
             for (var i = 0; i < elems.length; ++i) {
                 var el = elems[i];
-                var rand = el.rand[character.getSpecie().data.index];
+                var rand = el.rand[character.getSpecie().data.refCareer];
                 if (rand) {
                     if (rand >= value) {
                         character.setCareer(el);
@@ -58,25 +58,30 @@
                 var careers = $(CharGen.data.careers);
                 while (nb > 0) {
                     var value = Helper.getRandomInt(100);
+                    var target = -1;
                     careers.each(function (i, el) {
-                        var rand = el.rand[character.getSpecie().data.index];
+                        var rand = el.rand[character.getSpecie().data.refCareer];
                         if (rand) {
+                            if (target !== -1 && rand !== target) {
+                                return false;
+                            }
                             if (rand >= value) {
                                 var $el = $careers.find('li[data-id="' + el.id + '"]');
                                 if ($el.is('.disabled')) {
                                     character.randomState.imposedCareers[character.randomState.imposedCareers.length] = el.id;
                                     $el.prev('.listchild2').show();
                                     $el.show();
+                                    $el.next().show().next().show().next().show();
                                     $el.removeClass('disabled');
-                                    if (character.randomState.career === 0) {
-                                        $el.click();
-                                    }
+                                    target = el.rand;
                                     --nb;
                                 }
-                                return false;
                             }
                         }
                     });
+                }
+                if (character.randomState.imposedCareers.length === 1) {
+                    $careers.find('li[data-id="' + character.randomState.imposedCareers[0]+ '"]').click();
                 }
                 if (character.randomState.career === 1) {
                     el.prop('disabled', true);
@@ -107,7 +112,8 @@
             var displayedCareers = [];
             var rand = '';
             var previousRand = 1;
-            var specie = character.getSpecie().data.index;
+            var previousPreviousRand = 1;
+            var specie = character.getSpecie().data.refCareer;
             $(careers).each(function (i, el) {
                 if (currentClass !== careers[i].class && careers[i].rand[specie]) {
                     currentClass = careers[i].class;
@@ -123,10 +129,14 @@
                     };
                 }
                 if (currentCareer !== careers[i].label) {
-                    if (rand[specie]) {
-                        previousRand = rand[specie];
-                    }
                     rand = careers[i].rand;
+                    if (rand[specie] && rand[specie] >= previousRand) {
+                        previousPreviousRand = previousRand;
+                        previousRand = rand[specie] + 1;
+                    }
+                    var min = (rand[specie] >= previousRand ? previousRand : previousPreviousRand);
+                    var max = min !== rand[specie] ? '-' + rand[specie] : '';
+                    var roll = ' <span class="showRoll"">' + min + max + '</span>';
                     currentCareer = careers[i].label;
                     displayedCareers[displayedCareers.length] = {
                         label: currentCareer,
@@ -134,6 +144,7 @@
                         desc: careers[i].desc,
                         rand: rand,
                         level: 2,
+                        altLabel: (!character.isFreeMode() ? this.getLabel() + roll : this.getLabel()),
                         getLabel: function () {
                             return this.label;
                         }
@@ -142,8 +153,8 @@
                 var myCareer = Helper.clone(careers[i]);
                 myCareer.level = 3;
                 myCareer.rand = rand;
-                myCareer.label = character.isFreeMode() && myCareer.rand[specie] && myCareer.careerLevel === 1 ?
-                    '<span class="highlighting">' + careers[i].careerLevelName + ' ' + previousRand + '-' + rand[specie] + '<span>' :
+                myCareer.altLabel = character.isFreeMode() && rand[specie] && myCareer.careerLevel === 1 ?
+                    '<span class="highlighting">' + careers[i].careerLevelName + roll + '<span>' :
                     careers[i].careerLevelName;
                 displayedCareers[displayedCareers.length] = myCareer;
             });
@@ -151,11 +162,11 @@
             $careers = Helper.generateNormalList(
                 displayedCareers,
                 function (i, el) {
-                    return character.isFreeMode() ? true : el.rand[character.getSpecie().data.index];
+                    return character.isFreeMode() ? true : el.rand[character.getSpecie().data.refCareer];
                 }, function (i, el) {
                     character.setCareer(el);
                     $('.validate').prop('disabled', false)
-                }
+                }, undefined, CharGen
             );
 
             $careers.find('li[data-line]').addClass('disabled');
@@ -182,8 +193,15 @@
                         $el.prev('.listchild2').show();
                         $el.show();
                         $el.removeClass('disabled');
+                        $el.next().show().next().show().next().show();
                     });
+                    if (character.randomState.imposedCareers.length === 1) {
+                        $careers.find('li[data-id="' + character.randomState.imposedCareers[0]+ '"]').click();
+                    }
+
                 }
+            } else {
+                $careers.find('li[data-line].listchild3').hide();
             }
 
         };

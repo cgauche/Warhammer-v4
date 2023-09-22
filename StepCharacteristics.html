@@ -89,7 +89,7 @@
             $('.left_panel').html("");
             var funcMoveUpDown = false;
             if (mode === 'roll') {
-                Helper.addDescription(oThat.desc(0));
+                Helper.addDescription(oThat.desc(0), CharGen);
                 $('.validate').prop('disabled', !character.isFreeMode());
                 if (!character.isFreeMode()) {
                     $('.random').show();
@@ -118,7 +118,7 @@
                 $('.validate').prop('disabled', character.isFreeMode());
                 $('.random').hide();
                 $('.other').hide();
-                Helper.addDescription(oThat.desc(2));
+                Helper.addDescription(oThat.desc(2), CharGen);
                 $('.left_panel').html("<div class='description_title'><span class='char_career_points'></span> Points à allouer" + "</div>");
             }
 
@@ -194,7 +194,7 @@
                     }
                 },
                 function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el.data))
+                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
                 },
                 false,
                 funcMoveUpDown
@@ -283,7 +283,7 @@
             $('.random').hide();
             $('.other').hide();
             $('.validate').prop('disabled', true);
-            Helper.addDescription(oThat.desc(1));
+            Helper.addDescription(oThat.desc(1), CharGen);
 
             $('.left_panel').html("<div class='description_title'><span class='char_career_points'></span> Points à allouer" + "</div>");
 
@@ -341,7 +341,7 @@
                         + char.roll);
                 },
                 function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el.data))
+                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
                 }
             );
             $characteristics.find('.number').first().change();

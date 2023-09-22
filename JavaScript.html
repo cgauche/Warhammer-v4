@@ -68,7 +68,7 @@
         });
 
         function sanitarize(text) {
-            return text.split(' (')[0].replace(' ', '_').toLowerCase();
+            return text.split(' (')[0].replace(' ', '_').toLowerCase().replace(/[éêè]/ig, 'e').replace(/[áâà]/ig, 'a').replace('  ', ' ').replace('œ', 'oe');
         }
 
         function removePlural(text) {

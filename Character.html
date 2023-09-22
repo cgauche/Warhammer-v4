@@ -21,7 +21,7 @@
             },
             randomState: {
                 specie: 0,
-                imposedSpecie: null,
+                imposedSpecie: [],
                 career: 0,
                 imposedCareers: [],
                 characteristic: 0,
@@ -171,26 +171,49 @@
                         var spec;
                         var i;
                         var el;
+                        var secondWave = [];
                         for (i = 0; i < skillList.length; ++i) {
                             el = skillList[i];
                             spec = el.spec ? el.spec : el.specs;
-                            skill = oThat.searchSkill(el.id, spec, false, career, true, false);
+                            skill = oThat.searchSkill(el.id, spec, true, '', false, false);
                             if (!skill) {
+                                secondWave[secondWave.length] = el;
+                            } else {
+                                skill.reduced = 0;
+                                skill.added = true;
+                                skill.addOrigins([career]);
+                                careerSkills[careerSkills.length] = skill;
+                            }
+                        }
+                        for (i = 0; i < secondWave.length; ++i) {
+                            el = secondWave[i];
+                            spec = el.spec ? el.spec : el.specs;
+                            skill = oThat.searchSkill(el.id, spec, false, career, true, false);
+                            if (!skill && (!el.specs || el.spec)) {
+                                skill = oThat.searchSkill(el.id, spec);
+                            }
+                            if (!skill) {
+                                skill = oThat.createSkill(el);
                                 if (!el.specs || el.spec) {
-                                    skill = oThat.searchSkill(el.id, spec);
-                                }
-                                if (!skill) {
-                                    skill = oThat.createSkill(el);
-                                    if (!el.specs || el.spec) {
-                                        skill = oThat.setSkill(skill);
-                                    }
-                                } else {
-                                    skill.addOrigins([career]);
+                                    skill = oThat.setSkill(skill);
                                 }
                             }
                             skill.reduced = 0;
+                            skill.added = true;
+                            skill.addOrigins([career]);
                             careerSkills[careerSkills.length] = skill;
                         }
+                        i = 0;
+                        while (i < oThat.skills.length) {
+                            el = oThat.skills[i];
+                            if (typeof (el.added) === 'undefined' && el.hasOrigin(career) && el.career === 0) {
+                                oThat.skills.splice(i, 1);
+                            } else {
+                                ++i;
+                            }
+                            delete el.added;
+                        }
+
                         var talents = oThat.getTalents();
                         for (i = 0; i < talents.length; ++i) {
                             el = talents[i];
@@ -270,7 +293,7 @@
                         if (this.data.label === 'Points de Blessures') {
                             var wounds = oThat.searchCharacteristic('Endurance').getBonus() * 2
                                 + oThat.searchCharacteristic('Force Mentale').getBonus();
-                            if (this.data.rand[oThat.getSpecie().data.index] === 'SB+(2 × TB)+WPB') {
+                            if (this.data.rand[oThat.getSpecie().data.refChar] === 'BF+(2 × BE)+BFM') {
                                 wounds += oThat.searchCharacteristic('Force').getBonus();
                             }
                             return wounds;
@@ -282,7 +305,7 @@
                         } else if (this.data.label === 'Détermination') {
                             return oThat.searchCharacteristic('Résilience').getTotal()
                         }
-                        return this.data.rand[oThat.getSpecie().data.index];
+                        return this.data.rand[oThat.getSpecie().data.refChar];
                     },
                     getBase: function () {
                         return this.getSpecie() + this.roll + this.talent;
@@ -567,7 +590,6 @@
                     newSkill = this.createSkill(skill);
                 }
                 this.skills[newindex] = newSkill;
-
                 return this.skills[newindex];
             },
             createSkill: function (skill) {
@@ -650,26 +672,29 @@
                 var elems = this['get' + type[0].toUpperCase() + type.substring(1) + 's']();
                 for (var i = 0; i < elems.length; ++i) {
                     var el = elems[i];
-                    if (el && (!withAdvance || el.getAdvance()) && id === el.id
-                        && (!origin || el.hasOrigin(origin) || (withTalent && el.hasOrigin('talent')))) {
-                        if ((!el.data.specs && !specs) || (!strict && specs === '')) {
-                            return el;
-                        }
-                        var j = 0;
-                        while (j < spec.length) {
-                            var sp = spec[j];
-                            if (el.spec === sp) {
-                                if (!strict) {
-                                    spec = [];
-                                } else {
-                                    spec.splice(j, 1);
-                                }
-                            } else {
-                                ++j;
+                    if (el) {
+                        el.myIndex = i;
+                        if (typeof el.added === 'undefined' && (!withAdvance || el.getAdvance()) && id === el.id
+                            && (!origin || el.hasOrigin(origin) || (withTalent && el.hasOrigin('talent')))) {
+                            if ((!el.data.specs && !specs) || (!strict && specs === '')) {
+                                return el;
                             }
-                        }
-                        if (spec.length === 0) {
-                            return el;
+                            var j = 0;
+                            while (j < spec.length) {
+                                var sp = spec[j];
+                                if (el.spec === sp) {
+                                    if (!strict) {
+                                        spec = [];
+                                    } else {
+                                        spec.splice(j, 1);
+                                    }
+                                } else {
+                                    ++j;
+                                }
+                            }
+                            if (spec.length === 0) {
+                                return el;
+                            }
                         }
                     }
                 }

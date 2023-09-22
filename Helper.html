@@ -56,25 +56,66 @@
 
             this.init();
         },
-        addDescription: function (message) {
-            return $('.right_panel').html("<div class='description'>" + message + "</div>");
+        executeHelperFunction: function (el, CharGen) {
+            el.find('[data-execute]').each(function () {
+                var el = $(this);
+                var par = el.data('execute').split('|');
+                if (par.length > 1) {
+                    Helper[par[0]](el, par, CharGen);
+                } else {
+                    Helper[par[0]](el, CharGen);
+                }
+            });
         },
-        showPopin: function (title, message) {
+        addDescription: function (message, CharGen) {
+            var description = $('.right_panel').html("<div class='description'>" + message + "</div>");
+            Helper.executeHelperFunction(description, CharGen);
+            description.find('.tabs').tabs();
+            return description;
+        },
+        showPopin: function (title, message, CharGen) {
             $('.ui-dialog-title').html(title);
             Helper.popin.html(message);
+            Helper.executeHelperFunction(Helper.popin, CharGen);
+            Helper.popin.find('.tabs').tabs();
             Helper.popin.dialog("open");
         },
         uniqid: function () {
             return (new Date().getTime() + Math.floor((Math.random() * 10000) + 1)).toString(16);
         },
         getHelpFormat: function (el) {
-            return '<span><h3>' + (typeof el.getLabel !== 'undefined' ? el.getLabel() : el.label) + '</h3>' + el.desc + '<span>';
+            var result = '';
+            if (el.desc && typeof el.desc !== 'string') {
+                var part2 = '';
+                var tmp = el.desc;
+                var i = 0;
+                for (var key in tmp) {
+                    if (tmp.hasOwnProperty(key)) {
+                        var data = tmp[key] && tmp[key][0] === '#' ? 'data-execute="' + tmp[key].substring(1) + '"' : '';
+                        part2 += '<div id="tabs-' + i++ + '" class="pretty_panel overflow_panel"' + data + '><br>' + (data ? '' : tmp[key]) + '</div>';
+                    }
+                }
+
+                var percent = (100 / i - 1).toPrecision(2);
+                var part1 = '<ul>';
+                i = 0;
+                for (key in tmp) {
+                    if (tmp.hasOwnProperty(key)) {
+                        part1 += '<li style="width:' + percent + '%"><a href="#tabs-' + i++ + '">' + key + '</a></li>';
+                    }
+                }
+                part1 += '</ul>';
+
+                result = '<div class="tabs">' + part1 + part2 + '</div>';
+            } else {
+                result = el.desc;
+            }
+            return '<span><h3>' + (typeof el.getLabel !== 'undefined' ? el.getLabel() : el.label) + '</h3>' + result + '<span>';
         },
         removePlural: function (text) {
             return text.replace(/(s|es|e)\b/ig, '');
         },
-        toId: function (text)
-        {
+        toId: function (text) {
             if (!text) {
                 return text;
             }
@@ -166,12 +207,12 @@
             }
             return total;
         },
-        generateNormalList: function (list, filter, onChange, el) {
+        generateNormalList: function (list, filter, onChange, el, CharGen) {
             el = typeof el !== 'undefined' ? el : $('.left_panel');
             return Helper.generateListWithHelp(list, filter, el, function (i, el) {
-                return el.getLabel()
+                return typeof el.altLabel !== 'undefined' ? el.altLabel : el.getLabel()
             }, function (i, el, disabled) {
-                Helper.addDescription(Helper.getHelpFormat(el));
+                Helper.addDescription(Helper.getHelpFormat(el), CharGen);
                 if (!disabled) {
                     onChange(i, el);
                 }
@@ -397,7 +438,9 @@
                     elem.specName = displayedSpec;
                 }
             }
-            elem.getType = function () {return type};
+            elem.getType = function () {
+                return type
+            };
             return elem;
         },
         merge: function (el, char) {
@@ -407,7 +450,7 @@
                 }
             }
         },
-        isFunction: function ( obj ) {
+        isFunction: function (obj) {
 
             // Support: Chrome <=57, Firefox <=52
             // In some browsers, typeof returns "function" for HTML <object> elements
@@ -415,66 +458,66 @@
             // We don't want to classify *any* DOM node as a function.
             return typeof obj === "function" && typeof obj.nodeType !== "number";
         },
-        extend: function() {
+        extend: function () {
             var options, name, src, copy, copyIsArray, clone,
-                target = arguments[ 0 ] || {},
+                target = arguments[0] || {},
                 i = 1,
                 length = arguments.length,
                 deep = false;
 
             // Handle a deep copy situation
-            if ( typeof target === "boolean" ) {
+            if (typeof target === "boolean") {
                 deep = target;
 
                 // Skip the boolean and the target
-                target = arguments[ i ] || {};
+                target = arguments[i] || {};
                 i++;
             }
 
             // Handle case when target is a string or something (possible in deep copy)
-            if ( typeof target !== "object" && !Helper.isFunction( target ) ) {
+            if (typeof target !== "object" && !Helper.isFunction(target)) {
                 target = {};
             }
 
             // Extend jQuery itself if only one argument is passed
-            if ( i === length ) {
+            if (i === length) {
                 target = this;
                 i--;
             }
 
-            for ( ; i < length; i++ ) {
+            for (; i < length; i++) {
 
                 // Only deal with non-null/undefined values
-                if ( ( options = arguments[ i ] ) != null ) {
+                if ((options = arguments[i]) != null) {
 
                     // Extend the base object
-                    for ( name in options ) {
-                        src = target[ name ];
-                        copy = options[ name ];
+                    for (name in options) {
+                        src = target[name];
+                        copy = options[name];
 
                         // Prevent never-ending loop
-                        if ( target === copy ) {
+                        if (target === copy) {
                             continue;
                         }
 
                         // Recurse if we're merging plain objects or arrays
-                        if ( deep && copy && ( Helper.isPlainObject( copy ) ||
-                            ( copyIsArray = Array.isArray( copy ) ) ) ) {
+                        if (deep && copy && (Helper.isPlainObject(copy) ||
+                            (copyIsArray = Array.isArray(copy)))) {
 
-                            if ( copyIsArray ) {
+                            if (copyIsArray) {
                                 copyIsArray = false;
-                                clone = src && Array.isArray( src ) ? src : [];
+                                clone = src && Array.isArray(src) ? src : [];
 
                             } else {
-                                clone = src && Helper.isPlainObject( src ) ? src : {};
+                                clone = src && Helper.isPlainObject(src) ? src : {};
                             }
 
                             // Never move original objects, clone them
-                            target[ name ] = Helper.extend( deep, clone, copy );
+                            target[name] = Helper.extend(deep, clone, copy);
 
                             // Don't bring in undefined values
-                        } else if ( copy !== undefined ) {
-                            target[ name ] = copy;
+                        } else if (copy !== undefined) {
+                            target[name] = copy;
                         }
                     }
                 }
@@ -483,31 +526,31 @@
             // Return the modified object
             return target;
         },
-        isPlainObject: function( obj ) {
+        isPlainObject: function (obj) {
             var proto, Ctor;
 
             // Detect obvious negatives
             // Use toString instead of jQuery.type to catch host objects
-            if ( !obj || toString.call( obj ) !== "[object Object]" ) {
+            if (!obj || toString.call(obj) !== "[object Object]") {
                 return false;
             }
 
-            proto = Object.getPrototypeOf( obj );
+            proto = Object.getPrototypeOf(obj);
 
             // Objects with no prototype (e.g., `Object.create( null )`) are plain
-            if ( !proto ) {
+            if (!proto) {
                 return true;
             }
             var class2type = {}
-            var elems = "Boolean Number String Function Array Date RegExp Object Error Symbol".split( " " );
+            var elems = "Boolean Number String Function Array Date RegExp Object Error Symbol".split(" ");
             for (var i = 0; i < elems.length; ++i) {
                 var el = elems[i];
-                class2type[ "[object " + el + "]" ] = el.toLowerCase();
+                class2type["[object " + el + "]"] = el.toLowerCase();
             }
 
             // Objects with prototype are plain iff they were constructed by a global Object function
-            Ctor = class2type.hasOwnProperty.call( proto, "constructor" ) && proto.constructor;
-            return typeof Ctor === "function" && class2type.hasOwnProperty.toString.call( Ctor ) === class2type.hasOwnProperty.toString.call( Object );
+            Ctor = class2type.hasOwnProperty.call(proto, "constructor") && proto.constructor;
+            return typeof Ctor === "function" && class2type.hasOwnProperty.toString.call(Ctor) === class2type.hasOwnProperty.toString.call(Object);
         },
         clone: function (el) {
             if (el) {
@@ -588,7 +631,7 @@
                 cancel
             );
         },
-        showSpells : function (CharGen, character, returnAction, validateAction, number, mode, numberSpellToChoose) {
+        showSpells: function (CharGen, character, returnAction, validateAction, number, mode, numberSpellToChoose) {
             var spells = CharGen.data.spells;
             var remaining = numberSpellToChoose;
             var charSpells = character.getSpells();
@@ -619,7 +662,7 @@
                     return remaining <= 0 || character.searchSpell(el.id, el.spec) || mode === 'Béni';
                 };
                 var initHelp = function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el));
+                    Helper.showPopin('', Helper.getHelpFormat(el), CharGen);
                 };
                 Helper.generateListWithHelpPopin(
                     spells,
@@ -650,7 +693,7 @@
                     return mode === 'Béni';
                 },
                 function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el.data))
+                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
                 },
                 function (i) {
                     character.setSpell(null, i);
@@ -670,7 +713,7 @@
                 validateAction();
             });
         },
-        showGods : function (CharGen, character, returnAction, validateAction, mode) {
+        showGods: function (CharGen, character, returnAction, validateAction, mode) {
             $('.right_panel').html('');
             var species = $(CharGen.data.gods);
             var $species = Helper.generateNormalList(species, function () {
@@ -680,7 +723,7 @@
                 godTalent.spec = el.label;
                 character.applyTalent();
                 $('.validate').prop('disabled', false)
-            });
+            }, undefined, CharGen);
             var godTalent = character.searchTalent('Béni', '', false)
             if (godTalent) {
                 $species.find('li[data-id="' + godTalent.spec + '"]').click()
@@ -722,6 +765,35 @@
                     }
                 }
             }
+        },
+        showSpecieChar: function (el, id, CharGen) {
+            Helper.generateListWithRankAndHelp(
+                CharGen.data.characteristics,
+                ['', 'Base', 'Jet'],
+                function (i, el) {
+                    return el.class !== ''
+                },
+                el,
+                [
+                    function (i, el) {
+                        return el.getLabel()
+                    },
+                    function (i, el) {
+                        return el.rand[id[1]];
+                    },
+                    function (i, el) {
+                        return el.class === 'roll' ? '+2d10' : '';
+                    }
+                ],
+                function () {
+                },
+                function () {
+                },
+                function (i, el) {
+                    Helper.showPopin(el.getLabel(), Helper.getHelpFormat(el), CharGen)
+                },
+                1
+            );
         },
         showModelPopin: function (title, description, html, validateFunction, cancelFunction) {
             var dialog = $("#dialog_modal").dialog({

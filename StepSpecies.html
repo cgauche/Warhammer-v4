@@ -49,15 +49,22 @@
                 var value = Helper.getRandomInt(100);
                 character.randomState.specie = 1;
                 $(this).prop('disabled', true);
+                var y = 0;
+                var target = -1;
                 species.each(function (i, el) {
-                    if (el.rand >= value) {
-                        var $el = $species.find('li[data-id="' + el.id + '"]');
-                        character.randomState.imposedSpecie = el.id;
-                        $el.removeClass('disabled');
-                        $el.click();
+                    if (target !== -1 && el.rand !== target) {
                         return false;
                     }
+                    if (el.rand >= value) {
+                        var $el = $species.find('li[data-id="' + el.id + '"]');
+                        character.randomState.imposedSpecie[y++] = el.id;
+                        $el.removeClass('disabled');
+                        target = el.rand;
+                    }
                 });
+                if (y === 1) {
+                    $species.find('li[data-id="' + character.randomState.imposedSpecie[0]+ '"]').click();
+                }
                 CharGen.saveRandomState(character);
             });
         };
@@ -74,12 +81,26 @@
 
         oThat.show = function () {
             var species = $(CharGen.data.species);
-            $species = Helper.generateNormalList(species, function () {
+            var previousRand = 1;
+            var previousPreviousRand = 1;
+            var displayedSpecies = [];
+            $(species).each(function (i, el) {
+                var mySpecie = Helper.clone(el);
+                var min = (el.rand >= previousRand ? previousRand : previousPreviousRand);
+                var max = min !== el.rand ? '-' + el.rand : ''
+                mySpecie.altLabel = mySpecie.getLabel() + ' <span class="showRoll"">' + min + max + '</span>';
+                if (el.rand && el.rand >= previousRand) {
+                    previousPreviousRand = previousRand;
+                    previousRand = el.rand + 1;
+                }
+                displayedSpecies[displayedSpecies.length] = mySpecie;
+            });
+            $species = Helper.generateNormalList(displayedSpecies, function () {
                 return true
             }, function (i, el) {
                 character.setSpecie(el);
                 $('.validate').prop('disabled', false);
-            });
+            }, undefined, CharGen);
             if (character.isFreeMode()) {
                 $('.random').hide();
                 $('.other').hide();
@@ -90,12 +111,14 @@
                 $('.random').prop('disabled', character.randomState.specie !== 0);
                 $('.other').prop('disabled', character.randomState.specie <= -1);
             }
-            var specieId = character.getSpecie() !== null ? character.getSpecie().id : character.randomState.imposedSpecie;
-            if (specieId !== null) {
+            var specieId = character.getSpecie() !== null ? [character.getSpecie().id] : character.randomState.imposedSpecie;
+            $(specieId).each(function (i, el) {
                 var $el = $species.find('li[data-id="' + specieId + '"]');
                 $el.removeClass('disabled');
-                $el.click();
-            }
+                if (specieId.length === 1) {
+                    $el.click();
+                }
+            });
         };
         return oThat;
     }

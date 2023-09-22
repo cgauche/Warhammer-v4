@@ -188,11 +188,12 @@
                     var filter;
                     var funcDisabled;
                     var previousRand = 1;
+                    var previousPreviousRand = 1;
                     var label = function (i, el) {
                         return el.getLabel();
                     };
                     var initHelp = function (i, el) {
-                        Helper.showPopin('', Helper.getHelpFormat(el.data ? el.data : el));
+                        Helper.showPopin('', Helper.getHelpFormat(el.data ? el.data : el), CharGen);
                     };
 
                     talents = CharGen.data.talents;
@@ -227,15 +228,18 @@
                             return character.isFreeMode() ? true : el.rand;
                         };
 
-                        if (character.isFreeMode()) {
-                            label = function (i, el) {
-                                var result = el.rand ? '<span class="highlighting">' + el.getLabel() + ' ' + previousRand + '-' + el.rand + '</span>' : el.getLabel();
-                                if (el.rand) {
-                                    previousRand = el.rand;
-                                }
-                                return result;
-                            };
-                        } else {
+                        label = function (i, el) {
+                            var min = (el.rand >= previousRand ? previousRand : previousPreviousRand);
+                            var max = min !== el.rand ? '-' + el.rand : '';
+                            var roll = ' <span class="showRoll"">' + min + max + '</span>';
+                            var result = el.rand ? (character.isFreeMode() ? '<span class="highlighting">' + el.getLabel() + roll + '</span>' : el.getLabel() + roll) : el.getLabel();
+                            if (el.rand && el.rand >= previousRand) {
+                                previousPreviousRand = previousRand;
+                                previousRand = el.rand + 1;
+                            }
+                            return result;
+                        };
+                        if (!character.isFreeMode()) {
                             funcDisabled = function () {
                                 return true;
                             };
@@ -288,7 +292,7 @@
                     return !character.isFreeMode() && (!allTalentsToChoose[i] || (allTalentsToChoose[i].length === 1 && el.specs === el.spec));
                 },
                 function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el.data))
+                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
                 },
                 function (i) {
                     character.setTalent(null, i);

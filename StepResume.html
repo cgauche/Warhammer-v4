@@ -18,7 +18,7 @@
                 CharGen.showMenu();
             });
         };
-        oThat.saveAction = function () {
+        /*oThat.saveAction = function () {
             var elems = [].concat(character.getSkills(), character.getCharacteristics(), character.getTalents());
             var j;
             for (j = 0; j < elems.length; ++j) {
@@ -31,7 +31,7 @@
             character.deleteEmpty();
             CharGen.saveCharacter(character);
             return true;
-        };
+        };*/
         oThat.initAction = function () {
             character = CharGen.character.clone();
         };
@@ -64,7 +64,7 @@
                 })
             });
         };
-        oThat.randomAction = function (el) {
+        /*oThat.randomAction = function (el) {
             el.html('Export Foundry');
             el.on('click', function () {
                 var a = document.createElement("a");
@@ -73,7 +73,7 @@
                 a.download = foundryChar['name'] + ".json";
                 a.click();
             })
-        };
+        };*/
 
         oThat.show = function () {
             var con = $('.left_panel').html('');
@@ -95,8 +95,8 @@
                             getLabel: function () {
                                 return details[i].label;
                             },
-                            desc: (details[i].allDesc ? details[i].allDesc : (character.getSpecie() ? details[i].desc[character.getSpecie().data.index] : ''))
-                        }))
+                            desc: (details[i].desc[character.getSpecie().data.refDetail] ? details[i].desc[character.getSpecie().data.refDetail] : details[i].allDesc)
+                        }), CharGen)
                     }
                 }
             };
@@ -107,21 +107,21 @@
                     value: character.getSpecie() ? character.getSpecie().getLabel() : '',
                     desc: function () {
                         if (character.getSpecie()) {
-                            Helper.addDescription(Helper.getHelpFormat(character.getSpecie().data))
+                            Helper.addDescription(Helper.getHelpFormat(character.getSpecie().data), CharGen)
                         }
                     }
                 },
                 {
                     label: 'Classe', value: career ? career.class : '', desc: function () {
                         if (career) {
-                            Helper.addDescription(Helper.getHelpFormat(CharGen.allClasses[Helper.toId(career.class)]))
+                            Helper.addDescription(Helper.getHelpFormat(CharGen.allClasses[Helper.toId(career.class)]), CharGen)
                         }
                     }
                 },
                 {
                     label: 'Carrière', value: career ? career.label : '', desc: function () {
                         if (career) {
-                            Helper.addDescription(Helper.getHelpFormat(career))
+                            Helper.addDescription(Helper.getHelpFormat(career), CharGen)
                         }
                     }
                 },
@@ -197,7 +197,7 @@
                 function () {
                 },
                 function (i, el) {
-                    Helper.addDescription(Helper.getHelpFormat(el.data))
+                    Helper.addDescription(Helper.getHelpFormat(el.data), CharGen)
                 },
                 1
             );
@@ -230,7 +230,7 @@
                 function (t) {
                 },
                 function (i, el) {
-                    Helper.addDescription(Helper.getHelpFormat(el.data))
+                    Helper.addDescription(Helper.getHelpFormat(el.data), CharGen)
                 },
                 1
             );
@@ -250,7 +250,7 @@
                     return el.getLabel() + ' ' + el.getAdvance() + (max ? '/' + max : '')
                 },
                 function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(talents[i].data));
+                    Helper.addDescription(Helper.getHelpFormat(talents[i].data), CharGen);
                 },
                 true
             );
@@ -273,7 +273,7 @@
                     $('.right_panel').html('');
                     if (typeof trapp !== 'undefined') {
                         if (trapp.desc !== '') {
-                            Helper.addDescription(Helper.getHelpFormat(trapp));
+                            Helper.addDescription(Helper.getHelpFormat(trapp), CharGen);
                         }
                     }
                 },
@@ -301,12 +301,12 @@
                         return el.getLabel()
                     },
                     function (i) {
-                        Helper.addDescription(Helper.getHelpFormat(spells[i].data));
+                        Helper.addDescription(Helper.getHelpFormat(spells[i].data), CharGen);
                     },
                     true
                 );
                 spellstab.find('.gods').on('click', function () {
-                    Helper.addDescription(Helper.getHelpFormat(god))
+                    Helper.addDescription(Helper.getHelpFormat(god), CharGen)
                 });
             }
             tabs.tabs();

@@ -33,7 +33,7 @@
                 value = Helper.getRandomInt(10) + Helper.getRandomInt(10);
                 $(CharGen.data.eyes).each(function (i, el) {
                     if (el.rand >= value) {
-                        $('[data-id="detail_2"]').val(el.label[spec.index]);
+                        $('[data-id="detail_2"]').val(el.label[spec.refDetail]);
                         $('[data-id="detail_2"]').trigger('change');
                         return false;
                     }
@@ -42,7 +42,7 @@
                 value = Helper.getRandomInt(10) + Helper.getRandomInt(10);
                 $(CharGen.data.hairs).each(function (i, el) {
                     if (el.rand >= value) {
-                        $('[data-id="detail_3"]').val(el.label[spec.index]);
+                        $('[data-id="detail_3"]').val(el.label[spec.refDetail]);
                         $('[data-id="detail_3"]').trigger('change');
                         return false;
                     }
@@ -93,7 +93,7 @@
             for (i = 0; i < elems.length; ++i) {
                 el = elems[i];
                 if (el.rand >= value) {
-                    character.details[2] = el.label[spec.index];
+                    character.details[2] = el.label[spec.refDetail];
                     break;
                 }
             }
@@ -103,7 +103,7 @@
             for (i = 0; i < elems.length; ++i) {
                 el = elems[i];
                 if (el.rand >= value) {
-                    character.details[3] = el.label[spec.index];
+                    character.details[3] = el.label[spec.refDetail];
                     break;
                 }
             }
@@ -143,8 +143,8 @@
                 function (i) {
                     Helper.showPopin('', Helper.getHelpFormat({
                         label: details[i].label,
-                        desc: (details[i].allDesc ? details[i].allDesc : details[i].desc[character.getSpecie().data.index])
-                    }));
+                        desc: (details[i].desc[character.getSpecie().data.refDetail] ? details[i].desc[character.getSpecie().data.refDetail] : details[i].allDesc)
+                    }), CharGen);
                 },
             );
         };

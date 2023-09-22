@@ -89,7 +89,7 @@
                     var trapp = CharGen.allTrappings[Helper.toId(Helper.removePlural(el))];
                     if (typeof trapp !== 'undefined') {
                         if (trapp.desc !== '') {
-                            Helper.showPopin('', Helper.getHelpFormat(trapp));
+                            Helper.showPopin('', Helper.getHelpFormat(trapp), CharGen);
                         }
                     }
                 };
@@ -127,7 +127,7 @@
                 var trapp = CharGen.allTrappings[Helper.toId(Helper.removePlural(el))];
                 if (typeof trapp !== 'undefined') {
                     if (trapp.desc !== '') {
-                        Helper.showPopin('', Helper.getHelpFormat(trapp));
+                        Helper.showPopin('', Helper.getHelpFormat(trapp), CharGen);
                     }
                 }
             };
