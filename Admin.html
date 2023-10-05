@@ -1,0 +1,99 @@
+<script>
+    var Admin = function (CharGen) {
+        var oThat = {};
+        oThat.stepName = "Admin";
+        oThat.desc = function () {
+            return ''
+        };
+        oThat.title = function () {
+            return 'Admin'
+        };
+        oThat.initAction = function () {
+            CharGen.loadData();
+        };
+
+        oThat.edit = function (y, el) {
+            $('.validate').prop('disabled', false);
+            var html = '<span>';
+            const regex = /<br>/gmi;
+            var desc = el.desc.replace(regex, "\n");
+            html += '<input name="id" type="hidden" value="' + y + '">';
+            html += '<div><b>Prefix :</b><input name="prefix" type="text" value="' + el.prefix + '"></div>';
+            html += '<div><b>Label :</b><input name="label" type="text" value="' + el.label + '"></div>';
+            html += '<div><b>Extra :</b><input name="extra" type="text" value="' + el.title + '"></div>';
+            html += '<div><b>Spec :</b><input name="spec" type="text" value="' + el.spec + '"></div>';
+            html += '<div><b>Parent :</b><select name="parent">';
+            html += '<option value=""></option>';
+            for (var i = 0; i < CharGen.data.lore.length; ++i) {
+                var e = CharGen.data.lore[i];
+                var selected = e.id === el.parent ? 'selected="selected"' : '';
+                html += '<option ' + selected + ' value="' + e.label + '">' + e.label + '</option>'
+            }
+            html += '</select></div>';
+            html += '<div><b>Livre :</b><input name="book" type="text" value="' + el.book + '"></div>';
+            html += '<div><b>Page :</b><input name="page" type="text" value="' + el.page + '"</div>';
+            html += '<div><b>Description :</b></div><textarea name="desc" style="width: 100%;height: 640px;">' + desc + '</textarea>';
+            html += '</span>';
+            return html;
+        }
+        oThat.validateAction = true;
+        oThat.saveAction = function () {
+            var con = $('.right_panel');
+            var el = {};
+            var i = con.find('[name="id"]').val();
+            const regex = /(\n)+/gmi;
+            var desc = con.find('[name="desc"]').val().trim().replace(new RegExp("[\n]+$", 'gmi'), "").replace(regex, "<br><br>").replace('’', "'");
+            el.label = con.find('[name="label"]').val().trim();
+            el.parent = con.find('[name="parent"]').val().trim();
+            el.book = con.find('[name="book"]').val().trim();
+            el.page = con.find('[name="page"]').val().trim();
+            el.prefix = con.find('[name="prefix"]').val().trim();
+            el.extra = con.find('[name="extra"]').val().trim();
+            el.spec = con.find('[name="spec"]').val().trim();
+            el.desc = desc;
+            Helper.loader = new Helper.ajaxLoader("body");
+            google.script.run.withSuccessHandler(function (data) {
+                CharacterGenerator().loadDataAndDisplay(data);
+                Helper.loader.remove();
+                $('.left_panel').find('[data-id="' + Helper.toId(el.label) + '"]').click();
+            }).saveLore(JSON.stringify(el));
+            return true;
+        };
+
+        oThat.cancelAction = false;
+
+        oThat.show = function () {
+            var con = $('.left_panel').css('width', '370px').html('');
+            $('.right_panel').css('width', '680px');
+
+            /** Lore **/
+            var lore = CharGen.data.lore;
+            Helper.generateListWithHelp(
+                lore,
+                function (i, el) {
+                    return true;
+                },
+                con,
+                function (i, el) {
+                    return (el.prefix ? el.prefix + ' ' : '') + el.label + (el.title ? ' ' + el.title : '');
+                },
+                function (i) {
+                    Helper.addDescription(oThat.edit(i, lore[i]), CharGen);
+                },
+                false,
+                null,
+                function (i, el) {
+                    return el.level;
+                }
+            );
+        };
+        return oThat;
+    }
+    var finalCallBack = function (CharGen) {
+        Helper.loader.remove();
+        $('.all_panel').hide();
+        $('.left_panel').show();
+        $('.right_panel').show();
+        CharGen.showPanel(null, Admin(CharGen));
+    }
+</script>
