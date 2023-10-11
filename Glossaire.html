@@ -18,19 +18,17 @@
         oThat.cancelAction = function () {
             $('.cancel').html('Retour');
             $('.cancel').off('click').on('click', function () {
-                $('.left_panel').addClass('overflow_panel');
-                $('.left_panel').addClass('pretty_panel');
+                $('.left_panel').css('flex-direction', 'column');
                 CharGen.showMainMenu();
             });
         };
 
         oThat.show = function () {
             var con = $('.left_panel').html('');
-            con.removeClass('overflow_panel');
-            con.removeClass('pretty_panel');
-            con.append('<div class="tabs"></div>');
+            con.css('flex-direction', 'inherit')
+            con.append('<div class="tabs glossaire"></div>');
             var tabs = con.find('.tabs');
-            tabs.append('<ul><li><a href="#tabs-1">Races</a></li><li><a href="#tabs-2">Caractéristiques</a></li><li><a href="#tabs-3">Classes</a></li><li><a href="#tabs-4">Carrières</a></li><li><a href="#tabs-5">Talents</a></li><li><a href="#tabs-6">Compétences</a></li><li><a href="#tabs-7">Dieux</a></li><li><a href="#tabs-8">Sorts</a></li><li><a href="#tabs-9">Possessions</a></li><li><a href="#tabs-10">Lieux</a></li></ul>');
+            tabs.append('<ul><li><a href="#tabs-1">Races</a></li><li style="flex: 25%;"><a href="#tabs-2">Caractéristiques</a></li><li><a href="#tabs-4">Carrières</a></li><li><a href="#tabs-5">Talents</a></li><li><a href="#tabs-6">Compétences</a></li><li><a href="#tabs-8">Sorts</a></li><li><a href="#tabs-9">Possessions</a></li><li><a href="#tabs-10">Lieux</a></li><li><a href="#tabs-11">Autres</a></li></ul>');
 
             /** Races **/
             tabs.append('<div id="tabs-1" class="pretty_panel paneltabs overflow_panel"></div>');
@@ -45,8 +43,8 @@
                 function (i, el) {
                     return el.label
                 },
-                function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(species[i]), CharGen);
+                function (i, elem, dis, force) {
+                    Helper.addDescription(Helper.getHelpFormat(species[i]), CharGen, force);
                 },
                 true
             );
@@ -63,26 +61,8 @@
                 function (i, el) {
                     return el.label
                 },
-                function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(characteristics[i]), CharGen);
-                },
-                true
-            );
-            /** Classes **/
-            tabs.append('<div id="tabs-3" class="pretty_panel paneltabs overflow_panel"></div>');
-            var talentstab = tabs.find('#tabs-3');
-            var classes = CharGen.data.classes;
-            Helper.generateListWithHelp(
-                classes,
-                function () {
-                    return true
-                },
-                talentstab,
-                function (i, el) {
-                    return el.label
-                },
-                function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(classes[i]), CharGen);
+                function (i, elem, dis, force) {
+                    Helper.addDescription(Helper.getHelpFormat(characteristics[i]), CharGen, force);
                 },
                 true
             );
@@ -91,29 +71,22 @@
             talentstab = tabs.find('#tabs-4');
             var careers = CharGen.data.careers;
             var currentClass = '';
-            var currentCareer = '';
             var displayedCareers = [];
-            $(careers).each(function (i, el) {
-                if (currentClass !== careers[i].class) {
-                    currentClass = careers[i].class;
+            $(careers).each(function (i) {
+                var el = careers[i];
+                var tmpClass = el.getClass();
+                if (currentClass !== tmpClass.getLabel()) {
+                    currentClass = tmpClass.getLabel();
                     displayedCareers[displayedCareers.length] = {
                         label: currentClass,
-                        desc: CharGen.allClasses[Helper.toId(currentClass)].desc,
+                        desc: tmpClass.desc,
                         level: 1
                     };
                 }
-                if (currentCareer !== careers[i].label) {
-                    currentCareer = careers[i].label;
-                    displayedCareers[displayedCareers.length] = {
-                        label: currentCareer,
-                        desc: careers[i].desc,
-                        level: 2
-                    };
-                }
                 displayedCareers[displayedCareers.length] = {
-                    label: careers[i].careerLevelName,
-                    desc: careers[i].desc,
-                    level: 3
+                    label: el.getLabel(),
+                    desc: el.desc,
+                    level: 2
                 };
             });
             Helper.generateListWithHelp(
@@ -125,8 +98,8 @@
                 function (i, el) {
                     return el.label;
                 },
-                function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(displayedCareers[i]), CharGen);
+                function (i, elem, dis, force) {
+                    Helper.addDescription(Helper.getHelpFormat(displayedCareers[i]), CharGen, force);
                 },
                 true,
                 null,
@@ -147,8 +120,8 @@
                 function (i, el) {
                     return el.label
                 },
-                function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(talents[i]), CharGen);
+                function (i, elem, dis, force) {
+                    Helper.addDescription(Helper.getHelpFormat(talents[i]), CharGen, force);
                 },
                 true
             );
@@ -166,50 +139,43 @@
                 function (i, el) {
                     return el.label
                 },
-                function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(skills[i]), CharGen);
+                function (i, elem, dis, force) {
+                    Helper.addDescription(Helper.getHelpFormat(skills[i]), CharGen, force);
                 },
                 true
-            );
-            /** Dieux **/
-            tabs.append('<div id="tabs-7" class="pretty_panel paneltabs overflow_panel"></div>');
-            talentstab = tabs.find('#tabs-7');
-            var gods = CharGen.data.gods;
-            Helper.generateListWithHelp(
-                gods,
-                function () {
-                    return true
-                },
-                talentstab,
-                function (i, el) {
-                    return el.label
-                },
-                function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(gods[i]), CharGen);
-                },
-                true,
             );
             /** Sorts **/
             tabs.append('<div id="tabs-8" class="pretty_panel paneltabs overflow_panel"></div>');
             talentstab = tabs.find('#tabs-8');
             var spells = CharGen.data.spells;
-            var currentType = '';
-            var currentSpec = '';
+            currentType = '';
+            currentSpec = '';
+            var desc = '';
             var displayedSpells = [];
             $(spells).each(function (i, el) {
                 if (currentType !== spells[i].type) {
+                    desc = '';
                     currentType = spells[i].type;
+                    if (typeof CharGen.allTalents[Helper.toId(currentType)] !== 'undefined') {
+                        desc = CharGen.allTalents[Helper.toId(currentType)].desc;
+                    }
                     displayedSpells[displayedSpells.length] = {
                         label: currentType,
-                        desc: '',
+                        desc: desc,
                         level: 1
                     };
                 }
                 if (currentSpec !== spells[i].spec) {
+                    desc = '';
                     currentSpec = spells[i].spec;
+                    if (typeof CharGen.allGods[Helper.toId(currentSpec)] !== 'undefined') {
+                        desc = CharGen.allGods[Helper.toId(currentSpec)].desc;
+                    } else if (CharGen.allLore[Helper.toId(currentSpec)]) {
+                        desc = CharGen.allLore[Helper.toId(currentSpec)].desc;
+                    }
                     displayedSpells[displayedSpells.length] = {
                         label: currentSpec,
-                        desc: '',
+                        desc: desc,
                         level: 2
                     };
                 }
@@ -229,8 +195,8 @@
                 function (i, el) {
                     return el.label
                 },
-                function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(displayedSpells[i]), CharGen);
+                function (i, elem, dis, force) {
+                    Helper.addDescription(Helper.getHelpFormat(displayedSpells[i]), CharGen, force);
                 },
                 true,
                 null,
@@ -279,8 +245,8 @@
                 function (i, el) {
                     return el.label
                 },
-                function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(displayedTrappings[i]), CharGen);
+                function (i, elem, dis, force) {
+                    Helper.addDescription(Helper.getHelpFormat(displayedTrappings[i]), CharGen, force);
                 },
                 true,
                 null,
@@ -292,18 +258,40 @@
             /** Lore **/
             tabs.append('<div id="tabs-10" class="pretty_panel paneltabs overflow_panel"></div>');
             talentstab = tabs.find('#tabs-10');
+            lore = CharGen.data.lore;
+            Helper.generateListWithHelp(
+                lore,
+                function (i, el) {
+                    return el.spec === 'lore';
+                },
+                talentstab,
+                function (i, el) {
+                    return el.getLabel()
+                },
+                function (i, elem, dis, force) {
+                    Helper.addDescription(Helper.getHelpFormat(lore[i]), CharGen, force);
+                },
+                true,
+                null,
+                function (i, el) {
+                    return el.level;
+                }
+            );
+            /** Lore **/
+            tabs.append('<div id="tabs-11" class="pretty_panel paneltabs overflow_panel"></div>');
+            talentstab = tabs.find('#tabs-11');
             var lore = CharGen.data.lore;
             Helper.generateListWithHelp(
                 lore,
                 function (i, el) {
-                    return true;
+                    return el.spec !== 'lore';
                 },
                 talentstab,
                 function (i, el) {
-                    return el.label
+                    return el.getLabel()
                 },
-                function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(lore[i]), CharGen);
+                function (i, elem, dis, force) {
+                    Helper.addDescription(Helper.getHelpFormat(lore[i]), CharGen, force);
                 },
                 true,
                 null,

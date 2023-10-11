@@ -72,7 +72,7 @@
                     foundryItems[tmpItem.type][elemId] = tmpItem;
                 }
             }
-            for (const [i, elem] of Object.entries(foundryItems['career'])) {
+            for (const [i, elem] of Object.entries(foundryItems['careerLevel'])) {
                 for (j = 0; j < elem.data.skills.length; ++j) {
                     el = elem.data.skills[j];
                     if (!foundryItems['skill'][Helper.toId(el)]) {
@@ -131,9 +131,9 @@
                 }
             }
             /* Career */
-            var career = character.getCareer();
+            var career = character.getCareerLevel();
             var skills = [];
-            foundryEl = Helper.clone(foundryItems['career'][Helper.toId(career.data.careerLevelName)]);
+            foundryEl = Helper.clone(foundryItems['careerLevel'][Helper.toId(career.data.getLabel())]);
             elems = career.getSkills();
             for (i = 0; i < elems.length; ++i) {
                 skills[skills.length] = foundryItems['skill'][Helper.toId(elems[i].getLabel())] ?
@@ -299,7 +299,7 @@
                 items[items.length] = spell;
             }
             /* Career */
-            var career = character.getCareer();
+            var career = character.getCareerLevel();
             var skills = [];
             elems = career.getSkills();
             for (i = 0; i < elems.length; ++i) {
@@ -311,7 +311,7 @@
                 talents[talents.length] = elems[i].getLabel();
             }
             items[items.length] = {
-                "name": career.data.careerLevelName,
+                "name": career.data.getLabel(),
                 "type": "career",
                 "data": {
                     "careergroup": {
@@ -435,7 +435,7 @@
                 var tmpItem = data.items[i];
                 if (tmpItem.type === 'career') {
                     var foundryCareerGroupId = this.getElemId(CharGen, 'careergroup', tmpItem.data.careergroup.value);
-                    var careerGroup = CharGen.allCareersByGroup[Helper.toId(foundryCareerGroupId)];
+                    var careerGroup = CharGen.allCareersLevelsByGroup[Helper.toId(foundryCareerGroupId)];
                     if (!careerGroup) {
                         //console.log('Career group: ' + foundryCareerGroupId);
                         continue;
@@ -443,8 +443,8 @@
                         //tmpItem.name
                         var foundryCareerId = this.getElemId(CharGen, tmpItem.type, tmpItem.name);
                         var career = careerGroup[tmpItem.data.level.value];
-                        if (Helper.toId(career.careerLevelName) !== Helper.toId(foundryCareerId)) {
-                            console.log('Career ' + foundryCareerGroupId + ': ' + foundryCareerId + ' != ' + career.careerLevelName);
+                        if (Helper.toId(career.getLabel()) !== Helper.toId(foundryCareerId)) {
+                            console.log('Career ' + foundryCareerGroupId + ': ' + foundryCareerId + ' != ' + career.getLabel());
                         }
                         var pastLevelCareer = career.getPastLevelCareers();
                         var skills = tmpItem.data.skills;
@@ -456,7 +456,7 @@
                                 var newSkills = currentSkills.map(x => this.getElemId(CharGen, 'skill', x)).sort().join(', ');
                                 var oldSkills = Helper.toId(pastCareer.skills).split(', ').sort().join(', ')
                                 if (j + 1 === pastLevelCareer.length && Helper.toId(newSkills).split(', ').sort().join(', ') !== oldSkills) {
-                                    console.log('Compétence de ' + foundryCareerGroupId + ' - ' + career.careerLevelName);
+                                    console.log('Compétence de ' + foundryCareerGroupId + ' - ' + career.getLabel());
                                     console.log('VF     : ' + oldSkills);
                                     console.log('FOUNDRY: ' + Helper.toId(newSkills).split(', ').sort().join(', '));
                                     console.log('');
@@ -467,7 +467,7 @@
                         var newTalents = tmpItem.data.talents.map(x => this.getElemId(CharGen, 'talent', x)).sort().join(', ');
                         var oldTalents = Helper.toId(career.talents).split(', ').sort().join(', ')
                         if (Helper.toId(newTalents).split(', ').sort().join(', ') !== oldTalents) {
-                            console.log('Talent de ' + foundryCareerGroupId + ' - ' + career.careerLevelName);
+                            console.log('Talent de ' + foundryCareerGroupId + ' - ' + career.getLabel());
                             console.log('VF     : ' + oldTalents);
                             console.log('FOUNDRY: ' + Helper.toId(newTalents).split(', ').sort().join(', '));
                             console.log('');
@@ -484,7 +484,7 @@
                     }
                     careers[careers.length] = career;
                     if (tmpItem.data.current.value) {
-                        newCharacter.setCareer(career);
+                        newCharacter.setCareerLevel(career);
                     }
                 } else if (tmpItem.type === 'skill') {
                     elemId = this.getElemId(CharGen, tmpItem.type, tmpItem.name);

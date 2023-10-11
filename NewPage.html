@@ -2,26 +2,28 @@
 <html>
 <head>
     <base target="_top">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
-    <?!= include('Stylesheet'); ?>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5.0">
 </head>
-<body class='ui-widget'>
-<div class="main_panel">
-    <div class="header_panel"><span class="text"></span></div>
-    <div class="body_panel">
-        <div class="all_panel overflow_panel"></div>
-        <div class="left_panel pretty_panel overflow_panel"></div>
-        <div class="right_panel pretty_panel overflow_panel"></div>
-        <div style="clear:both"></div>
+<div class="main_panel ui-widget">
+    <header class="header_panel"><span class="text"></span></header>
+    <main class="body_panel">
+        <div class="all_panel panel_center overflow_panel"></div>
+        <div class="two_part_panel">
+            <div class="left_panel pretty_panel overflow_panel"></div>
+            <div class="right_panel pretty_panel overflow_panel"></div>
+        </div>
+    </main>
+    <div id="help_modal" class="modal" style="display:none;">
+        <div class="title_modal"><span class="close_modal" onclick="$(this).parent().next().html(''); $(this).parents('#help_modal').hide()">X</span></div>
+        <div class="help_panel"></div>
     </div>
-    <div class="footer_panel">
-        <button style="display:none" class="ui-button ui-widget left_button button random">Random</button>
-        <button style="display:none" class="ui-button ui-widget left_button button other"></button>
-        <button style="display:none" class="ui-button ui-widget right_button button cancel">Annuler</button>
-        <button style="display:none" class="ui-button ui-widget right_button button validate">OK</button>
-    </div>
+    <footer class="footer_panel">
+        <button style="visibility:hidden" class="ui-button ui-widget left_button button random">Random</button>
+        <button style="visibility:hidden" class="ui-button ui-widget left_button button other"></button>
+        <button style="visibility:hidden" class="ui-button ui-widget right_button button cancel">Annuler</button>
+        <button style="visibility:hidden" class="ui-button ui-widget right_button button validate">OK</button>
+    </footer>
 </div>
 <div id="load" style='display:none' title="Charger votre personnage">
     <textarea style='width: 97%;' placeholder='Entrer le code de votre personnage ici' class='code'></textarea>
@@ -29,6 +31,9 @@
 <div id="save" style='display:none' title="Code de votre personnage">
     <textarea style='width: 97%;' class='codesave'></textarea>
 </div>
+<?!= include('jquery'); ?>
+<?!= include('jquery-ui'); ?>
+<?!= include('Stylesheet'); ?>
 <?!= include('StepSpecies'); ?>
 <?!= include('StepCareers'); ?>
 <?!= include('StepCharacteristics'); ?>
@@ -46,12 +51,36 @@
 <?!= include('CharacterGenerator'); ?>
 <?!= include('FoundryHelper'); ?>
 <?!= include('FoundryCharacterData'); ?>
+<?!= include('CharacterData'); ?>
 <div id="dialog" title=""></div>
 <div id="dialog_modal" title=""></div>
-<script>
-    $(document).ready(function () {
-        CharacterGenerator().init();
-    });
-</script>
+<div id="dices_modal">
+    <div id="dices">
+        <div class="die" id="die1">
+            <figure class="face face-0"></figure>
+            <figure class="face face-1"></figure>
+            <figure class="face face-2"></figure>
+            <figure class="face face-3"></figure>
+            <figure class="face face-4"></figure>
+            <figure class="face face-5"></figure>
+            <figure class="face face-6"></figure>
+            <figure class="face face-7"></figure>
+            <figure class="face face-8"></figure>
+            <figure class="face face-9"></figure>
+        </div>
+        <div class="die" id="die10">
+            <figure class="face face-0"></figure>
+            <figure class="face face-1"></figure>
+            <figure class="face face-2"></figure>
+            <figure class="face face-3"></figure>
+            <figure class="face face-4"></figure>
+            <figure class="face face-5"></figure>
+            <figure class="face face-6"></figure>
+            <figure class="face face-7"></figure>
+            <figure class="face face-8"></figure>
+            <figure class="face face-9"></figure>
+        </div>
+    </div>
+</div>
 </body>
 </html>

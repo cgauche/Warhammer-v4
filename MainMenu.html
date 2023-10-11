@@ -16,15 +16,14 @@
 
         oThat.randomAction = false;
         oThat.show = function () {
-            $('.left_panel').hide();
-            $('.right_panel').hide();
+            $('.all_panel').html('');
+            $('.two_part_panel').hide();
             $('.all_panel').show();
             var stepList = [
                 {
                     stepName: "Continuer", onClick: function () {
                         $('.all_panel').hide();
-                        $('.left_panel').show();
-                        $('.right_panel').show();
+                        $('.two_part_panel').show();
                         CharGen.showPanel(0, Menu(CharGen));
                     },
                     isDisabled: function (i, el) {
@@ -54,10 +53,9 @@
                             }*/
                         }
 
-                        CharGen.character.stepIndex = i;
+                        CharGen.character.stepIndex = 8;
                         $('.all_panel').hide();
-                        $('.left_panel').show();
-                        $('.right_panel').show();
+                        $('.two_part_panel').show();
                         CharGen.showPanel(CharGen.character.stepIndex, CharGen.stepList[CharGen.character.stepIndex]);
                     }
                 },
@@ -67,27 +65,33 @@
                             resizable: false,
                             height: "auto",
                             buttons: {
-                                "Charger": function () {
+                                "Charger": async function () {
                                     var dial = $(this);
-                                    google.script.run.withSuccessHandler(function (data, dial) {
-                                        if (data) {
-                                            Menu(CharGen).createNewCharacter();
-                                            CharGen.character.load(data);
-                                            CharGen.saveName = $('.code').val();
-                                            $('.all_panel').hide();
-                                            $('.left_panel').show();
-                                            $('.right_panel').show();
+                                    const response = await fetch(Helper.googleURL + '?action=load&saveName=' + $('.code').val(),{
+                                        redirect: "follow",
+                                        method: "GET",
+                                        headers: {
+                                            "Content-Type": "text/plain;charset=utf-8",
+                                        },
+                                    })
+                                    if (response) {
+                                        var data = await response.json();
+                                        Menu(CharGen).createNewCharacter();
+                                        CharGen.character.load(data);
+                                        CharGen.saveName = $('.code').val();
+                                        $('.all_panel').hide();
+                                        $('.two_part_panel').show();
 
-                                            if (CharGen.character.stepIndex === 8) {
-                                                CharGen.showPanel(CharGen.character.stepIndex, CharGen.stepList[CharGen.character.stepIndex]);
-                                            } else {
-                                                CharGen.showPanel(0, Menu(CharGen));
-                                            }
-                                            dial.dialog("destroy");
+                                        if (CharGen.character.stepIndex === 8) {
+                                            CharGen.showPanel(CharGen.character.stepIndex, CharGen.stepList[CharGen.character.stepIndex]);
                                         } else {
-                                            alert('Ce personnage n\'existe pas.');
+                                            CharGen.showPanel(0, Menu(CharGen));
                                         }
-                                    }).withUserObject(dial).load($('.code').val());
+                                        dial.dialog("destroy");
+                                    } else {
+                                        alert('Ce personnage n\'existe pas.');
+                                    }
+                                    //google.script.run.withSuccessHandler().withUserObject(dial).load($('.code').val());
                                 },
                                 "Annuler": function () {
                                     $(this).dialog("destroy");
@@ -96,37 +100,36 @@
                         });
                     }
                 },
-               /* {
-                    stepName: "Importer de Foundry", onClick: function () {
-                        $("#load").dialog({
-                            resizable: false,
-                            height: "auto",
-                            buttons: {
-                                "Importer": function () {
-                                    var dial = $(this);
-                                    Menu(CharGen, 'libre').createNewCharacter();
-                                    CharGen.character = FoundryHelper.import(CharGen, $('.code').val());
-                                    CharGen.character.stepIndex = -1;
-                                    $('.all_panel').hide();
-                                    $('.left_panel').show();
-                                    $('.right_panel').show();
-                                    CharGen.showPanel(8, CharGen.stepList[8]);
-                                    dial.dialog("destroy");
-                                },
-                                "Annuler": function () {
-                                    $(this).dialog("destroy");
-                                }
-                            }
-                        });
-                    }
-                },*/
+                /* {
+                     stepName: "Importer de Foundry", onClick: function () {
+                         $("#load").dialog({
+                             resizable: false,
+                             height: "auto",
+                             buttons: {
+                                 "Importer": function () {
+                                     var dial = $(this);
+                                     Menu(CharGen, 'libre').createNewCharacter();
+                                     CharGen.character = FoundryHelper.import(CharGen, $('.code').val());
+                                     CharGen.character.stepIndex = -1;
+                                     $('.all_panel').hide();
+                                     $('.left_panel').show();
+                                     $('.right_panel').show();
+                                     CharGen.showPanel(8, CharGen.stepList[8]);
+                                     dial.dialog("destroy");
+                                 },
+                                 "Annuler": function () {
+                                     $(this).dialog("destroy");
+                                 }
+                             }
+                         });
+                     }
+                 },*/
                 Compendium(CharGen)
             ];
             Helper.generateMenu(stepList, null, $('.all_panel'),
                 function (i, el) {
                     $('.all_panel').hide();
-                    $('.left_panel').show();
-                    $('.right_panel').show();
+                    $('.two_part_panel').show();
                     if (el.createNewCharacter) {
                         el.createNewCharacter();
                     }

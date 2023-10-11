@@ -9,9 +9,9 @@
         oThat.type = 'creation';
         oThat.desc = function (i) {
             if (!i) {
-                return 'Chaque Race possède différentes Compétences à choisir. Vous pouvez sélectionner 3 Compétences auxquelles ajouter 5 Augmentations à chacune, et 3 Compétences auxquelles ajouter 3 Augmentations à chacune. '
+                return 'Chaque Race possède différentes Compétences à choisir. Vous pouvez sélectionner: <ul><li>3 Compétences auxquelles ajouter 5 Augmentations à chacune</li><li>3 Compétences auxquelles ajouter 3 Augmentations à chacune.</li></ul> '
             } else {
-                return 'Répartissez 40 Points d\'Augmentations entre vos huit Compétences de départ, sans dépasser plus de 10 Points alloués à une seule Compétence à ce stade. Vous pouvez vous contenter d\'ajouter 5 Augmentations à chaque Compétence de Carrière si vous le souhaitez: c\'est l\'une des étapes requises pour achever votre Carrière si vous voulez en choisir une nouvelle.';
+                return 'Répartissez 40 Points d\'Augmentations entre vos huit Compétences de départ, sans dépasser plus de 10 Points alloués à une seule Compétence à ce stade. <br>Vous pouvez vous contenter d\'ajouter 5 Augmentations à chaque Compétence de Carrière si vous le souhaitez: c\'est l\'une des étapes requises pour achever votre Carrière si vous voulez en choisir une nouvelle.';
             }
         };
         oThat.title = function () {
@@ -26,7 +26,7 @@
         };
         oThat.refreshData = function () {
             currentSpecieSkills = character.getSpecie().getSkills();
-            currentCareerSkills = character.getCareer().getSkills();
+            currentCareerSkills = character.getCareerLevel().getSkills();
         };
         oThat.resetAction = function () {
             CharGen.character.skills = [];
@@ -81,7 +81,7 @@
             oThat.saveAction();
         };
 
-        oThat.showSpecieSkills = function () {
+        oThat.showSpecieSkills = function (desc) {
             oThat.refreshData();
             var change = function (i, elem, mode, $el) {
                 if (elem.specs && !elem.spec) {
@@ -103,11 +103,13 @@
                         value = 0;
                     }
                     elem.specie = value;
-                    oThat.showSpecieSkills();
+                    oThat.showSpecieSkills(true);
                 }
             };
             $('.validate').prop('disabled', true);
-            Helper.addDescription(oThat.desc(0), CharGen);
+            if (desc !== true && character.stepIndex <= y) {
+                Helper.addDescription(oThat.desc(0), CharGen, true);
+            }
             $('.left_panel').html("<div class='description_title'><span class='skills_specie_5points'></span> Compétences auxquelles ajouter 5 Augmentations</div>"
                 + "<div class='description_title'><span class='skills_specie_3points'></span> Compétences auxquelles ajouter 3 Augmentations</div>");
             var $skills = Helper.generateListWithRankAndHelp(character.isFreeMode() ? [].concat(currentSpecieSkills, character.getAllSkills(true)) : currentSpecieSkills,
@@ -119,7 +121,7 @@
                 [function (i, el) {
                     return (character.isFreeMode() && currentSpecieSkills.some((item => item.getLabel() === el.getLabel())) ?
                         '<span class="highlighting">' + el.getLabel() + '<span>' :
-                        el.getLabel()) + (currentCareerSkills.some(item => item.getLabel() === el.getLabel()) ? ' *' : '');
+                        el.getLabel());
                 },
                     function (i, el) {
                         return el.getBase()
@@ -140,7 +142,7 @@
                     var base = $(total).parents('table');
                     $(elems).each(function (i, el) {
                         if (el) {
-                            var parent = base.find('tr[data-line="' + i + '"]');
+                            var parent = base.find('td[data-line="' + i + '"] input.number').parents('td');
                             var val = el.specie;
                             if (val === 5) {
                                 remaining5 -= 1;
@@ -156,7 +158,7 @@
                     $('.validate').prop('disabled', !character.isFreeMode() && (remaining5 !== 0 || remaining3 !== 0));
                 },
                 function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
+                    Helper.addDescription(Helper.getHelpFormat(el.data), CharGen, true)
                 }
             );
 
@@ -170,7 +172,7 @@
             });
         };
 
-        oThat.showCareerSkills = function () {
+        oThat.showCareerSkills = function (desc) {
             oThat.refreshData();
             var change = function (i, elem, mode, $el) {
                 if (elem.specs && !elem.spec) {
@@ -184,12 +186,14 @@
                         mode = 0;
                     }
                     elem.career = Math.max(0, Math.min(elem.career + mode, 10));
-                    oThat.showCareerSkills();
+                    oThat.showCareerSkills(true);
                 }
             };
             $('.validate').prop('disabled', true);
             $('.left_panel').html("<div class='description_title'><span class='skills_career'></span> Points à allouer" + "</div>");
-            Helper.addDescription(oThat.desc(1), CharGen);
+            if (desc !== true && character.stepIndex <= y) {
+                Helper.addDescription(oThat.desc(1), CharGen, true);
+            }
             var $skills = Helper.generateListWithRankAndHelp(character.isFreeMode() ? [].concat(currentCareerSkills, character.getAllSkills(true)) : currentCareerSkills,
                 ['', 'Base', 'Augmentation', 'Total'],
                 function (i, el) {
@@ -221,7 +225,7 @@
                     var base = $(total).parents('table');
                     $(elems).each(function (i, el) {
                         if (el) {
-                            var parent = base.find('tr[data-line="' + i + '"]');
+                            var parent = base.find('td[data-line="' + i + '"] input.number').parents('td');
                             var val = el.career;
                             remaining -= val;
                             parent.find('.down').prop('disabled', val === 0);
@@ -235,7 +239,7 @@
                     $('.validate').prop('disabled', !character.isFreeMode() && remaining !== 0);
                 },
                 function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
+                    Helper.addDescription(Helper.getHelpFormat(el.data), CharGen, true)
             }
             );
 

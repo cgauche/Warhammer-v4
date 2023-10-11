@@ -1,5 +1,80 @@
 <script>
     var Helper = {
+        googleURL: 'https://script.google.com/macros/s/AKfycbxHJ0GVjpaLe0fj9swl41j_dC0MNLl2U3MatuPS_q7IcJCZ7VNiBWTL68fYz2imhlQ8gQ/exec',
+        dice: function (value, callbackBegin, callback, callbackEnd, auto) {
+            var oThat = this;
+            var $die = $('.die')
+            var $die1 = $('#die1');
+            var $die10 = $('#die10');
+            var $dices_modal = $('#dices_modal');
+            var values = Array.isArray(value) ? value : [value];
+            var timeoutId,
+                animationDuration = 1000
+
+            this.reset = function () {
+                $die.attr('data-face', null).removeClass('rolling')
+            }
+
+            this.rollTo = function (values, i) {
+                clearTimeout(timeoutId)
+                var face = values[i];
+                if (Array.isArray(face)) {
+                    var die1 = face[0];
+                    var die2 = face[1];
+                } else {
+                    die1 = face % 10;
+                    die2 = Math.floor(face / 10);
+                }
+                $die1.attr('data-face', die1)
+                $die10.attr('data-face', die2)
+                callback(i++);
+                timeoutId = setTimeout(function () {
+                    if (values.length <= i) {
+                        $dices_modal.removeClass('modal');
+                        $dices_modal.fadeOut("slow", "linear");
+                        if (typeof callbackEnd !== 'undefined') {
+                            callbackEnd();
+                        }
+                    } else {
+                        oThat.init(values, i);
+                    }
+                }, animationDuration)
+            };
+            this.roll = function (values, i) {
+                $die.addClass('rolling')
+                clearTimeout(timeoutId)
+
+                timeoutId = setTimeout(function () {
+                    $die.removeClass('rolling')
+                    oThat.rollTo(values, i)
+                }, animationDuration)
+
+                return false
+            };
+
+            this.init = function (values, i) {
+                this.reset();
+                if (typeof callbackBegin !== 'undefined') {
+                    callbackBegin(i);
+                }
+                if (typeof auto !== 'undefined' && auto) {
+                    timeoutId = setTimeout(function () {
+                        oThat.roll(values, i);
+                    }, 1000)
+                } else {
+                    $dices_modal.click(function () {
+                        $dices_modal.off('click');
+                        oThat.roll(values, i);
+                        return false
+                    });
+                }
+            }
+            $dices_modal.addClass('modal');
+            $dices_modal.fadeIn('slow');
+            this.init(values, 0);
+
+            return this;
+        },
         ajaxLoader: function (el, options) {
             // Becomes this.options
             var defaults = {
@@ -67,50 +142,76 @@
                 }
             });
         },
-        addDescription: function (message, CharGen) {
-            var description = $('.right_panel').html("<div class='description'>" + message + "</div>");
-            Helper.executeHelperFunction(description, CharGen);
-            description.find('.tabs').tabs();
-            return description;
+        addDescription: function (message, CharGen, force) {
+            if ($('.right_panel:visible').length) {
+                var description = $('.right_panel:visible').html("<div class='description'>" + message + "</div>");
+                Helper.executeHelperFunction(description, CharGen);
+                if (description.find('.tabs').length) {
+                    description.find('.tabs').tabs({active: description.find('.tabs').data('active')});
+                }
+            } else if (force === true) {
+                this.showPopin('', message, CharGen);
+            }
         },
         showPopin: function (title, message, CharGen) {
-            $('.ui-dialog-title').html(title);
-            Helper.popin.html(message);
-            Helper.executeHelperFunction(Helper.popin, CharGen);
-            Helper.popin.find('.tabs').tabs();
-            Helper.popin.dialog("open");
+            var modal = $('#help_modal');
+            var description = modal.find('.help_panel')
+            if (message) {
+                modal.show();
+                description.html("<div class='description'>" + message + "</div>");
+                Helper.executeHelperFunction(description, CharGen);
+                if (description.find('.tabs').length) {
+                    description.find('.tabs').tabs({active: description.find('.tabs').data('active')});
+                }
+            } else {
+                modal.hide()
+                description.html('');
+            }
         },
         uniqid: function () {
             return (new Date().getTime() + Math.floor((Math.random() * 10000) + 1)).toString(16);
         },
         getHelpFormat: function (el) {
             var result = '';
-            if (el.desc && typeof el.desc !== 'string') {
+            var flex = false;
+            if (typeof el.careerGroup !== 'undefined') {
+                el = {altDesc: el.altDesc, desc: {...el.desc, ...el.getCareer().desc}}
+            }
+            var desc = typeof el.getDescription !== 'undefined' ? el.getDescription() :  el.desc;
+            if (desc) {
+                flex = true;
                 var part2 = '';
-                var tmp = el.desc;
+                var tmp = desc;
                 var i = 0;
+                var tabActif = 0;
+                if (typeof tmp.tab_actif !== 'undefined') {
+                    tabActif = tmp.tab_actif;
+                    tmp = Helper.clone(tmp);
+                    delete tmp.tab_actif;
+                }
+                var prefix = Helper.uniqid();
                 for (var key in tmp) {
                     if (tmp.hasOwnProperty(key)) {
                         var data = tmp[key] && tmp[key][0] === '#' ? 'data-execute="' + tmp[key].substring(1) + '"' : '';
-                        part2 += '<div id="tabs-' + i++ + '" class="pretty_panel overflow_panel"' + data + '><br>' + (data ? '' : tmp[key]) + '</div>';
+                        part2 += '<div id="tabs-' + prefix + i++ + '" class="pretty_panel overflow_panel"' + data + '><br>' + (data ? '' : tmp[key]) + '</div>';
                     }
                 }
 
-                var percent = (100 / i - 1).toPrecision(2);
+                var style = 'style="flex:' + (100 / i - 1).toPrecision(2) + '%"';
                 var part1 = '<ul>';
                 i = 0;
                 for (key in tmp) {
                     if (tmp.hasOwnProperty(key)) {
-                        part1 += '<li style="width:' + percent + '%"><a href="#tabs-' + i++ + '">' + key + '</a></li>';
+                        part1 += '<li ' + style + '><a href="#tabs-' + prefix + i++ + '">' + key + '</a></li>';
                     }
                 }
                 part1 += '</ul>';
 
-                result = '<div class="tabs">' + part1 + part2 + '</div>';
+                result = '<div style="height: 1%" class="tabs" data-active="' + tabActif + '">' + part1 + part2 + '</div>';
             } else {
-                result = el.desc;
+                result = desc;
             }
-            return '<span><h3>' + (typeof el.getLabel !== 'undefined' ? el.getLabel() : el.label) + '</h3>' + result + '<span>';
+            return '<span ' + (flex ? 'class="title"' : '') + '><h3>' + (typeof el.altDesc !== 'undefined' ? el.altDesc : (typeof el.getLabel !== 'undefined' ? el.getLabel() : el.label)) + '</h3>' + result + '</span>';
         },
         removePlural: function (text) {
             return text.replace(/(s|es|e)\b/ig, '');
@@ -198,7 +299,17 @@
                         total += 450;
                     }
                 } else if (type === 'talent') {
-                    total += newValue * 100;
+                    if (elem.magic === 'Magie du Chaos') {
+                        total += 100;
+                    } else {
+                        total += newValue * 100;
+                    }
+                } else if (type === 'spell') {
+                    if (elem.magic === 'Invocation') {
+                        total += (newValue - 1) * 100;
+                    } else if (elem.magic === 'Magie des Arcanes') {
+                        total += Math.ceil(newValue / elem.max) * 100;
+                    }
                 }
                 if (elem.reduced) {
                     total -= elem.reduced;
@@ -211,8 +322,8 @@
             el = typeof el !== 'undefined' ? el : $('.left_panel');
             return Helper.generateListWithHelp(list, filter, el, function (i, el) {
                 return typeof el.altLabel !== 'undefined' ? el.altLabel : el.getLabel()
-            }, function (i, el, disabled) {
-                Helper.addDescription(Helper.getHelpFormat(el), CharGen);
+            }, function (i, el, disabled, force) {
+                Helper.addDescription(Helper.getHelpFormat(el), CharGen, force);
                 if (!disabled) {
                     onChange(i, el);
                 }
@@ -245,63 +356,99 @@
             });
             return list;
         },
-        generateListWithRankAndHelp: function (elems, header, filter, el, funcsLabel, funcsUpDown, funcOnChange, funcClickLine, append, funcsMoveUpDown) {
+        organizeTable: function (td, i, line, lines, horizontal) {
+            if (horizontal) {
+                if (typeof lines[i] === 'undefined') {
+                    lines[i] = '';
+                }
+                lines[i] += td;
+            } else {
+                line += td;
+            }
+            return line;
+        },
+        generateListWithRankAndHelp: function (elems, header, filter, el, funcsLabel, funcsUpDown, funcOnChange, funcClickLine, append, funcsMoveUpDown, horizontal) {
             var id = 'selectable' + Helper.uniqid();
             var count = $(header).length;
-            var html = '<table class="selectable ' + (count > 2 ? 'rank' : '') + '" id="' + id + '"><tr>';
+            var html = '<table class="selectable ' + (count > 2 ? 'rank' : '') + '" id="' + id + '">';
             var displayedElems = [];
+            var lines = [];
+            var line = '';
+            var td;
+            horizontal = typeof horizontal !== 'undefined' && horizontal === true;
+
+            var style = '';
+            if (horizontal) {
+                style = 'style="width:' + (100 / elems.length - 1).toPrecision(2) + '%"';
+            }
+
             $(header).each(function () {
-                html += '<td>' + this + '</td>'
+                td = '<td ' + style + '>' + this + '</td>';
+                line = Helper.organizeTable(td, lines.length, line, lines, horizontal);
             });
-            html += '</tr>';
+            if (!horizontal) {
+                lines[lines.length] = line;
+                line = '';
+            }
             $.each(elems, function (i) {
                 if (filter(i, this)) {
                     displayedElems[i] = this;
                     var y = 0;
-                    html += '<tr data-line="' + i + '" data-id="' + this.id + '"><td class="label ui-widget-content">' + funcsLabel[y++](i, this) + '</td>';
+                    var x = 0;
+                    td = '<td ' + style + ' data-line="' + i + '" data-id="' + this.id + '" class="label ui-widget-content">' + funcsLabel[y++](i, this) + '</td>';
+                    line = Helper.organizeTable(td, x++, line, lines, horizontal);
                     if (count >= 4) {
-                        html += '<td class="base">' + funcsLabel[y++](i, this) + '</td>';
+                        td = '<td ' + style + ' data-line="' + i + '" data-id="' + this.id + '" class="base">' + funcsLabel[y++](i, this) + '</td>';
+                        line = Helper.organizeTable(td, x++, line, lines, horizontal);
                     }
-                    html += '<td class="modif">';
+                    td = '<td ' + style + ' data-line="' + i + '" data-id="' + this.id + '" class="modif">';
                     if (append) {
-                        html += funcsLabel[y++](i, this);
+                        line = Helper.organizeTable(td + funcsLabel[y++](i, this) + '</td>', x++, line, lines, horizontal);
                     } else {
                         if (count > 2) {
-                            html += '<button class="down"><</button>';
+                            td += '<button class="down"><</button>';
                             if (funcsMoveUpDown) {
-                                html += '<button class="movedown">&darr;</button>';
+                                td += '<button class="movedown">&darr;</button>';
                             }
-                            html += '<input class="number" type="text" disabled value="' + funcsLabel[y++](i, this) + '" />';
+                            td += '<input class="number" type="text" disabled value="' + funcsLabel[y++](i, this) + '" />';
                             if (funcsMoveUpDown) {
-                                html += '<button class="moveup">&uarr;</button>';
+                                td += '<button class="moveup">&uarr;</button>';
                             }
-                            html += '<button class="up">></button>';
+                            td += '<button class="up">></button>';
                         } else {
-                            html += funcsLabel[y++](i, this);
+                            td += funcsLabel[y++](i, this);
                         }
+                        line = Helper.organizeTable(td + '</td>', x++, line, lines, horizontal);
                         while (y < count - 1) {
-                            html += '<td>' + funcsLabel[y++](i, this) + '</td>';
+                            td = '<td ' + style + ' data-line="' + i + '" data-id="' + this.id + '">' + funcsLabel[y++](i, this) + '</td>';
+                            line = Helper.organizeTable(td, x++, line, lines, horizontal);
                         }
-
                     }
                     if (count > 2) {
-                        html += '</td><td class="total">' + funcsLabel[y++](i, this) + '</td>'
+                        td = '<td ' + style + ' class="total">' + funcsLabel[y++](i, this) + '</td>'
+                        line = Helper.organizeTable(td, x++, line, lines, horizontal);
                     }
-                    html += '</tr>';
+                    if (!horizontal) {
+                        lines[lines.length] = line;
+                        line = '';
+                    }
                 }
             });
-            html += '</ol>';
+            html += '<tr>' + lines.join('</tr></tr>') + '</tr></table>';
             el.append(html);
             var select = $('#' + id);
-
-            var line = select.find("tr[data-line] td:first-child");
+            if (horizontal) {
+                line = select.find("tr:first-child td[data-line]");
+            } else {
+                line = select.find("tr td[data-line]:first-child");
+            }
             line.off('click').on('click', function () {
-                var index = $(this).parents('tr[data-line]').data('line');
+                var index = $(this).data('line');
                 funcClickLine(index, elems[index]);
             });
             select.find('button.up,button.down').off('click').on('click', function () {
-                var index = $(this).parents("tr").data('line');
-                var $el = $(this).parents("tr").find('input.number');
+                var index = $(this).parents("td").data('line');
+                var $el = $(this).parents("td").find('input.number');
                 funcsUpDown(index, elems[index], $(this).hasClass('up') ? 1 : -1, $el)
                 $el.trigger('change');
             });
@@ -313,14 +460,15 @@
                 $el2.trigger('change');
             });
             select.find('input.number').off('change').on('change', function () {
-                var index = $(this).parents("tr").data('line');
+                var index = $(this).parents("td").data('line');
                 funcOnChange(index, elems[index], displayedElems, $(this).parents("tr").find('.total'));
             });
             return select;
         },
-        generateListWithHelp: function (elems, filter, el, funcLabel, funcHelp, append, funDisabled, funcLevel) {
+        generateListWithHelp: function (elems, filter, el, funcLabel, funcHelp, append, funDisabled, funcLevel, custom, showHelp) {
             var id = 'selectable' + Helper.uniqid();
             var html = '<ol class="selectable" id="' + id + '">';
+            elems = typeof custom !== 'undefined' && custom ? [].concat(elems, ['custom']) : elems;
             $(elems).each(function (i, el) {
                 if (filter(i, el)) {
                     var disabled = '';
@@ -331,7 +479,11 @@
                     if (funcLevel) {
                         level = 'listchild' + funcLevel(i, el);
                     }
-                    html += '<li data-line="' + i + '" data-id="' + el.id + '" class="ui-widget-content ' + disabled + ' ' + level + '">' + funcLabel(i, el) + '</li>';
+                    html += '<li data-line="' + i + '" data-id="' + el.id + '" class="ui-widget-content ' + disabled + ' ' + level + '">';
+                    if (funcHelp && (typeof showHelp === 'undefined' || showHelp(i, el))) {
+                        html += '<buttom class="popin_help for_mobile"></buttom>';
+                    }
+                    html += funcLabel(i, el) + '</li>';
                 }
             });
             html += '</ol>';
@@ -342,31 +494,51 @@
             }
             var select = $('#' + id);
 
-            select.off("click").on('click', 'li', function () {
+            select.off("click", 'li').on('click', 'li', function () {
                 var $el = $(this);
                 var i = $el.data('line');
                 if (append !== true && !$el.is('.disabled')) {
-                    var container = $el.parents('.overflow_panel');
-                    container.stop(true);
-                    var conOffset = container.offset();
-                    var offset = $el.offset();
                     select.find('li.ui-selected').removeClass('ui-selected');
                     $el.addClass('ui-selected');
-                    if (conOffset && offset) {
-                        container.animate({
-                            scrollTop: offset.top - conOffset.top + container.scrollTop()
-                        });
-                    }
                 }
                 if (funcHelp) {
                     funcHelp(i, elems[i], $el.is('.disabled'));
                 }
                 return false;
             });
+            select.off("click", '.popin_help').on('click', '.popin_help', function () {
+                var $el = $(this).parent('li');
+                var i = $el.data('line');
+                funcHelp(i, elems[i], $el.is('.disabled'), true);
+                return false;
+            })
             $(el).animate({
                 scrollTop: 0
             });
             return select;
+        },
+        scrollToElement: function (el, container) {
+            container.stop(true);
+            var conOffset = container.offset();
+            var offset = el.offset();
+            if (conOffset && offset) {
+                container.animate({
+                    scrollTop: offset.top - conOffset.top + container.scrollTop()
+                });
+            }
+        },
+        rangToImg: function (rank) {
+            var icon = 'icon '
+            if (rank === 1) {
+                icon += 'cross_icon';
+            } else if (rank === 2) {
+                icon += 'sword_icon'
+            } else if (rank === 3) {
+                icon += 'skull_icon'
+            } else if (rank === 4) {
+                icon += 'shield_icon'
+            }
+            return '<div class="' + icon + '"></div>'
         },
         generateListWithHelpPopin: function (elems, filter, el, left, funcLabel, funDisabled, funcHelp, funcAdd, showHelp) {
             var id = 'selectable' + Helper.uniqid();
@@ -379,16 +551,17 @@
                     }
                     html += '<li data-line="' + i + '" data-id="' + el.id + '" class="ui-widget-content ' + disabled + '">';
                     if (left) {
-                        html += '<buttom class="add" style="float:left;' + (disabled ? 'visibility:hidden' : '') + '"><</buttom>';
+                        html += '<div><buttom class="add" style="' + (disabled ? 'visibility:hidden' : '') + '"><</buttom></div>';
                     }
-                    html += funcLabel(i, el);
-                    if (!left) {
-                        html += '<buttom class="add" style="' + (disabled ? 'visibility:hidden' : '') + '">></buttom>';
-                    }
+                    html += '<div>';
                     if (!showHelp || showHelp(i, el)) {
                         html += '<buttom class="popin_help">?</buttom>';
                     }
-                    html += '</li>';
+                    html += funcLabel(i, el) + '</div><div style="order: 2;margin-left: auto">';
+                    if (!left) {
+                        html += '<buttom class="add" style="' + (disabled ? 'visibility:hidden' : '') + '">></buttom>';
+                    }
+                    html += '</div></li>';
                 }
             });
             html += '</ol>';
@@ -396,12 +569,12 @@
             var $select = $('#' + id);
 
             $select.find('.popin_help').off("click").on('click', function () {
-                var i = $(this).parent('li').data('line');
+                var i = $(this).parents('li').data('line');
                 funcHelp(i, elems[i]);
                 return false;
             });
             $select.find('.add').off("click").on('click', function () {
-                var i = $(this).parent('li').data('line');
+                var i = $(this).parents('li').data('line');
                 funcAdd(i, elems[i]);
             });
             return $select;
@@ -607,22 +780,53 @@
                         },
                         html,
                         function (i, el) {
-                            return el
+                            if (el === 'custom') {
+                                return "<input data-id='custom' type='text' value='' class='ui-widget ui-custom' placeholder='Ou saisissez ici votre Spécialisation'/>"
+                            } else {
+                                return el
+                            }
                         },
-                        null,
+                        function (i, el) {
+                            var custom = $('.selectable [data-id="custom"]');
+                            if (custom.length) {
+                                if (custom.parent('.ui-selected').length) {
+                                    custom.addClass('ui-selected')
+                                } else {
+                                    custom.removeClass('ui-selected')
+                                }
+                            }
+                        },
                         2,
                         function (i, el) {
-                            if (withOrigin) {
-                                return character.search(elem.id, el, type, true, elem.origins ? elem.origins[0] : null, false, false)
-                            } else {
-                                return character.search(elem.id, el, type);
+                            if (el !== 'custom') {
+                                if (withOrigin) {
+                                    return character.search(elem.id, el, type, true, elem.origins ? elem.origins[0] : null, false, false)
+                                } else {
+                                    return character.search(elem.id, el, type);
+                                }
                             }
+                        },
+                        '',
+                        typeof elem.data === 'undefined' || elem.data.specName === 'Au choix',
+                        function (i, el) {
+                            return false
                         }
                     );
                 }, function (el) {
-                    var spec = el.find('.ui-selected');
+                    var spec = el.find('li.ui-selected');
+                    var value = '';
                     if (spec.length) {
-                        elem.spec = spec.html();
+                        if (spec.find('[data-id="custom"]').length) {
+                            value = spec.find('[data-id="custom"]').val().trim()
+                            if (!value) {
+                                return false;
+                            }
+                            elem.specs += ', ' + value;
+                            elem.data.specs += ', ' + value;
+                        } else {
+                            value = spec.html();
+                        }
+                        elem.spec = value;
                         change(0, elem);
                         return true;
                     }
@@ -631,35 +835,60 @@
                 cancel
             );
         },
-        showSpells: function (CharGen, character, returnAction, validateAction, number, mode, numberSpellToChoose) {
+        showSpells: function (CharGen, character, returnAction, validateAction, number, mode, numberSpellToChoose, spec) {
             var spells = CharGen.data.spells;
-            var remaining = numberSpellToChoose;
+            var remaining = typeof numberSpellToChoose === 'undefined' || numberSpellToChoose === -1 ? 0 : numberSpellToChoose;
             var charSpells = character.getSpells();
+            var currentSpell;
+            var tmpNumber = number;
+            var xp = false;
             $(charSpells).each(function (i, el) {
-                if (el && el.data.type === mode) {
+                if (el && el.data.type === mode && (!el.spec || typeof spec === 'undefined' || el.spec === spec)) {
+                    el.myIndex = i;
+                    if (!currentSpell && tmpNumber-- === 0) {
+                        currentSpell = el;
+                    }
                     --remaining;
                 }
             });
+            if (numberSpellToChoose === -1) {
+                numberSpellToChoose = -remaining;
+            }
             if (mode === 'Béni') {
                 $('.left_panel').html('');
-            } else {
+            } else if (mode === 'Magie mineure' || mode === 'Magie du Chaos') {
                 $('.left_panel').html("<div class='description_title'>" + remaining + ' Sorts à choisir' + "</div>");
+            } else {
+                var used = character.xp.used;
+                used += Helper.getXPCost({
+                    getType: function () {
+                        return 'spell'
+                    },
+                    magic: mode,
+                    max: character.searchCharacteristic('Intelligence').getBonus(),
+                    reduced: 0
+                }, numberSpellToChoose, numberSpellToChoose - remaining)
+                character.xp.tmp_used = used;
+                xp = true;
+                $('.left_panel').html("<div class='description_title'><span class='experience'>" + (character.xp.max - used) + "</span> Points d\'Expérience à dépenser</div>");
             }
             $('.validate').prop('disabled', true);
-            if (!character.getSpell(number)) {
+            if (!currentSpell) {
                 var label = function (i, el) {
                     return el.getLabel();
                 };
                 var filter = function (i, el) {
-                    return el.type === mode;
+                    return el.type === mode && (!el.spec || typeof spec === 'undefined' || el.spec === spec);
                 };
                 var change = function (i, el) {
-                    //el.spec = mode;
-                    character.setSpell(el, number);
-                    Helper.showSpells(CharGen, character, returnAction, validateAction, number + 1, mode, numberSpellToChoose);
+                    if (typeof spec !== 'undefined') {
+                        el.spec = spec;
+                    }
+                    character.setSpell(el);
+                    Helper.showSpells(CharGen, character, returnAction, validateAction, number + 1, mode, numberSpellToChoose, spec);
                 };
                 var funcDisabled = function (i, el) {
-                    return remaining <= 0 || character.searchSpell(el.id, el.spec) || mode === 'Béni';
+                    return mode === 'Béni' || (remaining <= 0 && !xp) || character.searchSpell(el.id, spec);
                 };
                 var initHelp = function (i, el) {
                     Helper.showPopin('', Helper.getHelpFormat(el), CharGen);
@@ -675,14 +904,14 @@
                     change
                 );
             } else {
-                return Helper.showSpells(CharGen, character, returnAction, validateAction, number + 1, mode, numberSpellToChoose)
+                return Helper.showSpells(CharGen, character, returnAction, validateAction, number + 1, mode, numberSpellToChoose, spec)
             }
             $('.right_panel').html('');
-            $('.validate').prop('disabled', remaining !== 0 && mode !== 'Béni');
+            $('.validate').prop('disabled', mode !== 'Béni' && remaining !== 0 && !xp);
             Helper.generateListWithHelpPopin(
                 charSpells,
                 function (i, el) {
-                    return el && el.data.type === mode
+                    return el && el.data.type === mode && (!el.spec || typeof spec === 'undefined' || el.spec === spec)
                 },
                 $('.right_panel'),
                 true,
@@ -695,9 +924,9 @@
                 function (i, el) {
                     Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
                 },
-                function (i) {
-                    character.setSpell(null, i);
-                    Helper.showSpells(CharGen, character, returnAction, validateAction, 0, mode, numberSpellToChoose)
+                function (i, el) {
+                    character.setSpell(null, el.myIndex);
+                    Helper.showSpells(CharGen, character, returnAction, validateAction, 0, mode, numberSpellToChoose, spec)
                 }
             );
 
@@ -713,18 +942,18 @@
                 validateAction();
             });
         },
-        showGods: function (CharGen, character, returnAction, validateAction, mode) {
+        showGods: function (CharGen, character, returnAction, validateAction, mode, nbSpell) {
             $('.right_panel').html('');
             var species = $(CharGen.data.gods);
             var $species = Helper.generateNormalList(species, function () {
                 return true
             }, function (i, el) {
-                var godTalent = character.searchTalent('Béni', '', false);
+                var godTalent = character.searchTalent(mode, '', false);
                 godTalent.spec = el.label;
                 character.applyTalent();
                 $('.validate').prop('disabled', false)
             }, undefined, CharGen);
-            var godTalent = character.searchTalent('Béni', '', false)
+            var godTalent = character.searchTalent(mode, '', false)
             if (godTalent) {
                 $species.find('li[data-id="' + godTalent.spec + '"]').click()
             }
@@ -734,14 +963,68 @@
             });
 
             $('.validate').off('click').on('click', function () {
-                Helper.showSpells(CharGen, character, returnAction, validateAction, 0, mode, character.getSpells().length);
+                var godTalent = character.searchTalent(mode, '', false);
+                Helper.showSpells(CharGen, character, returnAction, validateAction, 0, mode, nbSpell, godTalent.spec);
             });
         },
-        showMagicSpecialisation: function (CharGen, character, cancelAction, validateAction, magic) {
+        showMagicColor: function (CharGen, character, returnAction, validateAction, mode, nbSpell, spec) {
+            $('.right_panel').html('');
+            var species = {};
+            if (mode === 'Magie des Arcanes') {
+                species = [].concat(CharGen.allLoreByGroup['Magie des couleurs'], CharGen.allLoreByGroup['Autres domaines'], CharGen.allLoreByGroup['Magie noire']);
+            } else {
+                species = [].concat(CharGen.allLoreByGroup['Magie du Chaos']);
+            }
+            var $species = Helper.generateNormalList(species, function (i, el) {
+                return !spec || el.spec === spec
+            }, function (i, el) {
+                var magicTalent = character.searchTalent(mode, '', false);
+                magicTalent.spec = el.label;
+                character.applyTalent();
+                $('.validate').prop('disabled', false)
+            }, undefined, CharGen);
+            var magicTalent = character.searchTalent(mode, spec, true)
+            if (magicTalent) {
+                $species.find('li[data-id="' + magicTalent.spec + '"]').click()
+            }
+
+            $('.cancel').off('click').on('click', function () {
+                returnAction()
+            });
+
+            $('.validate').off('click').on('click', function () {
+                var magicTalent = character.searchTalent(mode, '', false);
+                Helper.showSpells(CharGen, character, returnAction, validateAction, 0, mode, nbSpell, magicTalent.spec);
+            });
+        },
+        showMagicSpecialisation: function (CharGen, character, cancelAction, validateAction, magic, elem) {
+            var spec = elem.spec;
             if (magic === 'Béni') {
-                Helper.showGods(CharGen, character, cancelAction, validateAction, magic);
+                if (!spec) {
+                    Helper.showGods(CharGen, character, cancelAction, validateAction, magic);
+                } else {
+                    Helper.showSpells(CharGen, character, cancelAction, validateAction, 0, magic, 0, spec);
+                }
             } else if (magic === 'Magie mineure') {
-                Helper.showSpells(CharGen, character, cancelAction, validateAction, 0, magic, character.searchCharacteristic('Force Mentale').getBonus());
+                Helper.showSpells(CharGen, character, cancelAction, validateAction, 0, magic, character.searchCharacteristic('Force Mentale').getBonus(), spec);
+            } else if (magic === 'Magie des Arcanes') {
+                if (!spec || spec === 'Magie des couleurs') {
+                    Helper.showMagicColor(CharGen, character, cancelAction, validateAction, magic, -1, spec);
+                } else {
+                    Helper.showSpells(CharGen, character, cancelAction, validateAction, 0, magic, -1, spec);
+                }
+            } else if (magic === 'Magie du Chaos') {
+                if ((!spec || !elem.specs.includes(spec)) && elem.getAdvance() < 2) {
+                    Helper.showMagicColor(CharGen, character, cancelAction, validateAction, magic, elem.getAdvance(), spec);
+                } else {
+                    Helper.showSpells(CharGen, character, cancelAction, validateAction, 0, magic, elem.getAdvance(), spec);
+                }
+            } else if (magic === 'Invocation') {
+                if (!spec) {
+                    Helper.showGods(CharGen, character, cancelAction, validateAction, magic, -1);
+                } else {
+                    Helper.showSpells(CharGen, character, cancelAction, validateAction, 0, magic, -1, spec);
+                }
             }
         },
         randomMagicTalent: function (CharGen, character, talent) {
@@ -830,6 +1113,57 @@
                 dialog.html(html);
             }
             return dialog;
+        },
+        getSkills: function (skillList, character, origin) {
+            var skill;
+            var spec;
+            var i;
+            var el;
+            var secondWave = [];
+            var careerSkills = [];
+            for (i = 0; i < skillList.length; ++i) {
+                el = skillList[i];
+                spec = el.spec ? el.spec : el.specs;
+                skill = character.searchSkill(el.id, spec, true, '', false, false);
+                if (!skill) {
+                    secondWave[secondWave.length] = el;
+                } else {
+                    skill.reduced = 0;
+                    skill.added = true;
+                    skill.addOrigins([origin]);
+                    careerSkills[careerSkills.length] = skill;
+                }
+            }
+            for (i = 0; i < secondWave.length; ++i) {
+                el = secondWave[i];
+                spec = el.spec ? el.spec : el.specs;
+                skill = character.searchSkill(el.id, spec, false, origin, true, false);
+                if (!skill && (!el.specs || el.spec)) {
+                    skill = character.searchSkill(el.id, spec);
+                }
+                if (!skill) {
+                    skill = character.createSkill(el);
+                    if (!el.specs || el.spec) {
+                        skill = character.setSkill(skill);
+                    }
+                }
+                skill.reduced = 0;
+                skill.added = true;
+                skill.addOrigins([origin]);
+                careerSkills[careerSkills.length] = skill;
+            }
+            i = 0;
+            while (i < character.skills.length) {
+                el = character.skills[i];
+                if (typeof (el.added) === 'undefined' && el.hasOrigin(origin) && el.getAdvance() === 0) {
+                    character.skills.splice(i, 1);
+                } else {
+                    ++i;
+                }
+                delete el.added;
+            }
+
+            return careerSkills;
         }
     }
     this.Helper = Helper;

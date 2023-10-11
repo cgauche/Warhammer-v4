@@ -31,14 +31,13 @@
             CharGen.character = createNewCharacter(CharGen, mode);
         };
         oThat.show = function () {
-            $('.left_panel').hide();
-            $('.right_panel').hide();
+            $('.all_panel').html('');
+            $('.two_part_panel').hide();
             $('.all_panel').show();
             Helper.generateMenu(CharGen.stepList, CharGen.character.stepIndex, $('.all_panel'),
                 function (i, el) {
                     $('.all_panel').hide();
-                    $('.left_panel').show();
-                    $('.right_panel').show();
+                    $('.two_part_panel').show();
                     CharGen.showPanel(i, el);
                 },
                 function (i, el) {

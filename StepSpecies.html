@@ -7,10 +7,10 @@
         oThat.stepName = "Race";
         oThat.type = 'creation';
         oThat.desc = function () {
-            return 'Votre Personnage sera un humain, un nain, un halfling, un haut elfe ou un elfe sylvain. Elles sont décrites ci-dessous pour vous aider à choisir, et vous trouverez également quelques points de vue typiques que chaque race a sur les autres. Vous pouvez cliquer sur <b>Aléatoire</b> et gagner 20 PX si vous acceptez le premier choix, sinon vous pouvez cliquer sur <b>Choisir</b> pour faire votre propre choix.'
+            return 'Votre Personnage sera un humain, un nain, un halfling, un gnome, un haut elfe ou un elfe sylvain. Elles sont décrites ci-dessous pour vous aider à choisir, et vous trouverez également quelques points de vue typiques que chaque race a sur les autres. <br><br>Vous pouvez cliquer sur: <ul><li><b>Lancer</b> et gagner 20 PX si vous acceptez le premier choix</li><li><b>Choisir</b> pour faire votre propre choix.</li></ul>'
         };
         oThat.title = function () {
-            return 'Choisissez l\'une des 5 races'
+            return 'Choisissez l\'une des races'
         };
         oThat.initAction = function () {
             character = CharGen.character.clone();
@@ -48,7 +48,7 @@
                 var species = $(CharGen.data.species);
                 var value = Helper.getRandomInt(100);
                 character.randomState.specie = 1;
-                $(this).prop('disabled', true);
+                $(this).removeClass('clickMe').prop('disabled', true);
                 var y = 0;
                 var target = -1;
                 species.each(function (i, el) {
@@ -56,16 +56,21 @@
                         return false;
                     }
                     if (el.rand >= value) {
-                        var $el = $species.find('li[data-id="' + el.id + '"]');
                         character.randomState.imposedSpecie[y++] = el.id;
-                        $el.removeClass('disabled');
                         target = el.rand;
                     }
                 });
-                if (y === 1) {
-                    $species.find('li[data-id="' + character.randomState.imposedSpecie[0]+ '"]').click();
-                }
                 CharGen.saveRandomState(character);
+                $species.find('.showRoll').css('color', 'yellow');
+                Helper.dice(value,
+                    function (i) {
+                        $species.find('.showRoll').css('color', 'yellow');
+                    },
+                    function (i) {
+                        oThat.autoSelectSpecie(true);
+                    }, function () {
+                        $species.find('.showRoll').css('color', 'inherit');
+                    });
             });
         };
         oThat.otherAction = function (el) {
@@ -74,10 +79,35 @@
                 character.randomState.specie = -1;
                 CharGen.saveRandomState(character);
                 $(this).prop('disabled', true);
-                $('.random').prop('disabled', true);
+                $('.random').removeClass('clickMe').prop('disabled', true);
                 $species.find('li[data-line]').removeClass('disabled');
             });
         };
+
+        oThat.autoSelectSpecie = function (anime) {
+            var specieId = character.getSpecie() !== null ? [character.getSpecie().id] : character.randomState.imposedSpecie;
+            anime = typeof anime !== 'undefined' && anime;
+            $(specieId).each(function (i, el) {
+                var $el = $species.find('li[data-id="' + el + '"]');
+                setTimeout(function () {
+                    $el.removeClass('disabled');
+                    if (anime) {
+                        $el.animate({
+                            "background-color": "#F39814",
+                            color: "rgb(38, 38, 38)",
+                        }, 500).delay(300).animate({
+                            "background-color": "rgb(38, 38, 38)",
+                            color: "white",
+                        }, 500);
+                        setTimeout(function () {
+                            $species.find('li[data-id="' + el + '"]').attr('style', '')
+                        }, 1500)
+                    } else if (specieId.length === 1) {
+                        $el.click();
+                    }
+                }, (anime ? 1000 : 100));
+            });
+        }
 
         oThat.show = function () {
             var species = $(CharGen.data.species);
@@ -88,7 +118,7 @@
                 var mySpecie = Helper.clone(el);
                 var min = (el.rand >= previousRand ? previousRand : previousPreviousRand);
                 var max = min !== el.rand ? '-' + el.rand : ''
-                mySpecie.altLabel = mySpecie.getLabel() + ' <span class="showRoll"">' + min + max + '</span>';
+                mySpecie.altLabel = '<span>' + mySpecie.getLabel() + '</span><span class="showRoll"">' + min + max + '</span>';
                 if (el.rand && el.rand >= previousRand) {
                     previousPreviousRand = previousRand;
                     previousRand = el.rand + 1;
@@ -101,24 +131,21 @@
                 character.setSpecie(el);
                 $('.validate').prop('disabled', false);
             }, undefined, CharGen);
+            $('.random').removeClass('clickMe');
             if (character.isFreeMode()) {
-                $('.random').hide();
-                $('.other').hide();
+                $('.random').css('visibility', 'hidden');
+                $('.other').css('visibility', 'hidden');
             } else {
                 if (character.randomState.specie !== -1) {
                     $species.find('li[data-line]').addClass('disabled');
+                    if (character.randomState.specie === 0) {
+                        $('.random').addClass('clickMe');
+                    }
                 }
                 $('.random').prop('disabled', character.randomState.specie !== 0);
                 $('.other').prop('disabled', character.randomState.specie <= -1);
             }
-            var specieId = character.getSpecie() !== null ? [character.getSpecie().id] : character.randomState.imposedSpecie;
-            $(specieId).each(function (i, el) {
-                var $el = $species.find('li[data-id="' + specieId + '"]');
-                $el.removeClass('disabled');
-                if (specieId.length === 1) {
-                    $el.click();
-                }
-            });
+            oThat.autoSelectSpecie();
         };
         return oThat;
     }

@@ -12,10 +12,18 @@
         };
         oThat.refreshData = function () {
             character.applyTalent();
-            var caracs = character.getCareer().getCharacteristics();
-            var skills = character.getCareer().getSkills();
-            var talents = character.getCareer().getTalents();
+            var caracs = character.getCareerLevel().getCharacteristics();
+            var skills = character.getCareerLevel().getSkills();
+            var talents = character.getCareerLevel().getTalents();
             tab = {'skill': skills, 'characteristic': caracs, 'talent': talents};
+            if (!oThat.characterOnCreation()) {
+                tab['otherSkill'] = character.getAllSkills().filter(function (el) {
+                    return el.data.type === 'base' && !el.hasOrigin(character.getCareerLevel().id) && !el.hasOrigin('talent')
+                });
+                tab['otherCharacteristic'] = character.getCharacteristics().filter(function (el) {
+                    return !el.hasOrigin(character.getCareerLevel().id)
+                });
+            }
         };
         oThat.refreshAll = function () {
             oThat.refreshData();
@@ -29,76 +37,64 @@
         oThat.validateAction = true;
         oThat.type = type;
 
-        oThat.characterOnCreation = function() {
+        oThat.characterOnCreation = function () {
             return oThat.type === 'creation';
         }
 
         oThat.resetAction = function () {
         };
         oThat.saveAction = function () {
-            /*var elems = [].concat(tab['skill'], tab['characteristic'], tab['talent']);
-            $(elems).each(function (i, elem) {
-                elem.advance += elem.tmpadvance;
-                elem.tmpadvance = 0;
-            });*/
-            character.deleteEmpty();
-            CharGen.saveCharacter(character);
+            if (oThat.characterOnCreation()) {
+                CharGen.saveCharacter(character);
+            } else {
+                character.saveAdvance();
+            }
+
             return true;
         };
         oThat.showSpecialisationPopin = function (elem, change) {
             Helper.showSpecialisationPopin(character, elem, change, null, true);
         };
         oThat.refreshXP = function () {
-            var used =  character.xp.used;
-            var currentExperience = character.xp.max;
+            var used = 0;
+            var currentExperience = character.xp.max - character.xp.used;
             var base = $('.body_panel')
-            var elems = [].concat(tab['skill'], tab['characteristic'], tab['talent']);
-            $(elems).each(function (i, elem) {
-                var type = elem.getType();
-                if (type !== "skill") {
-                    i -= tab['skill'].length;
-                    if (type !== 'characteristic') {
-                        i -= tab['characteristic'].length;
+            for (let [type, elems] of Object.entries(tab)) {
+                $(elems).each(function (i, elem) {
+                    var el = base.find('.experience_div[data-type="' + type + '"] [data-line="' + i + '"] .number');
+                    var parent = el.parents('td');
+                    var val = elem.getAdvance();
+                    if (typeof elem.getMax !== 'undefined') {
+                        var max = elem.getMax();
+                        if (max && val > max) {
+                            elem.tmpadvance -= (val - max);
+                            el.val(elem.getAdvance() + (max ? '/' + max : ''));
+                            val = elem.getAdvance();
+                        }
                     }
-                }
-                var el = base.find('.experience_div[data-type="' + type + '"] [data-line="' + i + '"] .number');
-                var parent = el.parents('td');
-                var val = elem.getAdvance();
-                if (typeof elem.getMax !== 'undefined') {
-                    var max = elem.getMax();
-                    if (max && val > max) {
-                        elem.tmpadvance -= (val - max);
-                        el.val(elem.getAdvance() + (max ? '/' + max : ''));
-                        val = elem.getAdvance();
+                    var oldValue = elem.getAdvance() - elem.tmpadvance;
+                    used += Helper.getXPCost(elem, oldValue, val) * (type.startsWith('other') ? 2 : 1);
+                    parent.find('.down').prop('disabled', val === oldValue);
+                });
+            }
+            for (let [type, elems] of Object.entries(tab)) {
+                $(elems).each(function (i, elem) {
+                    var el = base.find('.experience_div[data-type="' + type + '"] [data-line="' + i + '"] .number');
+                    var parent = $(el).parents('td');
+                    var oldValue = elem.getAdvance();
+                    var val = oldValue + 1;
+                    var cost = Helper.getXPCost(elem, oldValue, val) * (type.startsWith('other') ? 2 : 1);
+                    $($(el).parents('tr').find('td').length > 4 ? $(el).parents('tr').find('td')[3] : $(el).parents('tr').find('td')[2]).html('<span style="color: yellow">' + cost + '</span>');
+                    var disabled = oThat.characterOnCreation() ? used + cost > character.xp.max : false;
+                    if (typeof elem.getMax !== 'undefined') {
+                        var max = elem.getMax();
+                        if (max) {
+                            disabled = disabled || (max <= oldValue);
+                        }
                     }
-                }
-                var oldValue = elem.getAdvance() - elem.tmpadvance;
-                used += Helper.getXPCost(elem, oldValue, val);
-                parent.find('.down').prop('disabled', val === oldValue);
-            });
-            $(elems).each(function (i, elem) {
-                var type = elem.getType();
-                if (type !== "skill") {
-                    i -= tab['skill'].length;
-                    if (type !== 'characteristic') {
-                        i -= tab['characteristic'].length;
-                    }
-                }
-                var el = base.find('.experience_div[data-type="' + type + '"] [data-line="' + i + '"] .number');
-                var parent = $(el).parents('td');
-                var oldValue = elem.getAdvance();
-                var val = oldValue + 1;
-                var cost = Helper.getXPCost(elem, oldValue, val);
-                $($(el).parents('tr').find('td').length > 4 ? $(el).parents('tr').find('td')[3] : $(el).parents('tr').find('td')[2]).html('<span style="color: yellow">' + cost + '</span>');
-                var disabled = oThat.characterOnCreation() ? used + cost > character.xp.max : false;
-                if (typeof elem.getMax !== 'undefined') {
-                    var max = elem.getMax();
-                    if (max) {
-                        disabled = disabled || (max <= oldValue);
-                    }
-                }
-                parent.find('.up').prop('disabled', disabled);
-            });
+                    parent.find('.up').prop('disabled', disabled);
+                });
+            }
             base.find('.experience').html(currentExperience - used);
             $('.validate').prop('disabled', oThat.characterOnCreation() ? currentExperience - used < 0 : false);
             character.xp.tmp_used = used;
@@ -110,22 +106,32 @@
             if (oThat.characterOnCreation()) {
                 rightPanel.append('<div class="description">' + this.desc() + '</div>');
             }
-            leftPanel.append("<div class='description_title'><span class='experience'></span> Points d\'Expérience à dépenser" + "</div>");
-            var tmpPanel = oThat.characterOnCreation() ? leftPanel : rightPanel;
+            leftPanel.append("<div class='description_title'><span class='experience'></span> Points d\'Expérience à dépenser</div>");
             /** CHARACTERISTICS **/
-            tmpPanel.append('<div><b>Caractéristiques:</b></div><div class="experience_div" data-type="characteristic"><div>');
-            oThat.refreshCharacteristicTab(tmpPanel);
-            tmpPanel.append('</div>')
+            leftPanel.append('<div><b>Caractéristiques:</b></div><div class="experience_div" data-type="characteristic"><div>');
+            oThat.refreshCharacteristicTab(leftPanel, true);
+            leftPanel.append('</div>')
 
             /** Talents **/
-            tmpPanel.append('<br><div><b>Talents:</b></div><div class="experience_div" data-type="talent"><div>');
-            oThat.refreshTalentTab(tmpPanel);
-            tmpPanel.append('</div>')
+            leftPanel.append('<br><div><b>Talents:</b></div><div class="experience_div" data-type="talent"><div>');
+            oThat.refreshTalentTab(leftPanel, true);
+            leftPanel.append('</div>')
 
             /** SKILLS **/
             leftPanel.append('<br><div><b>Compétences:</b></div><div class="experience_div" data-type="skill"><div>');
-            oThat.refreshSkillTab(leftPanel);
+            oThat.refreshSkillTab(leftPanel, true);
             leftPanel.append('</div>')
+
+            if (!oThat.characterOnCreation()) {
+                /** CHARACTERISTICS **/
+                rightPanel.append('<div><b>Caractéristiques hors carrière (coût x2):</b></div><div class="experience_div" data-type="otherCharacteristic"><div>');
+                oThat.refreshCharacteristicTab(rightPanel, false);
+                rightPanel.append('</div>')
+                /** SKILLS **/
+                rightPanel.append('<br><div><b>Compétences hors carrière (coût x2):</b></div><div class="experience_div" data-type="otherSkill"><div>');
+                oThat.refreshSkillTab(rightPanel, false);
+                rightPanel.append('</div>')
+            }
 
             $('.cancel').off('click').on('click', function () {
                 CharGen.defaultAction.cancel();
@@ -136,16 +142,17 @@
             });
             oThat.refreshXP(tab);
         };
-        oThat.refreshCharacteristicTab = function (skillstab) {
-            var caracs = tab['characteristic'];
+        oThat.refreshCharacteristicTab = function (skillstab, career) {
+            var name = career ? 'characteristic' : 'otherCharacteristic';
+            var caracs = tab[name];
             //var oldCaracs = oldtab['characteristic'];
-            var div = skillstab.find('.experience_div[data-type="characteristic"]');
+            var div = skillstab.find('.experience_div[data-type="' + name + '"]');
             div.html('');
             return Helper.generateListWithRankAndHelp(
                 caracs,
                 ['', 'Base', 'Aug', 'Coût', 'Total'],
-                function () {
-                    return true
+                function (i, el) {
+                    return el.data.class === 'roll';
                 },
                 div,
                 [
@@ -173,14 +180,19 @@
                 },
                 oThat.refreshAll,
                 function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen);
+                    if (!oThat.characterOnCreation()) {
+                        Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen);
+                    } else {
+                        Helper.addDescription(Helper.getHelpFormat(el.data), CharGen, true);
+                    }
                 }
             );
         };
-        oThat.refreshSkillTab = function (skillstab) {
-            var skills = tab['skill'];
-            //var oldSkills = oldtab['skill'];
-            var div = skillstab.find('.experience_div[data-type="skill"]');
+        oThat.refreshSkillTab = function (skillstab, career) {
+            var name = career ? 'skill' : 'otherSkill';
+            var skills = tab[name];
+            //var oldCaracs = oldtab['characteristic'];
+            var div = skillstab.find('.experience_div[data-type="' + name + '"]');
             div.html('');
             return Helper.generateListWithRankAndHelp(
                 skills,
@@ -191,7 +203,7 @@
                 div,
                 [
                     function (i, el) {
-                        return el.getLabel()
+                        return el.getLabel();
                     },
                     function (i, el) {
                         return el.getBase();
@@ -209,7 +221,11 @@
                 oThat.change,
                 oThat.refreshAll,
                 function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen);
+                    if (!oThat.characterOnCreation()) {
+                        Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen);
+                    } else {
+                        Helper.addDescription(Helper.getHelpFormat(el.data), CharGen, true);
+                    }
                 }
             );
         }
@@ -219,7 +235,9 @@
             if (elem.specs && !elem.spec && !magic) {
                 oThat.showSpecialisationPopin(elem, function (i, newElem) {
                     oThat.change(i, newElem, mode, $el);
-                    oThat.refreshAll();
+                    if (!magic) {
+                        oThat.refreshAll();
+                    }
                 });
             } else {
                 var veryOldValue = elem.getAdvance();
@@ -236,6 +254,12 @@
                 }
                 elem.tmpadvance = value - oldValue;
                 if (veryOldValue === 0 && value && mode) {
+                    if ((magic === 'Invocation' || magic === 'Béni') && elem.specs && !elem.spec) {
+                        var god = character.getGod();
+                        if (god) {
+                            elem.spec = god.label;
+                        }
+                    }
                     character.applyTalent();
                     if (magic) {
                         var cancelAction = function () {
@@ -247,7 +271,7 @@
                             character.applyTalent();
                             oThat.refreshAll();
                         }
-                        Helper.showMagicSpecialisation(CharGen, character, cancelAction, validateAction, magic)
+                        Helper.showMagicSpecialisation(CharGen, character, cancelAction, validateAction, magic, elem)
                     }
                 }
             }
@@ -280,7 +304,11 @@
                 oThat.change,
                 oThat.refreshAll,
                 function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen);
+                    if (!oThat.characterOnCreation()) {
+                        Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen);
+                    } else {
+                        Helper.addDescription(Helper.getHelpFormat(el.data), CharGen, true);
+                    }
                 }
             );
         }
@@ -296,7 +324,7 @@
                 var oldValue = el.getAdvance();
                 var val = oldValue + 1;
                 var cost = Helper.getXPCost(el, oldValue, val);
-                if (used + cost > currentExperience ||  val > 70) {
+                if (used + cost > currentExperience || val > 70) {
                     allValls.splice(index, 1);
                 } else if (typeof el.getMax !== 'undefined' && (max = el.getMax()) && val > max) {
 
@@ -313,6 +341,15 @@
             character.xp.tmp_used = used;
             oThat.saveAction();
         };
+        if (!oThat.characterOnCreation()) {
+            oThat.otherAction = function (el) {
+                el.html('Changer de Carrière');
+                el.on('click', function () {
+                    CharGen.saveCharacter(character);
+                    CharGen.showPanel(null, StepCareers(null, CharGen, 'final'));
+                });
+            }
+        }
 
         return oThat;
     };

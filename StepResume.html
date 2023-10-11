@@ -18,20 +18,10 @@
                 CharGen.showMenu();
             });
         };
-        /*oThat.saveAction = function () {
-            var elems = [].concat(character.getSkills(), character.getCharacteristics(), character.getTalents());
-            var j;
-            for (j = 0; j < elems.length; ++j) {
-                var el = elems[j];
-                el.advance += el.tmpadvance;
-                el.tmpadvance = 0;
-            }
-            character.xp.used = character.xp.tmp_used;
-            character.xp.tmp_used = 0;
-            character.deleteEmpty();
-            CharGen.saveCharacter(character);
+        oThat.saveAction = function () {
+            character.saveAdvance();
             return true;
-        };*/
+        };
         oThat.initAction = function () {
             character = CharGen.character.clone();
         };
@@ -76,22 +66,60 @@
         };*/
 
         oThat.show = function () {
-            var con = $('.left_panel').html('');
-            con.removeClass('overflow_panel');
-            con.removeClass('pretty_panel');
+            $('.two_part_panel').hide();
+            var con = $('.all_panel').html('').show();
+//            con.removeClass('overflow_panel');
+//            con.removeClass('pretty_panel');
+            //tabs.append('<div id="tabs-2" class="pretty_panel overflow_panel"><div style="display: flex;"><div class="left_panel"></div><div class="right_panel"></div></div></div>');
+            con.append('<div class="header pretty_panel"></div>');
+            var skillstab = con.find('.header');
+            /** CHARACTERISTICS **/
+            var caracs = character.getCharacteristics();
+            Helper.generateListWithRankAndHelp(
+                caracs,
+                ['', 'Init', 'Aug', 'Cour'],
+                function (i, el) {
+                    return el.data.class === 'roll'
+                },
+                skillstab,
+                [
+                    function (i, el) {
+                        return el.data.abr ? el.data.abr : el.getLabel();
+                    },
+                    function (i, el) {
+                        return el.getBase();
+                    },
+                    function (i, el) {
+                        return el.getAdvance() ? el.getAdvance() : '';
+                    },
+                    function (i, el) {
+                        return el.getTotal();
+                    }
+                ],
+                function () {
+                },
+                function () {
+                },
+                function (i, el) {
+                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
+                },
+                1,
+                undefined,
+                true
+            );
             con.append('<div class="tabs"></div>');
             var tabs = con.find('.tabs');
-            tabs.append('<ul><li><a href="#tabs-1">Perso</a></li><li><a href="#tabs-2">Attributs</a></li><li><a href="#tabs-3">Talents</a></li><li><a href="#tabs-4">Poss</a></li><li><a href="#tabs-5">Sorts</a></li></ul>');
-            tabs.append('<div id="tabs-1" class="pretty_panel paneltabs overflow_panel"></div>');
-            var specie = tabs.find('#tabs-1');
+            tabs.append('<ul><li><a href="#tabs-1">Perso</a></li><li><a href="#tabs-6">Compétences/Talents</a></li><li><a href="#tabs-4">Possession</a></li><li><a href="#tabs-5">Sorts</a></li><li><a href="#tabs-7">Expérience</a></li></ul>');
+            tabs.append('<div id="tabs-1" class="pretty_panel overflow_panel"><div class="main_div"><div class="left_panel"></div><div class="right_panel"></div></div></div>');
+            var specie = tabs.find('#tabs-1 .left_panel');
             var details = CharGen.data.details;
-            var career = character.getCareer() ? character.getCareer().data : '';
+            var career = character.getCareerLevel() ? character.getCareerLevel().getCareer() : '';
             var detailDescription = function (i) {
                 return {
                     label: details[i] ? details[i].label : '',
                     value: character.details[i] ? character.details[i] : '',
                     desc: function () {
-                        Helper.addDescription(Helper.getHelpFormat({
+                        Helper.showPopin('', Helper.getHelpFormat({
                             getLabel: function () {
                                 return details[i].label;
                             },
@@ -107,48 +135,45 @@
                     value: character.getSpecie() ? character.getSpecie().getLabel() : '',
                     desc: function () {
                         if (character.getSpecie()) {
-                            Helper.addDescription(Helper.getHelpFormat(character.getSpecie().data), CharGen)
+                            Helper.showPopin('', Helper.getHelpFormat(character.getSpecie().data), CharGen)
                         }
                     }
                 },
                 {
-                    label: 'Classe', value: career ? career.class : '', desc: function () {
+                    label: 'Classe', value: career ? career.getClass().getLabel() : '', desc: function () {
                         if (career) {
-                            Helper.addDescription(Helper.getHelpFormat(CharGen.allClasses[Helper.toId(career.class)]), CharGen)
+                            Helper.showPopin('', Helper.getHelpFormat(career.getClass()), CharGen)
                         }
                     }
                 },
                 {
-                    label: 'Carrière', value: career ? career.label : '', desc: function () {
+                    label: 'Carrière', value: career ? career.getLabel() : '', desc: function () {
+                        console.log(career)
                         if (career) {
-                            Helper.addDescription(Helper.getHelpFormat(career), CharGen)
+                            Helper.showPopin('', Helper.getHelpFormat(career), CharGen)
                         }
                     }
                 },
                 {
-                    label: 'Niveau de Carrière', value: career ? career.careerLevelName : '', desc: function () {
-                    }
-                },
-                {
-                    label: 'Schéma de Carrière', value: career ? career.careerLevelName : '', desc: function () {
-                    }
-                },
-                {
-                    label: 'Statut', value: career ? career.status : '', desc: function () {
-                    }
-                },
-                {
-                    label: 'Expérience Actuelle',
-                    value: character.xp.max - character.xp.tmp_used - character.xp.used,
+                    label: 'Niveau de Carrière',
+                    value: career ? character.getCareerLevel().getLabel() : '',
                     desc: function () {
+                        if (career) {
+                            Helper.showPopin('', Helper.getHelpFormat(character.getCareerLevel().data), CharGen)
+                        }
                     }
                 },
                 {
-                    label: 'Expérience Dépensée', value: character.xp.tmp_used + character.xp.used, desc: function () {
+                    label: 'Schéma de Carrière',
+                    value: career ? character.getCareerLevel().getLabel() : '',
+                    desc: function () {
+                        if (career) {
+                            Helper.showPopin('', Helper.getHelpFormat(character.getCareerLevel().data), CharGen)
+                        }
                     }
                 },
                 {
-                    label: 'Expérience Totale', value: character.xp.max, desc: function () {
+                    label: 'Statut', value: career ? character.getCareerLevel().data.status : '', desc: function () {
                     }
                 },
                 detailDescription(1),
@@ -161,54 +186,20 @@
             ]
             $(allDetails).each(function (i, el) {
                 specie.append('<div data-id="detail_' + i + '"><b>' + el.label + ':</b> ' + el.value + '</div><br>');
-                $('[data-id="detail_' + i + '"]').off('click').on('click', function () {
+                /*$('[data-id="detail_' + i + '"]').off('click').on('click', function () {
                     el.desc();
-                });
+                });*/
             });
-
-            tabs.append('<div id="tabs-2" class="pretty_panel paneltabs overflow_panel"></div>');
-            var skillstab = tabs.find('#tabs-2');
-            /** CHARACTERISTICS **/
-            skillstab.append('<div><b>Carractéristiques:</b></div>');
-            var caracs = character.getCharacteristics();
-            Helper.generateListWithRankAndHelp(
-                caracs,
-                ['', 'Base', 'Aug', 'Total'],
-                function (i, el) {
-                    return el.data.class !== 'points'
-                },
-                skillstab,
-                [
-                    function (i, el) {
-                        return el.getLabel()
-                    },
-                    function (i, el) {
-                        return el.getBase();
-                    },
-                    function (i, el) {
-                        return el.getAdvance() ? el.getAdvance() : '';
-                    },
-                    function (i, el) {
-                        return el.getTotal();
-                    }
-                ],
-                function () {
-                },
-                function () {
-                },
-                function (i, el) {
-                    Helper.addDescription(Helper.getHelpFormat(el.data), CharGen)
-                },
-                1
-            );
             /** SKILLS **/
-            skillstab.append('<br><br><div><b>Compétences:</b></div>');
+            tabs.append('<div id="tabs-6" class="pretty_panel overflow_panel"><div class="main_div"><div class="left_panel"></div><div class="right_panel"></div></div></div>');
+            skillstab = tabs.find('#tabs-6 .left_panel');
+            skillstab.append('<h3>Compétences de base</h3>');
             var skills = character.getAllSkills();
             Helper.generateListWithRankAndHelp(
                 skills,
-                ['', 'Base', 'Aug', 'Total'],
-                function () {
-                    return true
+                ['Nom', 'Carac', 'Aug', 'Comp'],
+                function (i, el) {
+                    return el.data.type === 'base' && (!el.spec || el.spec === 'Base')
                 },
                 skillstab,
                 [
@@ -216,7 +207,7 @@
                         return el.getLabel()
                     },
                     function (i, el) {
-                        return el.getBase();
+                        return el.getCharacteristic().data.abr + ' ' + el.getBase();
                     },
                     function (i, el) {
                         return el.getAdvance() ? el.getAdvance() : '';
@@ -230,34 +221,81 @@
                 function (t) {
                 },
                 function (i, el) {
-                    Helper.addDescription(Helper.getHelpFormat(el.data), CharGen)
+                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
+                },
+                1
+            );
+            skillstab = tabs.find('#tabs-6 .right_panel');
+            skillstab.append('<h3>Comp. groupées et avancées</h3>');
+
+            Helper.generateListWithRankAndHelp(
+                skills,
+                ['Nom', 'Carac', 'Aug', 'Comp'],
+                function (i, el) {
+                    return !(el.data.type === 'base' && (!el.spec || el.spec === 'Base'))
+                },
+                skillstab,
+                [
+                    function (i, el) {
+                        return el.getLabel()
+                    },
+                    function (i, el) {
+                        return el.getCharacteristic().data.abr + ' ' + el.getBase();
+                    },
+                    function (i, el) {
+                        return el.getAdvance() ? el.getAdvance() : '';
+                    },
+                    function (i, el) {
+                        return el.getTotal();
+                    }
+                ],
+                function (mode, el) {
+                },
+                function (t) {
+                },
+                function (i, el) {
+                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
                 },
                 1
             );
 
             /** TALENTS **/
-            tabs.append('<div id="tabs-3" class="pretty_panel paneltabs overflow_panel"></div>');
-            var talentstab = tabs.find('#tabs-3');
+            var talentstab = skillstab;
+            talentstab.append('<h3>Talents</h3>');
+            character.deleteEmpty();
             var talents = character.getTalents();
-            Helper.generateListWithHelp(
+            Helper.generateListWithRankAndHelp(
                 talents,
-                function (i, el) {
-                    return el.getAdvance()
+                ['Nom', 'Rang', 'Description'],
+                function () {
+                    return true;
                 },
                 talentstab,
+                [
+                    function (i, el) {
+                        return el.getLabel()
+                    },
+                    function (i, el) {
+                        var max = el.getMax();
+                        return el.getAdvance() + (max ? '/' + max : '');
+                    },
+                    function (i, el) {
+                        return el.data.test;
+                    },
+                ],
+                function (mode, el) {
+                },
+                function (t) {
+                },
                 function (i, el) {
-                    var max = el.getMax();
-                    return el.getLabel() + ' ' + el.getAdvance() + (max ? '/' + max : '')
+                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
                 },
-                function (i) {
-                    Helper.addDescription(Helper.getHelpFormat(talents[i].data), CharGen);
-                },
-                true
+                1
             );
 
             /** TRAPPINGS **/
-            tabs.append('<div id="tabs-4" class="pretty_panel paneltabs overflow_panel"></div>');
-            var trappingstab = tabs.find('#tabs-4');
+            tabs.append('<div id="tabs-4" class="pretty_panel overflow_panel"><div class="main_div"><div class="left_panel"></div><div class="right_panel"></div></div></div>');
+            var trappingstab = tabs.find('#tabs-4 .left_panel');
             var trappings = character.trappings;
             Helper.generateListWithHelp(
                 trappings,
@@ -273,42 +311,102 @@
                     $('.right_panel').html('');
                     if (typeof trapp !== 'undefined') {
                         if (trapp.desc !== '') {
-                            Helper.addDescription(Helper.getHelpFormat(trapp), CharGen);
+                            Helper.showPopin('', Helper.getHelpFormat(trapp), CharGen);
                         }
                     }
                 },
-                true
-            );
+                true,
+                '','','',
+                function (i, el) {
+                    var trapp = CharGen.allTrappings[Helper.toId(Helper.removePlural(trappings[i]))];
+                    return typeof trapp !== 'undefined' && trapp.desc !== '';
+                }
+            )
 
             /** GODS **/
-            tabs.append('<div id="tabs-5" class="pretty_panel paneltabs overflow_panel"></div>');
-            var spellstab = tabs.find('#tabs-5');
+            tabs.append('<div id="tabs-5" class="pretty_panel overflow_panel"><div class="main_div"><div class="left_panel"></div><div class="right_panel"></div></div></div>');
+            var spellstab = tabs.find('#tabs-5 .left_panel');
             var spells = character.getSpells();
-            var godTalent = character.searchTalent('Béni', '', false);
-            var god = godTalent ? CharGen.allGods[Helper.toId(godTalent.spec)] : '';
             if (spells) {
+                var god = character.getGod();
                 if (god) {
                     spellstab.append('<br><div class="gods"><b>Dieu:</b> ' + god.getLabel() + '</div>');
-                    spellstab.append('<br><div><b>Bénédictions:</b></div>');
                 }
-                Helper.generateListWithHelp(
-                    spells,
-                    function () {
-                        return true
-                    },
-                    spellstab,
-                    function (i, el) {
-                        return el.getLabel()
-                    },
-                    function (i) {
-                        Helper.addDescription(Helper.getHelpFormat(spells[i].data), CharGen);
-                    },
-                    true
-                );
+                var magicTalent = character.searchTalent('Magie des Arcanes', '', false)
+                if (magicTalent) {
+                    spellstab.append('<br><div class="domaine"><b>Domaine de Magie:</b> ' + magicTalent.spec + '</div>');
+                }
+                var chaosMagicTalent = character.searchTalent('Magie du Chaos', '', false)
+                if (chaosMagicTalent) {
+                    spellstab.append('<br><div class="chaos_domaine"><b>Domaine du Chaos:</b> ' + chaosMagicTalent.spec + '</div>');
+                }
+                var spellsByGroup = {};
+                $(spells).each(function (i, el) {
+                    if (typeof spellsByGroup[el.data.type] === 'undefined') {
+                        spellsByGroup[el.data.type] = [];
+                    }
+                    spellsByGroup[el.data.type][spellsByGroup[el.data.type].length] = el;
+                });
+                $(['Béni', 'Invocation', 'Magie mineure', 'Magie des Arcanes', 'Magie du Chaos']).each(function (i, label) {
+                    if (typeof spellsByGroup[label] !== 'undefined') {
+                        var el = spellsByGroup[label];
+                        spellstab.append('<br><div><b>' + label + ':</b></div>');
+                        Helper.generateListWithHelp(
+                            el,
+                            function () {
+                                return true
+                            },
+                            spellstab,
+                            function (i, el) {
+                                return el.getLabel()
+                            },
+                            function (i, elem, dis, force) {
+                                Helper.showPopin('', Helper.getHelpFormat(el[i].data), CharGen, force);
+                            },
+                            true
+                        );
+                    }
+                });
                 spellstab.find('.gods').on('click', function () {
-                    Helper.addDescription(Helper.getHelpFormat(god), CharGen)
+                    Helper.showPopin('', Helper.getHelpFormat(god), CharGen)
+                });
+                spellstab.find('.domaine').on('click', function () {
+                    Helper.showPopin('', Helper.getHelpFormat(CharGen.allLore[Helper.toId(magicTalent.spec)]), CharGen)
+                });
+                spellstab.find('.chaos_domaine').on('click', function () {
+                    Helper.showPopin('', Helper.getHelpFormat(CharGen.allLore[Helper.toId(chaosMagicTalent.spec)]), CharGen)
                 });
             }
+            tabs.append('<div id="tabs-7" class="pretty_panel overflow_panel"><div class="main_div"><div class="left_panel"></div><div class="right_panel"></div></div></div>');
+            var experience = tabs.find('#tabs-7 .left_panel');
+            allDetails = [
+                {
+                    label: 'Expérience Actuelle',
+                    value: character.xp.max - character.xp.tmp_used - character.xp.used,
+                    desc: function () {
+                    }
+                },
+                {
+                    label: 'Expérience Dépensée', value: character.xp.tmp_used + character.xp.used, desc: function () {
+                    }
+                },
+                {
+                    label: 'Expérience Totale', value: character.xp.max, desc: function () {
+                    }
+                }
+            ]
+            $(allDetails).each(function (i, el) {
+                experience.append('<div data-id="detail_xp' + i + '"><b>' + el.label + ':</b> ' + el.value + '</div><br>');
+                $('[data-id="detail_xp' + i + '"]').off('click').on('click', function () {
+                    el.desc();
+                });
+            });
+            experience.append('<div class="gods"><b>Historique:</b></div>');
+            for (let [labels, value] of Object.entries(character.xp.log)) {
+                var label = labels.split('_');
+                experience.append('<div>' + label[label.length - 1] + ' ' + value + 'xp</div>');
+            }
+
             tabs.tabs();
             $('.validate').off('click');
             $('.validate').prop('disabled', character.stepIndex !== number || character.stepIndex === -1)
@@ -322,7 +420,7 @@
                     });
                 }
             } else {
-                $('.validate').hide();
+                $('.validate').css('visibility', 'hidden');
             }
         };
         return oThat;

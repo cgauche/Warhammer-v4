@@ -31,7 +31,7 @@
         };
 
         oThat.randomAllAction = function () {
-            allTrappingsToChoose = character.getCareer().data.trappings.split(', ');
+            allTrappingsToChoose = character.getCareerLevel().data.trappings.split(', ');
             var remaining = allTrappingsToChoose.length;
             var number = 0;
             var species;
@@ -45,7 +45,7 @@
         };
 
         oThat.show = function () {
-            allTrappingsToChoose = character.getCareer().data.trappings.split(', ');
+            allTrappingsToChoose = character.getCareerLevel().data.trappings.split(', ');
             $(allTrappingsToChoose).each(function (number, el) {
                 var species = el.split(" ou ");
                 if (species.length === 1) {
@@ -63,7 +63,7 @@
                 }
             });
             $('.left_panel').html("<div class='description_title'>" + remaining + ' Possessions à choisir' + "</div>");
-            $('.right_panel').html('<div class="description">' + oThat.desc() + '</div>');
+            $('.right_panel').html('<div>' + oThat.desc() + '</div>');
             if (!character.trappings[number] && allTrappingsToChoose.length > number) {
                 var label = function (i, el) {
                     return el
