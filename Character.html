@@ -204,7 +204,7 @@
                     getType: function () {
                         return 'characteristic';
                     },
-                    getLabel: function () {
+                    getSymbol: function () {
                         var careersCharacteristics = CharGen.allCareersLevelsByGroup[oThat.getCareerLevel().getCareer().id][4].getCharacteristics();
                         var e = careersCharacteristics.find(item => item.id === characteristic.id);
                         var tmp = '';
@@ -213,7 +213,10 @@
                         } else {
                             tmp = '<div class="icon"></div>'
                         }
-                        return '<div style="display: inline-flex">' + tmp + this.data.getLabel() + '</div>';
+                        return tmp;
+                    },
+                    getLabel: function (withSymbol) {
+                        return (typeof withSymbol === 'undefined' || withSymbol ? this.getSymbol() : '') + this.data.getLabel();
                     },
                     getDescription: function () {
                         var tmp = [];
@@ -229,9 +232,9 @@
                             }
                         }
                         if (tmp.length !== 0) {
-                            var res = '<br><br><b>Compétences de votre carrière liées à la caractéristique:</b><ul><li style="display: flex">'
-                            res += tmp.join('</li><li style="display: flex">')
-                            res += '</li></ul>';
+                            var res = '<br><br><b>Compétences de votre carrière liées à la caractéristique:</b><ul><li style="display: flex"><div class="div_label">'
+                            res += tmp.join('</div></li><li style="display: flex"><div class="div_label">')
+                            res += '</div></li></ul>';
                             result = Helper.clone(this.data.desc)
                             result.Info += res;
                         } else {
@@ -269,7 +272,8 @@
                         return this.data.rand[oThat.getSpecie().data.refChar];
                     },
                     getBase: function () {
-                        return this.getSpecie() + this.roll + this.talent;
+                        this.specie = this.getSpecie();
+                        return this.specie + this.roll + this.talent;
                     },
                     getAdvance: function () {
                         return this.advance + this.career + this.tmpadvance;
@@ -332,7 +336,7 @@
                     getType: function () {
                         return 'talent';
                     },
-                    getLabel: function () {
+                    getSymbol : function () {
                         var group = CharGen.allCareersLevelsByGroup[oThat.getCareerLevel().getCareer().id];
                         var careersCharacteristics = [].concat(group[1].getTalents(), group[2].getTalents(), group[3].getTalents(), group[4].getTalents());
                         var e = careersCharacteristics.find(item => item.id === talent.id);
@@ -342,8 +346,11 @@
                         } else {
                             tmp = '<div class="icon"></div>'
                         }
+                        return tmp;
+                    },
+                    getLabel: function (withSymbol) {
                         var spec = this.spec ? this.spec : this.data.specName;
-                        return '<div style="display: inline-flex">' + tmp + this.data.label + (spec !== '' ? ' (' + spec + ')' : '') + '</div>';
+                        return (typeof withSymbol === 'undefined' || withSymbol ? this.getSymbol() : '') + this.data.label + (spec !== '' ? ' (' + spec + ')' : '');
                     },
                     getBase: function () {
                         return 0;
@@ -580,7 +587,7 @@
                     getCharacteristic: function () {
                         return oThat.searchCharacteristic(this.data.characteristic);
                     },
-                    getLabel: function () {
+                    getSymbol: function () {
                         var careersCharacteristics = CharGen.allCareersLevelsByGroup[oThat.getCareerLevel().getCareer().id][4].getSkills();
                         var e = careersCharacteristics.find(item => item.id === skill.id);
                         var tmp = '';
@@ -589,8 +596,11 @@
                         } else {
                             tmp = '<div class="icon"></div>'
                         }
+                        return tmp;
+                    },
+                    getLabel: function (withSymbol) {
                         var spec = this.spec ? this.spec : this.data.specName;
-                        return '<div style="display: inline-flex">' + tmp + this.data.label + (spec !== '' ? ' (' + spec + ')' : '') + '</div>';
+                        return (typeof withSymbol === 'undefined' || withSymbol ? this.getSymbol() : '') + this.data.label + (spec !== '' ? ' (' + spec + ')' : '');
                     },
                     getBase: function () {
                         return this.getCharacteristic().getTotal();
@@ -755,7 +765,7 @@
                     var el = elems[j];
                     if (el.tmpadvance) {
                         var xp = Helper.getXPCost(el, el.getAdvance() - el.tmpadvance, el.getAdvance()) * (el.hasOrigin(this.getCareerLevel().id) ? 1 : 2);
-                        this.addXP(this.getLabelFromType(el) + ': ' + el.getLabel() + ' ' + (el.getAdvance() - el.tmpadvance) + ' => ' + (el.getAdvance()), -xp);
+                        this.addXP(this.getLabelFromType(el) + ': ' + el.getLabel(false) + ' ' + (el.getAdvance() - el.tmpadvance) + ' => ' + (el.getAdvance()), -xp);
                         el.advance += el.tmpadvance;
                         el.tmpadvance = 0;
                         xps -= xp;

@@ -30,6 +30,10 @@
             character = CharGen.character.clone();
         };
 
+        oThat.mode = function () {
+            return 'two_side';
+        };
+
         oThat.randomAllAction = function () {
             allTrappingsToChoose = character.getCareerLevel().data.trappings.split(', ');
             var remaining = allTrappingsToChoose.length;
@@ -62,7 +66,7 @@
                     --remaining;
                 }
             });
-            $('.left_panel').html("<div class='description_title'>" + remaining + ' Possessions à choisir' + "</div>");
+            $('.left_panel').html(remaining ? "<div class='description_title'>" + remaining + ' Possessions à choisir' + "</div>" : '');
             $('.right_panel').html('<div>' + oThat.desc() + '</div>');
             if (!character.trappings[number] && allTrappingsToChoose.length > number) {
                 var label = function (i, el) {
@@ -77,7 +81,7 @@
                     oThat.showTrappings(number + 1);
                 };
                 var showHelp = function (i, el) {
-                    var trapp = CharGen.allTrappings[Helper.toId(Helper.removePlural(el))];
+                    var trapp = Helper.searchTrapping(el, CharGen);
                     if (typeof trapp !== 'undefined') {
                         if (trapp.desc !== '') {
                             return true;
@@ -86,10 +90,10 @@
                     return false;
                 };
                 var initHelp = function (i, el) {
-                    var trapp = CharGen.allTrappings[Helper.toId(Helper.removePlural(el))];
+                    var trapp = Helper.searchTrapping(el, CharGen);
                     if (typeof trapp !== 'undefined') {
                         if (trapp.desc !== '') {
-                            Helper.showPopin('', Helper.getHelpFormat(trapp), CharGen);
+                            Helper.showPopin(Helper.getHelpFormat(trapp, CharGen), CharGen);
                         }
                     }
                 };
@@ -115,7 +119,7 @@
                 return allTrappingsToChoose[i].split(" ou ").length === 1;
             };
             var showHelp = function (i, el) {
-                var trapp = CharGen.allTrappings[Helper.toId(Helper.removePlural(el))];
+                var trapp = Helper.searchTrapping(el, CharGen);
                 if (typeof trapp !== 'undefined') {
                     if (trapp.desc !== '') {
                         return true;
@@ -124,13 +128,18 @@
                 return false;
             };
             var initHelp = function (i, el) {
-                var trapp = CharGen.allTrappings[Helper.toId(Helper.removePlural(el))];
+                var trapp = Helper.searchTrapping(el, CharGen);
                 if (typeof trapp !== 'undefined') {
                     if (trapp.desc !== '') {
-                        Helper.showPopin('', Helper.getHelpFormat(trapp), CharGen);
+                        Helper.showPopin(Helper.getHelpFormat(trapp, CharGen), CharGen);
                     }
                 }
             };
+            if (!$('.left_panel').html()) {
+                $('.left_panel').addClass('for_pc');
+            } else {
+                $('.left_panel').removeClass('for_pc');
+            }
             $('.validate').prop('disabled', remaining !== 0);
             Helper.generateListWithHelpPopin(
                 $(character.trappings),

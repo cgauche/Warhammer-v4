@@ -7,7 +7,7 @@
         oThat.stepName = "Attributs";
         oThat.desc = function (i) {
             if (!i) {
-                return 'Pour déterminer vos Caractéristiques :<ol> <li>Cliquez sur <b>Lancer</b>. Si vous estimez que votre Personnage pourrait être meilleur si vous inversiez certains résultats de dés entre les Caractéristiques, passez à l\'étape suivante. Si vous conservez vos résultats aléatoires, gagnez +50 PX.</li> <li>Réassignez chacun des dix résultats obtenus à l\'étape 1 à une Caractéristique différente en utilisant les flèches. Si vous êtes satisfait de cette nouvelle combinaison, gagnez +25 PX.</li><li>Si vous n\'êtes toujours pas satisfait de vos résultats, cliquez à nous sur <b>Lancer</b> et échangez les scores sans gagner de bonus de PX, ou ignorez tout simplement l\'aléatoire en cliquant sur <b>Choissir</b>. Dans ce cas, répartissez comme bon vous semble 100 points entre les 10 Caractéristiques, avec un minimum de 4 et un maximum de 18 Points alloués à chaque Caractéristique. Il n\'y a pas de bonus de PX pour cette option, comme si vous aviez relancé les dés.</li></ol>'
+                return 'Pour déterminer vos Caractéristiques :<ol> <li>Cliquez sur <b>Lancer</b>. Si vous estimez que votre Personnage pourrait être meilleur si vous inversiez certains résultats de dés entre les Caractéristiques, passez à l\'étape suivante. Si vous conservez vos résultats aléatoires, gagnez +50 PX.</li> <li>Réassignez chacun des dix résultats obtenus à l\'étape 1 à une Caractéristique différente en utilisant les flèches. Si vous êtes satisfait de cette nouvelle combinaison, gagnez +25 PX.</li><li>Si vous n\'êtes toujours pas satisfait de vos résultats, cliquez à nous sur <b>Lancer</b> et échangez les scores sans gagner de bonus de PX, ou ignorez tout simplement l\'aléatoire en cliquant sur <b>Choisir</b>. Dans ce cas, répartissez comme bon vous semble 100 points entre les 10 Caractéristiques, avec un minimum de 4 et un maximum de 18 Points alloués à chaque Caractéristique. Il n\'y a pas de bonus de PX pour cette option, comme si vous aviez relancé les dés.</li></ol>'
             } else if (i === 1) {
                 return 'Vous pouvez répartir comme bon vous semble un total de 5 Augmentations entre les Caractéristiques ci-dessous.';
             } else {
@@ -119,9 +119,7 @@
             $('.left_panel').html("");
             var funcMoveUpDown = false;
             if (mode === 'roll') {
-                if (character.stepIndex <= y) {
-                    Helper.addDescription(oThat.desc(0), CharGen, true);
-                }
+                Helper.addDescription(oThat.desc(0), CharGen, character.stepIndex <= y && character.stepIndex !== -1);
                 $('.validate').prop('disabled', !character.isFreeMode());
                 if (!character.isFreeMode()) {
                     $('.random').css('visibility', 'inherit');
@@ -150,9 +148,7 @@
                 $('.validate').prop('disabled', character.isFreeMode());
                 $('.random').css('visibility', 'hidden');
                 $('.other').css('visibility', 'hidden');
-                if (character.stepIndex <= y) {
-                    Helper.addDescription(oThat.desc(2), CharGen, true);
-                }
+                Helper.addDescription(oThat.desc(2), CharGen, character.stepIndex <= y && character.stepIndex !== -1);
                 $('.left_panel').html("<div class='description_title'><span class='char_career_points'></span> Points à allouer" + "</div>");
             }
 
@@ -227,7 +223,7 @@
                     }
                 },
                 function (i, el) {
-                    Helper.addDescription(Helper.getHelpFormat(el, character, CharGen), CharGen, true)
+                    Helper.addDescription(Helper.getHelpFormat(el, CharGen), CharGen, true)
                 },
                 false,
                 funcMoveUpDown
@@ -338,9 +334,7 @@
             $('.random').css('visibility', 'hidden');
             $('.other').css('visibility', 'hidden');
             $('.validate').prop('disabled', true);
-            if (character.stepIndex <= y) {
-                Helper.addDescription(oThat.desc(1), CharGen, true);
-            }
+            Helper.addDescription(oThat.desc(1), CharGen, character.stepIndex <= y && character.stepIndex !== -1);
 
             $('.left_panel').html("<div class='description_title'><span class='char_career_points'></span> Points à allouer" + "</div>");
 
@@ -398,7 +392,7 @@
                         + char.roll);
                 },
                 function (i, el) {
-                    Helper.addDescription(Helper.getHelpFormat(el.data), CharGen, true)
+                    Helper.addDescription(Helper.getHelpFormat(el, CharGen), CharGen, true)
                 }
             );
             $characteristics.find('.number').first().change();

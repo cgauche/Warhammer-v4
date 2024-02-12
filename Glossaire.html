@@ -44,7 +44,7 @@
                     return el.label
                 },
                 function (i, elem, dis, force) {
-                    Helper.addDescription(Helper.getHelpFormat(species[i]), CharGen, force);
+                    Helper.addDescription(Helper.getHelpFormat(species[i], CharGen), CharGen, true);
                 },
                 true
             );
@@ -62,7 +62,7 @@
                     return el.label
                 },
                 function (i, elem, dis, force) {
-                    Helper.addDescription(Helper.getHelpFormat(characteristics[i]), CharGen, force);
+                    Helper.addDescription(Helper.getHelpFormat(characteristics[i], CharGen), CharGen, true);
                 },
                 true
             );
@@ -99,7 +99,7 @@
                     return el.label;
                 },
                 function (i, elem, dis, force) {
-                    Helper.addDescription(Helper.getHelpFormat(displayedCareers[i]), CharGen, force);
+                    Helper.addDescription(Helper.getHelpFormat(displayedCareers[i], CharGen), CharGen, true);
                 },
                 true,
                 null,
@@ -121,7 +121,7 @@
                     return el.label
                 },
                 function (i, elem, dis, force) {
-                    Helper.addDescription(Helper.getHelpFormat(talents[i]), CharGen, force);
+                    Helper.addDescription(Helper.getHelpFormat(talents[i], CharGen), CharGen, true);
                 },
                 true
             );
@@ -140,7 +140,7 @@
                     return el.label
                 },
                 function (i, elem, dis, force) {
-                    Helper.addDescription(Helper.getHelpFormat(skills[i]), CharGen, force);
+                    Helper.addDescription(Helper.getHelpFormat(skills[i], CharGen), CharGen, true);
                 },
                 true
             );
@@ -196,7 +196,7 @@
                     return el.label
                 },
                 function (i, elem, dis, force) {
-                    Helper.addDescription(Helper.getHelpFormat(displayedSpells[i]), CharGen, force);
+                    Helper.addDescription(Helper.getHelpFormat(displayedSpells[i], CharGen), CharGen, true);
                 },
                 true,
                 null,
@@ -246,7 +246,7 @@
                     return el.label
                 },
                 function (i, elem, dis, force) {
-                    Helper.addDescription(Helper.getHelpFormat(displayedTrappings[i]), CharGen, force);
+                    Helper.addDescription(Helper.getHelpFormat(displayedTrappings[i], CharGen), CharGen, true);
                 },
                 true,
                 null,
@@ -269,7 +269,7 @@
                     return el.getLabel()
                 },
                 function (i, elem, dis, force) {
-                    Helper.addDescription(Helper.getHelpFormat(lore[i]), CharGen, force);
+                    Helper.addDescription(Helper.getHelpFormat(lore[i]), CharGen, true);
                 },
                 true,
                 null,
@@ -291,7 +291,7 @@
                     return el.getLabel()
                 },
                 function (i, elem, dis, force) {
-                    Helper.addDescription(Helper.getHelpFormat(lore[i]), CharGen, force);
+                    Helper.addDescription(Helper.getHelpFormat(lore[i], CharGen), CharGen, true);
                 },
                 true,
                 null,

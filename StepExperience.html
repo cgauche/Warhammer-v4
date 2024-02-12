@@ -4,11 +4,19 @@
         var character;
         var tab;
         oThat.stepName = "Progression";
+        oThat.type = type;
         oThat.desc = function (i) {
             return 'Les Points d\'Expérience (PX) sont utilisés pour améliorer votre Personnage. Le MJ vous accordera des PX lorques vous réalisez quelque chose pendant la partie. Cela pourrait inclure le fait de résoudre l\'aventure en cours avec succès, une bonne interprétation de votre Personnage, la défaite de vos ennemis, etc. Entre les aventures, vous dépensez vos PX pour acheter de nouvelles Compétences et de nouveaux Talents, pour augmenter vos Caractéristiques et pour changer de Carrière. La dernière étape de la création de votre Personnage consiste à dépenser les bonus de PX que vous avez potentiellement gagnés pendant le processus de création. Les tableaux ci-dessous vous indiquent comment dépenser vos Points.<br>Dans un premier temps, vous pouvez seulement dépenser vos PX pour augmenter les 3 Caractéristiques, 8 Compétences et 4 Talents disponibles dans votre niveau de Carrière.'
         };
         oThat.title = function () {
             return 'Progression'
+        };
+        oThat.mode = function () {
+            console.log(oThat.characterOnCreation());
+            if (oThat.characterOnCreation()) {
+                return 'one_side';
+            }
+            return 'two_side';
         };
         oThat.refreshData = function () {
             character.applyTalent();
@@ -35,7 +43,7 @@
         };
         oThat.cancelAction = true;
         oThat.validateAction = true;
-        oThat.type = type;
+
 
         oThat.characterOnCreation = function () {
             return oThat.type === 'creation';
@@ -181,9 +189,9 @@
                 oThat.refreshAll,
                 function (i, el) {
                     if (!oThat.characterOnCreation()) {
-                        Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen);
+                        Helper.showPopin(Helper.getHelpFormat(el, CharGen), CharGen);
                     } else {
-                        Helper.addDescription(Helper.getHelpFormat(el.data), CharGen, true);
+                        Helper.addDescription(Helper.getHelpFormat(el, CharGen), CharGen, true);
                     }
                 }
             );
@@ -222,9 +230,9 @@
                 oThat.refreshAll,
                 function (i, el) {
                     if (!oThat.characterOnCreation()) {
-                        Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen);
+                        Helper.showPopin(Helper.getHelpFormat(el, CharGen), CharGen);
                     } else {
-                        Helper.addDescription(Helper.getHelpFormat(el.data), CharGen, true);
+                        Helper.addDescription(Helper.getHelpFormat(el, CharGen), CharGen, true);
                     }
                 }
             );
@@ -305,9 +313,9 @@
                 oThat.refreshAll,
                 function (i, el) {
                     if (!oThat.characterOnCreation()) {
-                        Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen);
+                        Helper.showPopin(Helper.getHelpFormat(el, CharGen), CharGen);
                     } else {
-                        Helper.addDescription(Helper.getHelpFormat(el.data), CharGen, true);
+                        Helper.addDescription(Helper.getHelpFormat(el, CharGen), CharGen, true);
                     }
                 }
             );
@@ -343,7 +351,7 @@
         };
         if (!oThat.characterOnCreation()) {
             oThat.otherAction = function (el) {
-                el.html('Changer de Carrière');
+                el.html('Carrière');
                 el.on('click', function () {
                     CharGen.saveCharacter(character);
                     CharGen.showPanel(null, StepCareers(null, CharGen, 'final'));

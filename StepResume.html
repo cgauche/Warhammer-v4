@@ -27,7 +27,7 @@
         };
         oThat.otherAction = function (el) {
             if (CharGen.saveName) {
-                el.hide();
+                el.css('visibility', 'hidden');
                 return;
             }
             el.html('Sauvegarder');
@@ -44,7 +44,7 @@
                                 },
                                 buttons: []
                             });
-                            el.hide();
+                            el.css('visibility', 'hidden');
                         } else {
                             alert("Personnage sauvegardé");
                         }
@@ -77,14 +77,17 @@
             var caracs = character.getCharacteristics();
             Helper.generateListWithRankAndHelp(
                 caracs,
-                ['', 'Init', 'Aug', 'Cour'],
+                ['', '', 'Init', 'Aug', 'Cour'],
                 function (i, el) {
                     return el.data.class === 'roll'
                 },
                 skillstab,
                 [
                     function (i, el) {
-                        return el.data.abr ? el.data.abr : el.getLabel();
+                        return el.data.abr ? el.data.abr : el.getLabel(false);
+                    },
+                    function (i, el) {
+                        return el.getSymbol();
                     },
                     function (i, el) {
                         return el.getBase();
@@ -101,7 +104,7 @@
                 function () {
                 },
                 function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
+                    Helper.showPopin(Helper.getHelpFormat(el, CharGen), CharGen)
                 },
                 1,
                 undefined,
@@ -119,12 +122,18 @@
                     label: details[i] ? details[i].label : '',
                     value: character.details[i] ? character.details[i] : '',
                     desc: function () {
-                        Helper.showPopin('', Helper.getHelpFormat({
+                        Helper.showPopin(Helper.getHelpFormat({
                             getLabel: function () {
                                 return details[i].label;
                             },
                             desc: (details[i].desc[character.getSpecie().data.refDetail] ? details[i].desc[character.getSpecie().data.refDetail] : details[i].allDesc)
-                        }), CharGen)
+                        }, CharGen), CharGen)
+                    },
+                    getLabel: function () {
+                        return this.label;
+                    },
+                    getTotal: function () {
+                        return this.value;
                     }
                 }
             };
@@ -135,22 +144,21 @@
                     value: character.getSpecie() ? character.getSpecie().getLabel() : '',
                     desc: function () {
                         if (character.getSpecie()) {
-                            Helper.showPopin('', Helper.getHelpFormat(character.getSpecie().data), CharGen)
+                            Helper.showPopin(Helper.getHelpFormat(character.getSpecie().data, CharGen), CharGen)
                         }
                     }
                 },
                 {
                     label: 'Classe', value: career ? career.getClass().getLabel() : '', desc: function () {
                         if (career) {
-                            Helper.showPopin('', Helper.getHelpFormat(career.getClass()), CharGen)
+                            Helper.showPopin(Helper.getHelpFormat(career.getClass(), CharGen), CharGen)
                         }
                     }
                 },
                 {
                     label: 'Carrière', value: career ? career.getLabel() : '', desc: function () {
-                        console.log(career)
                         if (career) {
-                            Helper.showPopin('', Helper.getHelpFormat(career), CharGen)
+                            Helper.showPopin(Helper.getHelpFormat(career, CharGen), CharGen)
                         }
                     }
                 },
@@ -159,7 +167,7 @@
                     value: career ? character.getCareerLevel().getLabel() : '',
                     desc: function () {
                         if (career) {
-                            Helper.showPopin('', Helper.getHelpFormat(character.getCareerLevel().data), CharGen)
+                            Helper.showPopin(Helper.getHelpFormat(character.getCareerLevel().data, CharGen), CharGen)
                         }
                     }
                 },
@@ -168,7 +176,7 @@
                     value: career ? character.getCareerLevel().getLabel() : '',
                     desc: function () {
                         if (career) {
-                            Helper.showPopin('', Helper.getHelpFormat(character.getCareerLevel().data), CharGen)
+                            Helper.showPopin(Helper.getHelpFormat(character.getCareerLevel().data, CharGen), CharGen)
                         }
                     }
                 },
@@ -185,10 +193,53 @@
                 detailDescription(7),
             ]
             $(allDetails).each(function (i, el) {
-                specie.append('<div data-id="detail_' + i + '"><b>' + el.label + ':</b> ' + el.value + '</div><br>');
-                /*$('[data-id="detail_' + i + '"]').off('click').on('click', function () {
+                specie.append('<div data-id="detail_' + i + '" class="div_label"><b style="margin-right: 5px">' + el.label + ':</b> ' + el.value + '</div><br>');
+                $('[data-id="detail_' + i + '"]').off('click').on('click', function () {
                     el.desc();
-                });*/
+                });
+            });
+            var columFunction = [
+                function (i, el) {
+                    return el.getLabel(false);
+                },
+                function (i, el) {
+                    return el.getTotal();
+                }
+            ]
+            var mouvement = character.searchCharacteristic('Mouvement')
+            var marche = Helper.clone(mouvement);
+            marche.getLabel = function () { return 'Marche'};
+            marche.getTotal = function () { return mouvement.getTotal() * 2};
+            var course = Helper.clone(mouvement);
+            course.getLabel = function () { return 'Course'};
+            course.getTotal = function () { return mouvement.getTotal() * 4};
+            skillstab = tabs.find('#tabs-1 .right_panel');
+            $([
+                ['Destin', [character.searchCharacteristic('Destin'), character.searchCharacteristic('Chance')]],
+                ['Résilience', [character.searchCharacteristic('Résilience'), character.searchCharacteristic('Détermination'), detailDescription(5)]],
+                ['Mouvement', [mouvement, marche, course]],
+                ['Autre', [character.searchCharacteristic('Points de Blessures'), character.searchCharacteristic('Corruption')]],
+            ]).each(function (i, elem) {
+                skillstab.append('<h3>'+elem[0]+'</h3>');
+                Helper.generateListWithRankAndHelp(
+                    elem[1],
+                    ['', ''],
+                    function (i, el) {
+                        return true
+                    },
+                    skillstab,
+                    columFunction,
+                    function () {
+                    },
+                    function () {
+                    },
+                    function (i, el) {
+                        Helper.showPopin(Helper.getHelpFormat(el, CharGen), CharGen)
+                    },
+                    1,
+                    undefined,
+                    true
+                );
             });
             /** SKILLS **/
             tabs.append('<div id="tabs-6" class="pretty_panel overflow_panel"><div class="main_div"><div class="left_panel"></div><div class="right_panel"></div></div></div>');
@@ -221,7 +272,7 @@
                 function (t) {
                 },
                 function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
+                    Helper.showPopin(Helper.getHelpFormat(el, CharGen), CharGen)
                 },
                 1
             );
@@ -254,7 +305,7 @@
                 function (t) {
                 },
                 function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
+                    Helper.showPopin(Helper.getHelpFormat(el, CharGen), CharGen)
                 },
                 1
             );
@@ -262,13 +313,13 @@
             /** TALENTS **/
             var talentstab = skillstab;
             talentstab.append('<h3>Talents</h3>');
-            character.deleteEmpty();
+            //character.deleteEmpty();
             var talents = character.getTalents();
             Helper.generateListWithRankAndHelp(
                 talents,
                 ['Nom', 'Rang', 'Description'],
-                function () {
-                    return true;
+                function (i, el) {
+                    return el.getAdvance();
                 },
                 talentstab,
                 [
@@ -288,7 +339,7 @@
                 function (t) {
                 },
                 function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
+                    Helper.showPopin(Helper.getHelpFormat(el, CharGen), CharGen)
                 },
                 1
             );
@@ -296,6 +347,7 @@
             /** TRAPPINGS **/
             tabs.append('<div id="tabs-4" class="pretty_panel overflow_panel"><div class="main_div"><div class="left_panel"></div><div class="right_panel"></div></div></div>');
             var trappingstab = tabs.find('#tabs-4 .left_panel');
+            trappingstab.append('<h3>Possessions</h3>');
             var trappings = character.trappings;
             Helper.generateListWithHelp(
                 trappings,
@@ -306,26 +358,99 @@
                 function (i, el) {
                     return el
                 },
-                function (i) {
-                    var trapp = CharGen.allTrappings[Helper.toId(Helper.removePlural(trappings[i]))];
-                    $('.right_panel').html('');
+                function (i, el) {
+                    var trapp = Helper.searchTrapping(el, CharGen);
                     if (typeof trapp !== 'undefined') {
                         if (trapp.desc !== '') {
-                            Helper.showPopin('', Helper.getHelpFormat(trapp), CharGen);
+                            Helper.showPopin(Helper.getHelpFormat(trapp, CharGen), CharGen);
                         }
                     }
                 },
                 true,
                 '','','',
                 function (i, el) {
-                    var trapp = CharGen.allTrappings[Helper.toId(Helper.removePlural(trappings[i]))];
+                    var trapp = Helper.searchTrapping(el, CharGen);
                     return typeof trapp !== 'undefined' && trapp.desc !== '';
                 }
             )
+            trappingstab = tabs.find('#tabs-4 .right_panel');
+            trappingstab.append('<h3>Armures</h3>');
+            Helper.generateListWithRankAndHelp(
+                trappings,
+                ['Nom', 'Localisation', 'Enc', 'PA', 'Atouts/Défauts'],
+                function (i, el) {
+                    var trapp = Helper.searchTrapping(el, CharGen);
+                    return typeof trapp !== 'undefined' && (trapp.type.search('Armures') !== -1);
+                },
+                trappingstab,
+                [
+                    function (i, el) {
+                        return el;
+                    },
+                    function (i, el) {
+                        return Helper.searchTrapping(el, CharGen).loc;
+                    },
+                    function (i, el) {
+                        return Helper.searchTrapping(el, CharGen).enc;
+                    },
+                    function (i, el) {
+                        return Helper.searchTrapping(el, CharGen).pa;
+                    },
+                    function (i, el) {
+                        return Helper.searchTrapping(el, CharGen).qualities;
+                    },
+                ],
+                function (mode, el) {
+                },
+                function (t) {
+                },
+                function (i, el) {
+                    Helper.showPopin(Helper.getHelpFormat(Helper.searchTrapping(el, CharGen), CharGen), CharGen)
+                },
+                1
+            );
+            trappingstab.append('<h3>Armes</h3>');
+            Helper.generateListWithRankAndHelp(
+                trappings,
+                ['Nom', 'Groupe', 'Enc', 'Portée/Allonge', 'Dégâts', 'Atouts/Défauts'],
+                function (i, el) {
+                    var trapp = Helper.searchTrapping(el, CharGen);
+                    return typeof trapp !== 'undefined' && (trapp.type.search('Armes') !== -1 || trapp.type.search('Munitions') !== -1);
+                },
+                trappingstab,
+                [
+                    function (i, el) {
+                        return el;
+                    },
+                    function (i, el) {
+                        return Helper.searchTrapping(el, CharGen).spec;
+                    },
+                    function (i, el) {
+                        return Helper.searchTrapping(el, CharGen).enc;
+                    },
+                    function (i, el) {
+                        return Helper.searchTrapping(el, CharGen).reach;
+                    },
+                    function (i, el) {
+                        return Helper.searchTrapping(el, CharGen).damage;
+                    },
+                    function (i, el) {
+                        return Helper.searchTrapping(el, CharGen).qualities;
+                    },
+                ],
+                function (mode, el) {
+                },
+                function (t) {
+                },
+                function (i, el) {
+                    Helper.showPopin(Helper.getHelpFormat(Helper.searchTrapping(el, CharGen), CharGen), CharGen)
+                },
+                1
+            );
 
             /** GODS **/
-            tabs.append('<div id="tabs-5" class="pretty_panel overflow_panel"><div class="main_div"><div class="left_panel"></div><div class="right_panel"></div></div></div>');
-            var spellstab = tabs.find('#tabs-5 .left_panel');
+            tabs.append('<div id="tabs-5" class="pretty_panel overflow_panel"></div>');
+            var spellstab = tabs.find('#tabs-5');
             var spells = character.getSpells();
             if (spells) {
                 var god = character.getGod();
@@ -347,34 +472,64 @@
                     }
                     spellsByGroup[el.data.type][spellsByGroup[el.data.type].length] = el;
                 });
-                $(['Béni', 'Invocation', 'Magie mineure', 'Magie des Arcanes', 'Magie du Chaos']).each(function (i, label) {
+                $(['Béni', 'Invocation', 'Magie mineure', 'Magie des Arcanes', 'Magie du Chaos']).each(function (w, label) {
                     if (typeof spellsByGroup[label] !== 'undefined') {
+                        var div = ['left_panel', 'right_panel']
+                        var step = 0;
                         var el = spellsByGroup[label];
-                        spellstab.append('<br><div><b>' + label + ':</b></div>');
-                        Helper.generateListWithHelp(
-                            el,
-                            function () {
-                                return true
-                            },
-                            spellstab,
-                            function (i, el) {
-                                return el.getLabel()
-                            },
-                            function (i, elem, dis, force) {
-                                Helper.showPopin('', Helper.getHelpFormat(el[i].data), CharGen, force);
-                            },
-                            true
-                        );
+                        spellstab.append('<h3>' + label + '<h3>');
+                        spellstab.append('<div class="main_div"><div class="left_panel" data-id="'+w+'" style="flex: 50%; max-width: none"></div><div class="right_panel" data-id="'+w+'" style="flex: 50%"></div></div>');
+                        $.each(el, function (i) {
+                            Helper.generateListWithRankAndHelp(
+                                [el[i]],
+                                ['Nom', 'NI', 'Portée', 'Cible', 'Durée', ''],
+                                function (i, el) {
+                                    return true
+                                },
+                                tabs.find('#tabs-5 .' + div[step++%2] + '[data-id='+w+']'),
+                                [
+                                    function (i, el) {
+                                        return el.getLabel()
+                                    },
+                                    function (i, el) {
+                                        return el.data.cn;
+                                    },
+                                    function (i, el) {
+                                        return el.data.range;
+                                    },
+                                    function (i, el) {
+                                        return el.data.target;
+                                    },
+                                    function (i, el) {
+                                        return el.data.duration;
+                                    },
+                                    function (i, el) {
+                                        return el.data.effect;
+                                    }
+                                ],
+                                function (mode, el) {
+                                },
+                                function (t) {
+                                },
+                                function (i, el) {
+                                    Helper.showPopin(Helper.getHelpFormat(el, CharGen), CharGen);
+                                },
+                                1,
+                                null,
+                                true,
+                                [20, 80]
+                            );
+                        });
                     }
                 });
                 spellstab.find('.gods').on('click', function () {
-                    Helper.showPopin('', Helper.getHelpFormat(god), CharGen)
+                    Helper.showPopin(Helper.getHelpFormat(god, CharGen), CharGen)
                 });
                 spellstab.find('.domaine').on('click', function () {
-                    Helper.showPopin('', Helper.getHelpFormat(CharGen.allLore[Helper.toId(magicTalent.spec)]), CharGen)
+                    Helper.showPopin(Helper.getHelpFormat(CharGen.allLore[Helper.toId(magicTalent.spec)], CharGen), CharGen)
                 });
                 spellstab.find('.chaos_domaine').on('click', function () {
-                    Helper.showPopin('', Helper.getHelpFormat(CharGen.allLore[Helper.toId(chaosMagicTalent.spec)]), CharGen)
+                    Helper.showPopin(Helper.getHelpFormat(CharGen.allLore[Helper.toId(chaosMagicTalent.spec), CharGen], CharGen), CharGen)
                 });
             }
             tabs.append('<div id="tabs-7" class="pretty_panel overflow_panel"><div class="main_div"><div class="left_panel"></div><div class="right_panel"></div></div></div>');

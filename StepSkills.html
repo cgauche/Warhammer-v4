@@ -107,9 +107,7 @@
                 }
             };
             $('.validate').prop('disabled', true);
-            if (desc !== true && character.stepIndex <= y) {
-                Helper.addDescription(oThat.desc(0), CharGen, true);
-            }
+            Helper.addDescription(oThat.desc(0), CharGen, desc !== true && character.stepIndex <= y && character.stepIndex !== -1);
             $('.left_panel').html("<div class='description_title'><span class='skills_specie_5points'></span> Compétences auxquelles ajouter 5 Augmentations</div>"
                 + "<div class='description_title'><span class='skills_specie_3points'></span> Compétences auxquelles ajouter 3 Augmentations</div>");
             var $skills = Helper.generateListWithRankAndHelp(character.isFreeMode() ? [].concat(currentSpecieSkills, character.getAllSkills(true)) : currentSpecieSkills,
@@ -158,7 +156,7 @@
                     $('.validate').prop('disabled', !character.isFreeMode() && (remaining5 !== 0 || remaining3 !== 0));
                 },
                 function (i, el) {
-                    Helper.addDescription(Helper.getHelpFormat(el.data), CharGen, true)
+                    Helper.addDescription(Helper.getHelpFormat(el.data, CharGen), CharGen, true)
                 }
             );
 
@@ -191,9 +189,7 @@
             };
             $('.validate').prop('disabled', true);
             $('.left_panel').html("<div class='description_title'><span class='skills_career'></span> Points à allouer" + "</div>");
-            if (desc !== true && character.stepIndex <= y) {
-                Helper.addDescription(oThat.desc(1), CharGen, true);
-            }
+            Helper.addDescription(oThat.desc(1), CharGen, desc !== true && character.stepIndex <= y && character.stepIndex !== -1);
             var $skills = Helper.generateListWithRankAndHelp(character.isFreeMode() ? [].concat(currentCareerSkills, character.getAllSkills(true)) : currentCareerSkills,
                 ['', 'Base', 'Augmentation', 'Total'],
                 function (i, el) {
@@ -239,7 +235,7 @@
                     $('.validate').prop('disabled', !character.isFreeMode() && remaining !== 0);
                 },
                 function (i, el) {
-                    Helper.addDescription(Helper.getHelpFormat(el.data), CharGen, true)
+                    Helper.addDescription(Helper.getHelpFormat(el.data, CharGen), CharGen, true)
             }
             );
 

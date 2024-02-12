@@ -156,13 +156,18 @@ function generateSpecieHelp(result, labels, match) {
             {
                 'Info': applyHelp(descs[0], el, 'species', {...labels.lore, ...labels.gods, ...labels.psychologie}),
                 'Caractéristiques': '#showSpecieChar|' + el.refChar,
-                'Accès': '<b>Compétences de race: </b><ul><li>' + applyHelp(descs[1].split(', '), el, 'species', {...labels.skills}, match).join('</li><li>') + '</li></ul>'
-                    + '<b>Talents de race: </b><ul><li>' + applyHelp(descs[2].split(', '), el, 'species', {...labels.talents}, match).join('</li><li>') + '</li></ul>'
-                    + '<b>Carrière de race: </b><ul><li>' + careers.join('</li><li>') + '</li></ul>'
+                'Comps/Talents': '<b>Compétences de race: </b>' + toHtmlList(applyHelp(descs[1].split(', '), el, 'species', {...labels.skills}, match))
+                    + '<b>Talents de race: </b>' + toHtmlList(applyHelp(descs[2].split(', '), el, 'species', {...labels.talents}, match))
+                    + '<b>Carrière de race: </b>' + toHtmlList(careers)
+
             });
         ++i;
     }
     data.setValues(val);
+}
+
+function toHtmlList(array) {
+    return '<ul><li>' + array.join('</li><li>') + '</li></ul>'
 }
 
 function generateClassesHelp(result, labels, match) {
@@ -173,9 +178,9 @@ function generateClassesHelp(result, labels, match) {
         var el = result.classes[i];
         var descs = el.desc;
         var info = applyHelp(descs[0], el, 'classes', {...labels.lore, ...labels.gods}, match) +
-            '<br><br><b>Options de Carrière: </b><ul><li>' + applyHelp(descs[1].split(', '), el, 'classes', {...labels.careers}, match).join('</li><li>') + '</li></ul>';
+            '<br><br><b>Options de Carrière: </b>' + toHtmlList(applyHelp(descs[1].split(', '), el, 'classes', {...labels.careers}, match));
         if (descs[1]) {
-            info += '<b>Possesssions: </b><ul><li>' + applyHelp(descs[2].split(', '), el, 'classes', {...labels.trappings}).join('</li><li>') + '</li></ul>'
+            info += '<b>Possesssions: </b>' + toHtmlList(applyHelp(descs[2].split(', '), el, 'classes', {...labels.trappings}))
         }
         val[++i][0] = info;
     }
@@ -245,8 +250,8 @@ function generateGodsHelp(result, labels, match) {
 
         val[i + 1][0] = JSON.stringify({
             'Info': applyHelp(desc, el, 'gods', {...labels.lore, ...labels.gods}, match),
-            'Miracles': '<b>Bénédictions: </b><ul><li>' + applyHelp(('Bénédiction de ' + el.spells.join(', Bénédiction de ')).split(', '), el, 'gods', {...labels.spells}, match).join('</li><li>') + '</li></ul>' + (typeof miracles[el.label] != 'undefined' ?
-                '<b>Miracles: </b><ul><li>' + applyHelp(miracles[el.label], el, 'gods', {...labels.spells}, match).join('</li><li>') + '</li></ul>' : '')
+            'Miracles': '<b>Bénédictions: </b>' + toHtmlList(applyHelp(('Bénédiction de ' + el.spells.join(', Bénédiction de ')).split(', '), el, 'gods', {...labels.spells}, match)) + (typeof miracles[el.label] != 'undefined' ?
+                '<b>Miracles: </b>' + toHtmlList(applyHelp(miracles[el.label], el, 'gods', {...labels.spells}, match)) : '')
         });
         ++i;
     }
@@ -267,10 +272,10 @@ function generateCareersHelp(result, labels, match) {
         desc += '<b>Niveau de carrière: </b>' + descs[2] + '<BR><BR>';
         desc += '<b>Statut: </b>' + descs[4] + '<BR><BR>';
         desc += '<b>Classe: </b>' + applyHelp(descs[1], el, 'careersLevels', {...labels.classes}) + '<BR><BR>';
-        desc += '<b>Attributs: </b><ul><li>' + applyHelp(descs[5].split(', '), el, 'careersLevels', {...labels.characteristics}, match).join('</li><li>') + '</li></ul>';
-        desc += '<b>Compétences: </b><ul><li>' + applyHelp(descs[6].split(', '), el, 'careersLevels', {...labels.skills}, match).join('</li><li>') + '</li></ul>';
-        desc += '<b>Talents: </b><ul><li>' + applyHelp(descs[7].split(', '), el, 'careersLevels', {...labels.talents}, match).join('</li><li>') + '</li></ul>';
-        desc += '<b>Possessions: </b><ul><li>' + applyHelp(descs[8].split(', '), el, 'careersLevels', {...labels.trappings}, match).join('</li><li>') + '</li></ul>';
+        desc += '<b>Attributs: </b>' + toHtmlList(applyHelp(descs[5].split(', '), el, 'careersLevels', {...labels.characteristics}, match));
+        desc += '<b>Compétences: </b>' + toHtmlList(applyHelp(descs[6].split(', '), el, 'careersLevels', {...labels.skills}, match));
+        desc += '<b>Talents: </b>' + toHtmlList(applyHelp(descs[7].split(', '), el, 'careersLevels', {...labels.talents}, match));
+        desc += '<b>Possessions: </b>' + toHtmlList(applyHelp(descs[8].split(', '), el, 'careersLevels', {...labels.trappings}, match));
         finalDesc[rangToImg(el.careerLevel)] = desc;
         if (el.careerLevel === 4) {
             result.careersLevels[i - 3].desc = finalDesc;
@@ -426,8 +431,7 @@ function generateSkillsHelp(result, labels, match) {
     }
 }
 
-function rangToImg(rank)
-{
+function rangToImg(rank) {
     var icon = 'icon '
     if (rank === 1) {
         icon += 'cross_icon';
@@ -438,7 +442,7 @@ function rangToImg(rank)
     } else if (rank === 4) {
         icon += 'shield_icon'
     }
-    return '<div class="'+icon+'"></div>'
+    return '<div title="Rang ' + rank + '" class="' + icon + '"></div>'
 }
 
 function listMatchCareerLevel(label, text, match) {
@@ -448,7 +452,7 @@ function listMatchCareerLevel(label, text, match) {
         match['careersLevels'].forEach(function (tmp, rank) {
             if (tmp) {
                 for (let [i, e] of Object.entries(tmp)) {
-                    traits += '<li style="display: flex">' + rangToImg(rank) + showHelpText('careersLevels', e.index, i) + (label !== e.text ? ': ' + e.text : '') + '</li>';
+                    traits += '<li style="display: flex"><div class="div_label">' + rangToImg(rank) + showHelpText('careersLevels', e.index, i) + (label !== e.text ? ': ' + e.text : '') + '</div></li>';
                 }
             }
         });
@@ -509,6 +513,7 @@ function generateFinalSpellsHelp(result, labels, match) {
     }
     data.setValues(val);
 }
+
 function generateFinalCareerHelp(result, labels, match) {
     var i = 0;
     var data = getSpeedseetApp().getRange('Careers!A:A');
@@ -600,7 +605,7 @@ function generateLoreHelp(result, labels, match) {
             final = JSON.stringify(
                 {
                     'Info': info,
-                    'Sorts': '<b>Sorts uniques: </b><ul><li>' + applyHelp(sorts[el.label], el, 'lore', {...labels.spells}, match).join('</li><li>') + '</li></ul>'
+                    'Sorts': '<b>Sorts uniques: </b>' + toHtmlList(applyHelp(sorts[el.label], el, 'lore', {...labels.spells}, match))
                 })
         } else {
             final = info;
@@ -916,7 +921,7 @@ function getCareers(base, desc, ref) {
     var letter = nextChar('M', careerRef.length);
     var names = getSpeedseetApp().getRange('Careers!A:' + letter).getValues();
     var i = 0;
-    var careerIndex = -1;
+    var careerIndex = 0;
     var careerLevelIndex = 0;
     var careerLevels = [];
     var careers = [];
@@ -1273,6 +1278,11 @@ function getSpells(desc) {
                 label: name[keys['Name']],
                 type: name[keys['Type']],
                 spec: name[keys['Spec']],
+                cn: name[keys['CN']],
+                range: name[keys['Range']],
+                target: name[keys['Target']],
+                duration: name[keys['Duration']],
+                effect: name[keys['Description']],
                 desc: resume
             };
             ++y;
@@ -1323,7 +1333,12 @@ function getTrappings(desc) {
         name = names[i];
         if (i !== 0) {
             var resume = name[keys['Html']];
+            var damage = '';
             var carry = '';
+            var reach = '';
+            var qualities = '';
+            var pa = '';
+            var loc = '';
             var type = name[keys['Type']];
             var spec = name[keys['Spec']];
             if (desc) {
@@ -1343,8 +1358,18 @@ function getTrappings(desc) {
                     name[keys['Page']]
                 ]
             }
-            if ((type.search('Sacs et Contenants') !== -1 || type.search('Animaux et véhicules') !== -1) && name[keys['Damage']]) {
+            if (type.search('Sacs et Contenants') !== -1 || type.search('Animaux et véhicules') !== -1) {
                 carry = name[keys['Damage']];
+            }
+            if (type.search('Armes') !== -1 || type.search('Munitions') !== -1 || type.search('Armures') !== -1) {
+                qualities = name[keys['Quatilites and Flaws']];
+                if (type.search('Armures') !== -1) {
+                    pa = name[keys['Damage']];
+                    loc = name[keys['Reach']];
+                } else {
+                    damage = name[keys['Damage']];
+                    reach = name[keys['Reach']];
+                }
             }
             result[y] = {
                 index: y,
@@ -1355,7 +1380,12 @@ function getTrappings(desc) {
                 desc: resume,
                 type: type,
                 spec: spec,
-                carry: carry
+                carry: carry,
+                loc: loc,
+                reach: reach,
+                pa: pa,
+                qualities: qualities,
+                damage: damage
             };
             ++y;
         } else {

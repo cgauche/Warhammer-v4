@@ -143,17 +143,16 @@
             });
         },
         addDescription: function (message, CharGen, force) {
-            if ($('.right_panel:visible').length) {
-                var description = $('.right_panel:visible').html("<div class='description'>" + message + "</div>");
-                Helper.executeHelperFunction(description, CharGen);
-                if (description.find('.tabs').length) {
-                    description.find('.tabs').tabs({active: description.find('.tabs').data('active')});
-                }
-            } else if (force === true) {
-                this.showPopin('', message, CharGen);
+            var description = $('.right_panel').html("<div class='description'>" + message + "</div>");
+            Helper.executeHelperFunction(description, CharGen);
+            if (description.find('.tabs').length) {
+                description.find('.tabs').tabs({active: description.find('.tabs').data('active')});
+            }
+            if ($('.right_panel:visible').length === 0 && force === true) {
+                this.showPopin(message, CharGen);
             }
         },
-        showPopin: function (title, message, CharGen) {
+        showPopin: function (message, CharGen) {
             var modal = $('#help_modal');
             var description = modal.find('.help_panel')
             if (message) {
@@ -171,14 +170,48 @@
         uniqid: function () {
             return (new Date().getTime() + Math.floor((Math.random() * 10000) + 1)).toString(16);
         },
-        getHelpFormat: function (el) {
+        addAdditionalHelp: function (text, CharGen, match) {
+            $('<div>' + text + '</div>').find('.showHelp').each(function (i, el) {
+                var $el = $(el).first();
+                if ($el.data('type') === 'lore') {
+                    if (typeof match[$el.data('type')] == 'undefined') {
+                        match[$el.data('type')] = {};
+                    }
+                    if (typeof match[$el.data('type')][$el.data('index')] == 'undefined') {
+                        match[$el.data('type')][$el.data('index')] = true;
+                        var elem = CharGen.data[$el.data('type')][$el.data('index')];
+                        if (['equipment', 'psychologie', 'etat', 'trait'].includes(elem.spec) && elem.parent) {
+                            text += Helper.getHelpFormat(elem, CharGen, match);
+                        }
+                    }
+                }
+            });
+            return text;
+        },
+        getHelpFormat: function (el, CharGen, description) {
             var result = '';
             var flex = false;
-            if (typeof el.careerGroup !== 'undefined') {
-                el = {altDesc: el.altDesc, desc: {...el.desc, ...el.getCareer().desc}}
+            description = typeof description !== 'undefined' ? description : false;
+            var altEl = typeof el.data !== 'undefined' ? el.data : el;
+            if (typeof altEl.careerGroup !== 'undefined') {
+                el = {altDesc: el.altDesc, desc: {...el.desc, ...el.getCareer().desc}, from: el.from, index: el.index}
+                altEl = el;
             }
-            var desc = typeof el.getDescription !== 'undefined' ? el.getDescription() :  el.desc;
-            if (desc) {
+            var desc = typeof el.getDescription !== 'undefined' ? el.getDescription() : altEl.desc;
+            if (description !== false) {
+                if (desc && typeof desc !== 'string') {
+                    desc = Object.values(desc)[0];
+                }
+            } else {
+                var match = {};
+                if (typeof el.from !== 'undefined') {
+                    if (typeof match[el.from] == 'undefined') {
+                        match[el.from] = {};
+                    }
+                    match[el.from][el.index] = true;
+                }
+            }
+            if (desc && typeof desc !== 'string') {
                 flex = true;
                 var part2 = '';
                 var tmp = desc;
@@ -193,7 +226,8 @@
                 for (var key in tmp) {
                     if (tmp.hasOwnProperty(key)) {
                         var data = tmp[key] && tmp[key][0] === '#' ? 'data-execute="' + tmp[key].substring(1) + '"' : '';
-                        part2 += '<div id="tabs-' + prefix + i++ + '" class="pretty_panel overflow_panel"' + data + '><br>' + (data ? '' : tmp[key]) + '</div>';
+                        var text = data ? '' : Helper.addAdditionalHelp(tmp[key], CharGen, match);
+                        part2 += '<div id="tabs-' + prefix + i++ + '" class="pretty_panel overflow_panel"' + data + '><br>' + text + '</div>';
                     }
                 }
 
@@ -208,10 +242,29 @@
                 part1 += '</ul>';
 
                 result = '<div style="height: 1%" class="tabs" data-active="' + tabActif + '">' + part1 + part2 + '</div>';
+            } else if (description === false) {
+                result = Helper.addAdditionalHelp(desc, CharGen, match);
             } else {
                 result = desc;
             }
-            return '<span ' + (flex ? 'class="title"' : '') + '><h3>' + (typeof el.altDesc !== 'undefined' ? el.altDesc : (typeof el.getLabel !== 'undefined' ? el.getLabel() : el.label)) + '</h3>' + result + '</span>';
+            return '<span ' + (flex ? 'class="title"' : '') + '><h3>' + (typeof altEl.altDesc !== 'undefined' ? altEl.altDesc : (typeof el.getLabel !== 'undefined' ? el.getLabel() : altEl.label)) + '</h3>' + result + '</span>';
+        },
+        searchTrapping: function (el, CharGen) {
+            var t = CharGen.allTrappings[Helper.toId(el)];
+            if (typeof t === 'undefined') {
+                t = CharGen.allTrappings[Helper.toId(el.split(' (')[0])];
+            }
+            if (typeof t === 'undefined') {
+                var list = el.split(' ');
+                while (list.length > 1) {
+                    list.splice(list.length - 1, 1)
+                    t = CharGen.allTrappings[Helper.toId(list.join(' '))];
+                    if (typeof t !== 'undefined') {
+                        break;
+                    }
+                }
+            }
+            return t;
         },
         removePlural: function (text) {
             return text.replace(/(s|es|e)\b/ig, '');
@@ -227,10 +280,7 @@
         },
         sort: function (array) {
             array.sort(function (a, b) {
-                if (a.data.type !== b.data.type) {
-                    return a.data.type === 'base' ? -1 : 1;
-                }
-                return a.getLabel() > b.getLabel() ? 1 : -1
+                return a.data.getLabel(false) > b.data.getLabel(false) ? 1 : -1
             });
             return array;
         },
@@ -323,7 +373,7 @@
             return Helper.generateListWithHelp(list, filter, el, function (i, el) {
                 return typeof el.altLabel !== 'undefined' ? el.altLabel : el.getLabel()
             }, function (i, el, disabled, force) {
-                Helper.addDescription(Helper.getHelpFormat(el), CharGen, force);
+                Helper.addDescription(Helper.getHelpFormat(el, CharGen), CharGen, force);
                 if (!disabled) {
                     onChange(i, el);
                 }
@@ -367,23 +417,37 @@
             }
             return line;
         },
-        generateListWithRankAndHelp: function (elems, header, filter, el, funcsLabel, funcsUpDown, funcOnChange, funcClickLine, append, funcsMoveUpDown, horizontal) {
+        generateListWithRankAndHelp: function (elems, header, filter, el, funcsLabel, funcsUpDown, funcOnChange, funcClickLine, append, funcsMoveUpDown, horizontal, width) {
+            horizontal = typeof horizontal !== 'undefined' && horizontal === true;
             var id = 'selectable' + Helper.uniqid();
             var count = $(header).length;
-            var html = '<table class="selectable ' + (count > 2 ? 'rank' : '') + '" id="' + id + '">';
+            var html = '<table class="selectable ' + (count  > 2 || horizontal ? 'rank' : '') + '" id="' + id + '">';
             var displayedElems = [];
             var lines = [];
             var line = '';
             var td;
-            horizontal = typeof horizontal !== 'undefined' && horizontal === true;
 
-            var style = '';
+            var defaultStyle = '';
+            var style = [];
+            var plus1 = 0;
             if (horizontal) {
-                style = 'style="width:' + (100 / elems.length - 1).toPrecision(2) + '%"';
+                $(header).each(function (i, el) {
+                    if (el !== '') {
+                        plus1 = 1;
+                    }
+                });
+                defaultStyle = 'style="width:' + (100 / (elems.length + plus1)).toPrecision(2) + '%"';
+            }
+            if (typeof width !== 'undefined') {
+                style = width;
+            } else {
+                for (var i = 0; i < elems.length + plus1; ++i) {
+                    style[i] = defaultStyle;
+                }
             }
 
-            $(header).each(function () {
-                td = '<td ' + style + '>' + this + '</td>';
+            $(header).each(function (i) {
+                td = '<td ' + (!horizontal || plus1 !== 0 ? style[i] : '') + '>' + this + '</td>';
                 line = Helper.organizeTable(td, lines.length, line, lines, horizontal);
             });
             if (!horizontal) {
@@ -395,15 +459,19 @@
                     displayedElems[i] = this;
                     var y = 0;
                     var x = 0;
-                    td = '<td ' + style + ' data-line="' + i + '" data-id="' + this.id + '" class="label ui-widget-content">' + funcsLabel[y++](i, this) + '</td>';
+                    td = '<td ' + style[i] + ' data-line="' + i + '" data-id="' + this.id + '" class="label ui-widget-content"><div class="div_label" style="' + (horizontal ? 'flex-direction: column;' : '') + '">' + funcsLabel[y++](i, this) + '</div></td>';
                     line = Helper.organizeTable(td, x++, line, lines, horizontal);
                     if (count >= 4) {
-                        td = '<td ' + style + ' data-line="' + i + '" data-id="' + this.id + '" class="base">' + funcsLabel[y++](i, this) + '</td>';
+                        td = '<td ' + style[i] + ' data-line="' + i + '" data-id="' + this.id + '" class="base">' + funcsLabel[y++](i, this) + '</td>';
                         line = Helper.organizeTable(td, x++, line, lines, horizontal);
                     }
-                    td = '<td ' + style + ' data-line="' + i + '" data-id="' + this.id + '" class="modif">';
+                    td = '<td ' + style[i] + ' data-line="' + i + '" data-id="' + this.id + '" class="modif">';
                     if (append) {
                         line = Helper.organizeTable(td + funcsLabel[y++](i, this) + '</td>', x++, line, lines, horizontal);
+                        while (y < count - 1) {
+                            td = '<td ' + style[i] + ' data-line="' + i + '" data-id="' + this.id + '">' + funcsLabel[y++](i, this) + '</td>';
+                            line = Helper.organizeTable(td, x++, line, lines, horizontal);
+                        }
                     } else {
                         if (count > 2) {
                             td += '<button class="down"><</button>';
@@ -420,12 +488,12 @@
                         }
                         line = Helper.organizeTable(td + '</td>', x++, line, lines, horizontal);
                         while (y < count - 1) {
-                            td = '<td ' + style + ' data-line="' + i + '" data-id="' + this.id + '">' + funcsLabel[y++](i, this) + '</td>';
+                            td = '<td ' + style[i] + ' data-line="' + i + '" data-id="' + this.id + '">' + funcsLabel[y++](i, this) + '</td>';
                             line = Helper.organizeTable(td, x++, line, lines, horizontal);
                         }
                     }
                     if (count > 2) {
-                        td = '<td ' + style + ' class="total">' + funcsLabel[y++](i, this) + '</td>'
+                        td = '<td ' + style[i] + ' class="total">' + funcsLabel[y++](i, this) + '</td>'
                         line = Helper.organizeTable(td, x++, line, lines, horizontal);
                     }
                     if (!horizontal) {
@@ -479,11 +547,11 @@
                     if (funcLevel) {
                         level = 'listchild' + funcLevel(i, el);
                     }
-                    html += '<li data-line="' + i + '" data-id="' + el.id + '" class="ui-widget-content ' + disabled + ' ' + level + '">';
+                    html += '<li data-line="' + i + '" data-id="' + el.id + '" class="ui-widget-content ' + disabled + ' ' + level + '"><div class="div_label">';
                     if (funcHelp && (typeof showHelp === 'undefined' || showHelp(i, el))) {
-                        html += '<buttom class="popin_help for_mobile"></buttom>';
+                        html += '<buttom class="icon popin_help for_mobile">?</buttom>';
                     }
-                    html += funcLabel(i, el) + '</li>';
+                    html += funcLabel(i, el) + '</div></li>';
                 }
             });
             html += '</ol>';
@@ -507,7 +575,7 @@
                 return false;
             });
             select.off("click", '.popin_help').on('click', '.popin_help', function () {
-                var $el = $(this).parent('li');
+                var $el = $(this).parents('li');
                 var i = $el.data('line');
                 funcHelp(i, elems[i], $el.is('.disabled'), true);
                 return false;
@@ -538,7 +606,7 @@
             } else if (rank === 4) {
                 icon += 'shield_icon'
             }
-            return '<div class="' + icon + '"></div>'
+            return '<div title="Rang '+rank+'" class="'+icon+'"></div>'
         },
         generateListWithHelpPopin: function (elems, filter, el, left, funcLabel, funDisabled, funcHelp, funcAdd, showHelp) {
             var id = 'selectable' + Helper.uniqid();
@@ -549,17 +617,16 @@
                     if (funDisabled && funDisabled(i, el)) {
                         disabled = 'disabled';
                     }
-                    html += '<li data-line="' + i + '" data-id="' + el.id + '" class="ui-widget-content ' + disabled + '">';
+                    html += '<li data-line="' + i + '" data-id="' + el.id + '" class="ui-widget-content ' + disabled + '"><div class="div_label">';
                     if (left) {
-                        html += '<div><buttom class="add" style="' + (disabled ? 'visibility:hidden' : '') + '"><</buttom></div>';
+                        html += '<buttom class="add icon" style="' + (disabled ? 'display:none' : '') + '"><</buttom>';
                     }
-                    html += '<div>';
                     if (!showHelp || showHelp(i, el)) {
-                        html += '<buttom class="popin_help">?</buttom>';
+                        html += '<buttom class="icon popin_help">?</buttom>';
                     }
-                    html += funcLabel(i, el) + '</div><div style="order: 2;margin-left: auto">';
+                    html += funcLabel(i, el) + '<div style="order: 2;margin-left: auto">';
                     if (!left) {
-                        html += '<buttom class="add" style="' + (disabled ? 'visibility:hidden' : '') + '">></buttom>';
+                        html += '<buttom class="add icon" style="' + (disabled ? 'visibility:hidden' : '') + '">></buttom>';
                     }
                     html += '</div></li>';
                 }
@@ -824,7 +891,7 @@
                             elem.specs += ', ' + value;
                             elem.data.specs += ', ' + value;
                         } else {
-                            value = spec.html();
+                            value = spec.find('.div_label').html();
                         }
                         elem.spec = value;
                         change(0, elem);
@@ -891,7 +958,7 @@
                     return mode === 'Béni' || (remaining <= 0 && !xp) || character.searchSpell(el.id, spec);
                 };
                 var initHelp = function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el), CharGen);
+                    Helper.showPopin(Helper.getHelpFormat(el, CharGen), CharGen);
                 };
                 Helper.generateListWithHelpPopin(
                     spells,
@@ -907,6 +974,11 @@
                 return Helper.showSpells(CharGen, character, returnAction, validateAction, number + 1, mode, numberSpellToChoose, spec)
             }
             $('.right_panel').html('');
+            if (!$('.left_panel').html()) {
+                $('.left_panel').addClass('for_pc');
+            } else {
+                $('.left_panel').removeClass('for_pc');
+            }
             $('.validate').prop('disabled', mode !== 'Béni' && remaining !== 0 && !xp);
             Helper.generateListWithHelpPopin(
                 charSpells,
@@ -922,7 +994,7 @@
                     return mode === 'Béni';
                 },
                 function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
+                    Helper.showPopin(Helper.getHelpFormat(el, CharGen), CharGen)
                 },
                 function (i, el) {
                     character.setSpell(null, el.myIndex);
@@ -969,14 +1041,11 @@
         },
         showMagicColor: function (CharGen, character, returnAction, validateAction, mode, nbSpell, spec) {
             $('.right_panel').html('');
-            var species = {};
-            if (mode === 'Magie des Arcanes') {
-                species = [].concat(CharGen.allLoreByGroup['Magie des couleurs'], CharGen.allLoreByGroup['Autres domaines'], CharGen.allLoreByGroup['Magie noire']);
-            } else {
-                species = [].concat(CharGen.allLoreByGroup['Magie du Chaos']);
-            }
+            var species = CharGen.allLoreByGroup['magick'];
             var $species = Helper.generateNormalList(species, function (i, el) {
-                return !spec || el.spec === spec
+                return (!spec || el.title === spec) &&
+                    ((mode === 'Magie des Arcanes' && el.title !== 'Magie du Chaos') || (
+                        (mode === 'Magie du Chaos'|| el.title === 'Magie du Chaos')))
             }, function (i, el) {
                 var magicTalent = character.searchTalent(mode, '', false);
                 magicTalent.spec = el.label;
@@ -1073,7 +1142,7 @@
                 function () {
                 },
                 function (i, el) {
-                    Helper.showPopin(el.getLabel(), Helper.getHelpFormat(el), CharGen)
+                    Helper.showPopin(el.getLabel(), Helper.getHelpFormat(el, CharGen), CharGen)
                 },
                 1
             );

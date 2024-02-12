@@ -13,6 +13,10 @@
             } else {
             }
         };
+
+        oThat.mode = function () {
+            return 'two_side';
+        };
         oThat.title = function () {
             return 'Choisissez vos Talents.'
         };
@@ -208,7 +212,7 @@
                         return el.getLabel();
                     };
                     var initHelp = function (i, el) {
-                        Helper.showPopin('', Helper.getHelpFormat(el.data ? el.data : el), CharGen);
+                        Helper.showPopin(Helper.getHelpFormat(el.data ? el.data : el, CharGen), CharGen);
                     };
 
                     talents = CharGen.data.talents;
@@ -321,6 +325,11 @@
                 $('.left_panel').html('');
             }
             $('.right_panel').html('<div>' + oThat.desc(0) + '</div>');
+            if (!$('.left_panel').html()) {
+                $('.left_panel').addClass('for_pc');
+            } else {
+                $('.left_panel').removeClass('for_pc');
+            }
             $('.validate').prop('disabled', !character.isFreeMode() && remaining > 0);
             var charTalents = character.getTalents();
             Helper.generateListWithHelpPopin(
@@ -337,7 +346,7 @@
                     return !character.isFreeMode() && (!allTalentsToChoose[i] || (allTalentsToChoose[i].length === 1 && el.specs === el.spec));
                 },
                 function (i, el) {
-                    Helper.showPopin('', Helper.getHelpFormat(el.data), CharGen)
+                    Helper.showPopin(Helper.getHelpFormat(el, CharGen), CharGen)
                 },
                 function (i) {
                     character.setTalent(null, i);

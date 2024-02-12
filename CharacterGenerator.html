@@ -78,10 +78,20 @@
         };
 
         oThat.showPanel = function (i, el) {
-            if (typeof oThat.character === 'undefined' || oThat.character.stepIndex <= i) {
-                Helper.addDescription(el.desc(), oThat, true);
+            $('.right_panel').removeClass('for_pc').removeClass('split').html("");
+            $('.left_panel').removeClass('for_pc').removeClass('split').html("");
+            $('two_part_panel').removeClass('in_column')
+            var mode = typeof el.mode !== 'undefined' ? el.mode() : 'one_side';
+            if (mode === 'one_side') {
+                $('.right_panel').addClass('for_pc');
+            } else if (mode === 'two_side') {
+                $('.left_panel').addClass('split');
+                $('.right_panel').addClass('split');
+                $('.two_part_panel').addClass('in_column');
             }
-            $('.left_panel').html("");
+            Helper.addDescription(el.desc(), oThat, typeof oThat.character === 'undefined'
+                || (oThat.character.stepIndex <= i
+                && oThat.character.stepIndex !== -1));
             $('.header_panel .text').html(el.title());
             $('.other').prop('disabled', false);
             $('.cancel').prop('disabled', false);
@@ -236,7 +246,7 @@
 
         oThat.addTrapping = function (el) {
             el.from = 'trappings';
-            oThat.allTrappings[Helper.removePlural(el.id)] = el;
+            oThat.allTrappings[el.id] = el;
             el.getLabel = function () {
                 return this.label + (this.title ? ' ' + this.title : '');
             };
@@ -321,6 +331,7 @@
         }
         var testSkills = {};
         var testTalents = {};
+        var testTrappings = {};
         oThat.addCareerLevel = function (el) {
             el.from = 'careersLevels';
             oThat.allCareersLevels[el.id] = el;
@@ -330,7 +341,7 @@
             }
             oThat.allCareersLevelsByGroup[careerGroupId][el.careerLevel] = el;
             el.getLabel = function () {
-                return '<div style="display: inline-flex">' + Helper.rangToImg(this.careerLevel) + this.label + '</div>';
+                return Helper.rangToImg(this.careerLevel) + this.label;
             };
             el.getCareer = function () {
                 return oThat.allCareers[Helper.toId(el.careerGroup)];
@@ -423,6 +434,19 @@
                     testTalents[el1.label][el1.spec] = el1.spec;
                 }
             }
+            if (el.careerLevel === 1) {
+                elems = el.trappings.split(', ');
+                for (i = 0; i < elems.length; ++i) {
+                    el1 = elems[i];
+                    var elems2 = el1.split(" ou ");
+                    for (var i2 = 0; i2 < elems2.length; ++i2) {
+                        var el2 = elems2[i2];
+                        if (typeof Helper.searchTrapping(el2, oThat) === 'undefined') {
+                            testTrappings[el2] = el2;
+                        }
+                    }
+                }
+            }
         }
         oThat.initHelp = function () {
             for (let [i, e] of [].concat(Object.entries(oThat.data), Object.entries(oThat.allLoreByGroup))) {
@@ -434,7 +458,7 @@
             }
             $('body').on('click', '.showHelp', function () {
                 var $el = $(this);
-                Helper.showPopin('', Helper.getHelpFormat(oThat.data[$el.data('type')][$el.data('index')]), oThat)
+                Helper.showPopin(Helper.getHelpFormat(oThat.data[$el.data('type')][$el.data('index')], oThat), oThat)
             });
         }
 
@@ -542,6 +566,7 @@
             }
             console.log(testSkills);
             console.log(testTalents);
+            console.log(testTrappings);
         };
         oThat.saveDatabaseCharacter = async function (afterFunction, step) {
             Helper.loader = new Helper.ajaxLoader("body");

@@ -138,6 +138,8 @@
     }
 
     .close_modal {
+        font-size: 20px;
+        padding: 0px 10px;
         cursor: pointer;
         font-weight: bold;
     }
@@ -520,22 +522,14 @@
 
     .popin_help {
         cursor: pointer;
-        border: 1px solid grey;
-        color: black;
-        width: 17px;
-        height: 19px;
+        color: yellow;
         position: relative;
         text-align: center;
-        background: white;
         font-weight: bold;
-        display: inline-table;
-        margin: 0px 5px;
     }
 
     .add {
         cursor: pointer;
-        width: 17px;
-        height: 17px;
         position: relative;
         text-align: center;
         font-weight: bold;
@@ -796,41 +790,20 @@
 
     }
 
-    .for_mobile {
-        display: none;
-    }
-
-    @media (max-width: 640px) {
-        .left_panel {
-            flex: 100%;
-            max-width: 640px;
-        }
-
-        .right_panel {
-            flex: 100%;
-            display: none;
-        }
-
-        .main_div .right_panel {
-            display: flex;
-        }
-        .ui-tabs .ui-tabs-nav li {
-            flex: 100%;
-        }
-        .for_mobile {
-            display: block;
-        }
-    }
-
-    .tabs.glossaire.ui-tabs .ui-tabs-nav li {
-        flex: 25%;
-    }
 
     .icon {
         background-color: #11ffee00;
-        height: 21px;
+        height: 100%;
         width: 21px;
         margin-right: 5px;
+        display: inline-block;
+        font-size: 19px;
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+
+    td .icon, a .icon {
+        height: 21px;
     }
 
     .ui-tabs-tab .icon {
@@ -838,7 +811,7 @@
     }
 
     .icon.shield_icon {
-        background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="body_1" width="21" height="21"><g transform="matrix(0.041015625 0 0 0.041015625 0 0)"><path d="M463.1 112.37C 373.68 96.33 336.71 84.45 256 48C 175.29 84.45 138.32 96.33 48.9 112.37C 32.7 369.13 240.58 457.79 256 464C 271.42 457.79 479.3 369.13 463.1 112.37z" stroke="%23FFFF00" stroke-width="32" stroke-linecap="square" fill="none" /></g></svg>');        background-position: center center;
+        background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="body_1" width="21" height="21"><g transform="matrix(0.041015625 0 0 0.041015625 0 0)"><path d="M463.1 112.37C 373.68 96.33 336.71 84.45 256 48C 175.29 84.45 138.32 96.33 48.9 112.37C 32.7 369.13 240.58 457.79 256 464C 271.42 457.79 479.3 369.13 463.1 112.37z" stroke="%23FFFF00" stroke-width="32" stroke-linecap="square" fill="none" /></g></svg>');
     }
 
     .icon.skull_icon {
@@ -851,5 +824,54 @@
 
     .icon.cross_icon {
         background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="body_1" width="21" height="21"><g transform="matrix(0.041015625 0 0 0.041015625 0 0)"><path d="M486 371.316L486 142.75C 430.9156 181.09032 367.0511 204.9185 300.315 212.03C 307.88223 145.02985 332.29944 81.03862 371.288 26.028L371.288 26.028L142.72 26.028C 181.06047 81.11275 204.88866 144.97755 212 211.714C 145.0004 204.14616 81.009964 179.72868 26 140.74L26 140.74L26 369.31C 81.08441 330.96967 144.94893 307.14148 211.685 300.03C 204.10829 367.01007 179.69154 430.9801 140.712 485.974L140.712 485.974L369.28 485.974C 330.948 430.9049 307.12024 367.05975 300 300.342C 366.99957 307.90985 430.99002 332.32733 486 371.316z" stroke="none" fill="%23FFFFFF" fill-rule="nonzero" /></g></svg>');
+    }
+
+    .div_label {
+        display: inline-flex;
+        width: 100%;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .for_mobile {
+        display: none;
+    }
+
+    @media (max-width: 640px) {
+        .left_panel {
+            flex: 100%;
+            max-width: 640px;
+        }
+
+        .right_panel {
+            flex: 100%;
+        }
+
+        .main_div .right_panel {
+            display: flex;
+        }
+
+        .ui-tabs .ui-tabs-nav li {
+            flex: 100%;
+        }
+
+        .for_mobile {
+            display: block;
+        }
+
+        .for_pc {
+            display: none;
+        }
+
+        .in_column {
+            flex-direction: column;
+        }
+        .split {
+            flex: 50%;
+        }
+    }
+
+    .tabs.glossaire.ui-tabs .ui-tabs-nav li {
+        flex: 25%;
     }
 </style>
