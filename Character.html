@@ -12,6 +12,7 @@
             trappings: [],
             details: [],
             god: null,
+            star: null,
             magic: null,
             xp: {
                 max: 0,
@@ -24,6 +25,8 @@
                 imposedSpecie: [],
                 career: 0,
                 imposedCareers: [],
+                star: 0,
+                imposedStar: [],
                 characteristic: 0,
                 imposedCharacteristics: {},
                 imposedTalents: [],
@@ -76,6 +79,19 @@
             },
             getSpecie: function () {
                 return this.specie;
+            },
+            setStar: function (star) {
+                this.star = {
+                    id: star.id,
+                    data: star,
+                    getLabel: function () {
+                        return this.data.label;
+                    }
+                };
+                return this.specie;
+            },
+            getStar: function () {
+                return this.star;
             },
             setCareerLevel: function (career) {
                 var oThat = this;
@@ -257,8 +273,11 @@
                         if (this.data.label === 'Points de Blessures') {
                             var wounds = oThat.searchCharacteristic('Endurance').getBonus() * 2
                                 + oThat.searchCharacteristic('Force Mentale').getBonus();
-                            if (this.data.rand[oThat.getSpecie().data.refChar] === 'BF+(2 × BE)+BFM') {
+                            if (this.data.rand[oThat.getSpecie().data.refChar] !== 'BF+(2 × BE)+BFM') {
                                 wounds += oThat.searchCharacteristic('Force').getBonus();
+                            }
+                            if (this.data.rand[oThat.getSpecie().data.refChar] === '(BF+(2×BE)+BFM)×2') {
+                                wounds *= 2;
                             }
                             return wounds;
                         } else if (this.data.label === 'Corruption') {
@@ -723,6 +742,9 @@
                 if (clone.getSpecie()) {
                     clone.setSpecie(clone.getSpecie().data);
                 }
+                if (clone.getStar()) {
+                    clone.setStar(clone.getStar().data);
+                }
                 if (clone.getCareerLevel()) {
                     clone.setCareerLevel(clone.getCareerLevel().data);
                 }
@@ -786,6 +808,9 @@
                 var el;
                 if (clone.getSpecie()) {
                     delete clone.getSpecie().data;
+                }
+                if (clone.getStar()) {
+                    delete clone.getStar().data;
                 }
                 if (clone.getCareerLevel()) {
                     delete clone.getCareerLevel().data;

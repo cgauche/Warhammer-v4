@@ -258,6 +258,44 @@ function generateGodsHelp(result, labels, match) {
     data.setValues(val);
 }
 
+function generateStarsHelp(result, labels, match) {
+    var i = 0;
+    var data = getSpeedseetApp().getRange('Stars!A:A');
+    var val = data.getValues();
+    i = 0;
+    while (result.stars[i]) {
+        var el = result.stars[i];
+        var descs = el.desc;
+        var desc = '<b>' + descs[0] +'</b><BR>';
+        if (descs[1]) {
+            desc += '<b>Nom classique: </b>' + descs[1] + '<BR>';
+        }
+        if (descs[2]) {
+            desc += '<b>Ascendant: </b>' + descs[2] + '<BR>';
+        }
+        if (descs[3]) {
+            desc += '<b>Dates dans le calendrier: </b>' + descs[3] + '<BR>';
+        }
+        if (descs[4]) {
+            desc += '<b>Divinité associée: </b>' + descs[4] + '<BR>';
+        }
+        if (descs[5]) {
+            desc += '<b>Apparence: </b>' + descs[5] + '<BR>';
+        }
+        if (descs[6]) {
+            desc += '<b>Bonus: </b>' + applyHelp(descs[6], el, 'stars', {...labels.talents, ...labels.characteristics}, match) + '<BR>';
+        }
+        if (descs[7]) {
+            desc += '<b>Pénalité: </b>' + applyHelp(descs[7], el, 'stars', {...labels.talents, ...labels.characteristics}, match) + '<BR>';
+        }
+        desc += "<br>" + descs[8] + "<br>";
+
+        val[i + 1][0] = applyHelp(desc, el, 'stars', {...labels.lore, ...labels.gods}, match);
+        ++i;
+    }
+    data.setValues(val);
+}
+
 function generateCareersHelp(result, labels, match) {
     var i = 0;
     var finalDesc = {};
@@ -633,6 +671,7 @@ function generateHelp() {
     //result.details = getDetails(desc);
     generateLoreHelp(result, labels, match);
     //result.foundry = getFoundry(desc);
+    generateStarsHelp(result, labels, match);
 
     generateFinalSkillsHelp(result, labels, match);
     generateFinalTalentsHelp(result, labels, match);
@@ -646,6 +685,7 @@ function random(code) {
     loadJSFromHTMLFile('StepSpecies');
     loadJSFromHTMLFile('StepCareers');
     loadJSFromHTMLFile('StepCharacteristics');
+    loadJSFromHTMLFile('StepStars');
     loadJSFromHTMLFile('StepTalents');
     loadJSFromHTMLFile('StepSkills');
     loadJSFromHTMLFile('StepTrappings');
@@ -793,6 +833,114 @@ function getClasses(desc) {
                 label: name[keys['Name']],
                 desc: resume,
                 trappings: name[keys['Trappings']]
+            };
+            ++y;
+        } else {
+            keys = generateKey(name);
+        }
+        ++i;
+    }
+
+    return result;
+}
+
+
+function getStars(desc) {
+    var names = getSpeedseetApp().getRange('Stars!A:X').getValues();
+    var i = 0;
+    var y = 0;
+    var result = [];
+    var keys = [];
+    var name;
+    while (names[i][0] !== '') {
+        name = names[i];
+        if (i !== 0) {
+            var resume = name[keys['Html']];
+
+            if (desc) {
+                var bonus = [];
+                var malus = [];
+                if (name[keys['Talent']]) {
+                    bonus[bonus.length] = 'vous gagnez un niveau dans le Talent ' + name[keys['Talent']];
+                }
+                var stars = ['CC', 'CT', 'F', 'E', 'I', 'Ag', 'Dex', 'Int', 'FM', 'Soc'];
+                for (var j = 0; j < stars.length; ++j) {
+                    var cha = '';
+                    var e = stars[j];
+                    var val = name[keys[e]];
+                    if (val) {
+                        if (e === 'CC') {
+                            cha = val + ' ' + 'Capacité de Combat';
+                        }
+                        if (e === 'CT') {
+                            cha = val + ' ' + 'Capacité de Tir';
+                        }
+                        if (e === 'F') {
+                            cha = val + ' ' + 'Force';
+                        }
+                        if (e === 'E') {
+                            cha = val + ' ' + 'Endurance';
+                        }
+                        if (e === 'I') {
+                            cha = val + ' ' + 'Initiative';
+                        }
+                        if (e === 'Ag') {
+                            cha = val + ' ' + 'Agilité';
+                        }
+                        if (e === 'Dex') {
+                            cha = val + ' ' + 'Dextérité';
+                        }
+                        if (e === 'Int') {
+                            cha = val + ' ' + 'Intelligence';
+                        }
+                        if (e === 'FM') {
+                            cha = val + ' ' + 'Force Mentale';
+                        }
+                        if (e === 'Soc') {
+                            cha = val + ' ' + 'Sociabilité';
+                        }
+
+                        if (val > 0) {
+                            bonus[bonus.length] = "+" + cha;
+                        } else {
+                            malus[malus.length] = cha;
+                        }
+                    }
+                }
+                resume = [
+                    name[keys['Signe']],
+                    name[keys['Classique']],
+                    name[keys['Ascendant']],
+                    name[keys['Dates']],
+                    name[keys['Dieux']],
+                    name[keys['Apparence']],
+                    bonus.join(', '),
+                    malus.join(', '),
+                    name[keys['Description']],
+                    name[keys['Livre']],
+                    name[keys['Page']]
+                ];
+            }
+            result[y] = {
+                index: y,
+                id: toId(name[keys['Name']]),
+                label: name[keys['Name']],
+                rand: name[keys['Roll']],
+                subRand: name[keys['SubRoll']],
+                desc: resume,
+                talent: name[keys['Talent']],
+                char: {
+                    'cc': name[keys['CC']],
+                    'ct': name[keys['CT']],
+                    'f': name[keys['F']],
+                    'e': name[keys['E']],
+                    'i': name[keys['I']],
+                    'ag': name[keys['Ag']],
+                    'dex': name[keys['Dex']],
+                    'int': name[keys['Int']],
+                    'fm': name[keys['FM']],
+                    'soc': name[keys['Soc']]
+                }
             };
             ++y;
         } else {
@@ -1455,6 +1603,7 @@ function getAllData(base, desc) {
     var ref = {'refChar': {}, 'refCareer': {}, 'refDetail': {}};
     result.species = getSpecies(desc, ref);
     result.classes = getClasses(desc);
+    result.stars = getStars(desc);
     result.gods = getGods(desc);
     let [careers, careersLevels] = getCareers(base, desc, ref.refCareer);
     result.careers = careers;

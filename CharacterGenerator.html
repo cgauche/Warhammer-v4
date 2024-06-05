@@ -8,6 +8,7 @@
             StepSpecies(i++, oThat),
             StepCareers(i++, oThat, 'creation'),
             StepCharacteristics(i++, oThat),
+            StepStars(i++, oThat),
             StepTalents(i++, oThat),
             StepSkills(i++, oThat),
             StepTrappings(i++, oThat),
@@ -191,6 +192,13 @@
             oThat.allCharacteristics[el.id] = el;
             el.getLabel = function () {
                 return this.label + (this.abr !== '' ? ' (' + this.abr + ')' : '');
+            };
+        }
+        oThat.addStar = function (el) {
+            el.from = 'stars';
+            oThat.allStars[el.id] = el;
+            el.getLabel = function () {
+                return this.label;
             };
         }
         oThat.addSkill = function (el) {
@@ -487,6 +495,13 @@
             if (typeof elems !== "undefined") {
                 for (i = 0; i < elems.length; ++i) {
                     oThat.addCharacteristic(elems[i]);
+                }
+            }
+            oThat.allStars = {};
+            elems = oThat.data.stars;
+            if (typeof elems !== "undefined") {
+                for (i = 0; i < elems.length; ++i) {
+                    oThat.addStar(elems[i]);
                 }
             }
             oThat.allTalents = {};

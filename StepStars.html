@@ -1,0 +1,153 @@
+<script>
+    var StepStars = function (i, CharGen) {
+        var oThat = {};
+        var character;
+        var $stars;
+
+        oThat.stepName = "Signes astrologiques";
+        oThat.type = 'creation';
+        oThat.desc = function () {
+            return 'Cette section est un système optionnel pour déterminer le thème astral d’un Personnage à sa création. Si vous le préférez, vous êtes donc libres d’ignorer complètement cette étape : certaines personnes façonnent leur propre destin ou, plus exactement, voient celui-ci influencé par des forces autres que les astres. Pour d’autres, en revanche, la position des étoiles au moment de leur naissance laisse une empreinte durable. <br><br>Vous pouvez cliquer sur: <ul><li><b>Lancer</b> et gagner 25 PX si vous acceptez le premier choix</li><li><b>Choisir</b> pour faire votre propre choix.</li></ul>'
+        };
+        oThat.title = function () {
+            return 'Signes astrologiques'
+        };
+        oThat.initAction = function () {
+            character = CharGen.character.clone();
+        };
+
+        oThat.cancelAction = true;
+        oThat.validateAction = true;
+        oThat.resetAction = function () {
+            CharGen.character.star = null;
+        };
+        oThat.randomAllAction = function () {
+            var elems = CharGen.data.stars;
+            var value = Helper.getRandomInt(100);
+            for (var i = 0; i < elems.length; ++i) {
+                var el = elems[i];
+                if (el.rand >= value) {
+                    character.setStar(el);
+                    break;
+                }
+            }
+            character.randomState.star = 1;
+            oThat.saveAction();
+        }
+        oThat.saveAction = function () {
+            if (!character.isFreeMode() && character.randomState.star > 0) {
+                character.addXP('Signe astrologique Aléatoire', 25, true);
+            }
+            character.randomState.star = -2;
+            CharGen.saveCharacter(character);
+            return true;
+        };
+
+        oThat.randomAction = function (el) {
+            el.off('click').on('click', function () {
+                var stars = $(CharGen.data.stars);
+                var value = Helper.getRandomInt(100);
+                character.randomState.star = 1;
+                $(this).removeClass('clickMe').prop('disabled', true);
+                var y = 0;
+                var target = -1;
+                stars.each(function (i, el) {
+                    if (target !== -1 && el.rand !== target) {
+                        return false;
+                    }
+                    if (el.rand >= value) {
+                        character.randomState.imposedStar[y++] = el.id;
+                        target = el.rand;
+                    }
+                });
+                CharGen.saveRandomState(character);
+                $stars.find('.showRoll').css('color', 'yellow');
+                Helper.dice(value,
+                    function (i) {
+                        $stars.find('.showRoll').css('color', 'yellow');
+                    },
+                    function (i) {
+                        oThat.autoSelectStar(true);
+                    }, function () {
+                        $stars.find('.showRoll').css('color', 'inherit');
+                    });
+            });
+        };
+        oThat.otherAction = function (el) {
+            el.html('Choisir');
+            el.off('click').on('click', function () {
+                character.randomState.star = -1;
+                CharGen.saveRandomState(character);
+                $(this).prop('disabled', true);
+                $('.random').removeClass('clickMe').prop('disabled', true);
+                $stars.find('li[data-line]').removeClass('disabled');
+            });
+        };
+
+        oThat.autoSelectStar = function (anime) {
+            var starId = character.getStar() !== null ? [character.getStar().id] : character.randomState.imposedStar;
+            anime = typeof anime !== 'undefined' && anime;
+            $(starId).each(function (i, el) {
+                var $el = $stars.find('li[data-id="' + el + '"]');
+                setTimeout(function () {
+                    $el.removeClass('disabled');
+                    if (anime) {
+                        $el.animate({
+                            "background-color": "#F39814",
+                            color: "rgb(38, 38, 38)",
+                        }, 500).delay(300).animate({
+                            "background-color": "rgb(38, 38, 38)",
+                            color: "white",
+                        }, 500);
+                        setTimeout(function () {
+                            $stars.find('li[data-id="' + el + '"]').attr('style', '')
+                        }, 1500)
+                    } else if (starId.length === 1) {
+                        $el.click();
+                    }
+                }, (anime ? 1000 : 100));
+            });
+        }
+
+        oThat.show = function () {
+            var stars = $(CharGen.data.stars);
+            var previousRand = 1;
+            var previousPreviousRand = 1;
+            var displayedStars = [];
+            $(stars).each(function (i, el) {
+                var myStar = Helper.clone(el);
+                var min = (el.rand >= previousRand ? previousRand : previousPreviousRand);
+                var max = min !== el.rand ? '-' + el.rand : ''
+                myStar.altLabel = '<span>' + myStar.getLabel() + '</span><span class="showRoll"">' + min + max + '</span>';
+                if (el.rand && el.rand >= previousRand) {
+                    previousPreviousRand = previousRand;
+                    previousRand = el.rand + 1;
+                }
+                displayedStars[displayedStars.length] = myStar;
+            });
+            $stars = Helper.generateNormalList(displayedStars, function () {
+                return true
+            }, function (i, el) {
+                character.setStar(el);
+                $('.validate').prop('disabled', false);
+            }, undefined, CharGen);
+            $('.random').removeClass('clickMe');
+            if (character.isFreeMode()) {
+                $('.random').css('visibility', 'hidden');
+                $('.other').css('visibility', 'hidden');
+            } else {
+                if (character.randomState.star !== -1) {
+                    $stars.find('li[data-line]').addClass('disabled');
+                    if (character.randomState.star === 0) {
+                        $('.random').addClass('clickMe');
+                    }
+                }
+                $('.random').prop('disabled', character.randomState.star !== 0);
+                $('.other').prop('disabled', character.randomState.star <= -1);
+            }
+            oThat.autoSelectStar();
+        };
+        return oThat;
+    }
+    this.StepStars = StepStars
+</script>

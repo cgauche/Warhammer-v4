@@ -35,7 +35,7 @@
                 {
                     stepName: "Nouveau (aléatoire)", onClick: function () {
                         var i = 0;
-                        var max = 8;
+                        var max = 9;
                         Menu(CharGen, 'normal').createNewCharacter();
                         //CharGen.character.xp.max = 50000;
                         while (i < max) {
@@ -53,7 +53,7 @@
                             }*/
                         }
 
-                        CharGen.character.stepIndex = 8;
+                        CharGen.character.stepIndex = 9;
                         $('.all_panel').hide();
                         $('.two_part_panel').show();
                         CharGen.showPanel(CharGen.character.stepIndex, CharGen.stepList[CharGen.character.stepIndex]);
