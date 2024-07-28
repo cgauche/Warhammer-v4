@@ -1,0 +1,64 @@
+<script>
+    var Option = function (CharGen) {
+        var oThat = {};
+        oThat.stepName = "Options";
+        oThat.desc = function () {
+            return ''
+        };
+        oThat.title = function () {
+            return 'Options'
+        };
+        oThat.initAction = function () {
+            if (!CharGen.data) {
+                CharGen.loadData();
+                CharGen.initHelp();
+            }
+        };
+
+        oThat.cancelAction = function () {
+            $('.cancel').html('Retour');
+            $('.cancel').off('click').on('click', function () {
+                CharGen.showMainMenu();
+            });
+        };
+
+        oThat.show = function () {
+            var con = $('.left_panel').html('');
+            var books = CharGen.data.books;
+            var tab = ['Nom', 'Version', 'Activé'];
+            $(["Règles", "Cadre de campagne", "Scénario"]).each(function (w, label) {
+                con.append('<br><div><b>'+label+':</b></div>');
+                Helper.generateListWithRankAndHelp(
+                    books,
+                    tab,
+                    function (i, el) {
+                        return el.type === label && el.desc !== ''
+                    },
+                    con,
+                    [
+                        function (i, el) {
+                            return el.label
+                        },
+                        function (i, el) {
+                            return el.language === 'VF' ? 'Française' : 'Anglaise';
+                        },
+                        function (i, el) {
+                            return '<input type="checkbox">';
+                        }
+                    ],
+                    null,
+                    null,
+                    function (i, el) {
+                        Helper.addDescription(Helper.getHelpFormat(el, CharGen), CharGen)
+                    },
+                    true,
+                    null,
+                    false,
+                    [50,40,10]
+                );
+                tab = ['','','']
+            });
+        };
+        return oThat;
+    }
+</script>

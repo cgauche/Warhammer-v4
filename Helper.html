@@ -173,13 +173,15 @@
         addAdditionalHelp: function (text, CharGen, match) {
             $('<div>' + text + '</div>').find('.showHelp').each(function (i, el) {
                 var $el = $(el).first();
-                if ($el.data('type') === 'lore') {
-                    if (typeof match[$el.data('type')] == 'undefined') {
-                        match[$el.data('type')] = {};
+                var type = $el.data('type');
+                var index = $el.data('index');
+                if (type === 'lore') {
+                    if (typeof match[type] == 'undefined') {
+                        match[type] = {};
                     }
-                    if (typeof match[$el.data('type')][$el.data('index')] == 'undefined') {
-                        match[$el.data('type')][$el.data('index')] = true;
-                        var elem = CharGen.data[$el.data('type')][$el.data('index')];
+                    if (typeof match[type][index] == 'undefined') {
+                        match[type][index] = true;
+                        var elem = CharGen.data[type][index];
                         if (['equipment', 'psychologie', 'etat', 'trait'].includes(elem.spec) && elem.parent) {
                             text += Helper.getHelpFormat(elem, CharGen, match);
                         }
@@ -194,7 +196,14 @@
             description = typeof description !== 'undefined' ? description : false;
             var altEl = typeof el.data !== 'undefined' ? el.data : el;
             if (typeof altEl.careerGroup !== 'undefined') {
-                el = {altDesc: el.altDesc, desc: {...el.desc, ...el.getCareer().desc}, from: el.from, index: el.index}
+                el = {
+                    altDesc: el.altDesc,
+                    desc: {...el.desc, ...el.getCareer().desc},
+                    from: el.from,
+                    index: el.index,
+                    book: el.getCareer().book,
+                    page: el.getCareer().page
+                }
                 altEl = el;
             }
             var desc = typeof el.getDescription !== 'undefined' ? el.getDescription() : altEl.desc;
@@ -247,7 +256,15 @@
             } else {
                 result = desc;
             }
-            return '<span ' + (flex ? 'class="title"' : '') + '><h3>' + (typeof altEl.altDesc !== 'undefined' ? altEl.altDesc : (typeof el.getLabel !== 'undefined' ? el.getLabel() : altEl.label)) + '</h3>' + result + '</span>';
+            var paging = '';
+            var extraStyle = '';
+            if (typeof altEl.book !== 'undefined') {
+                paging = '<div class="paging">' + altEl.book + ' ' + altEl.page + '</div>';
+                extraStyle = 'class="withPaging"';
+            }
+            return '<span ' + (flex ? 'class="title"' : '') + '>' +
+                '<h3 ' + extraStyle + '>' + (typeof altEl.altDesc !== 'undefined' ? altEl.altDesc : (typeof el.getLabel !== 'undefined' ? el.getLabel() : altEl.label)) + '' +
+                '</h3>' + paging + result + '</span>';
         },
         searchTrapping: function (el, CharGen) {
             var t = CharGen.allTrappings[Helper.toId(el)];
@@ -371,10 +388,10 @@
         generateNormalList: function (list, filter, onChange, el, CharGen) {
             el = typeof el !== 'undefined' ? el : $('.left_panel');
             return Helper.generateListWithHelp(list, filter, el, function (i, el) {
-                return typeof el.altLabel !== 'undefined' ? el.altLabel : el.getLabel()
+                return typeof el.altLabel !== 'undefined' ? el.altLabel : (typeof el.getLabel !== 'undefined' ? el.getLabel() : el.label)
             }, function (i, el, disabled, force) {
                 Helper.addDescription(Helper.getHelpFormat(el, CharGen), CharGen, force);
-                if (!disabled) {
+                if (!disabled && onChange !== null) {
                     onChange(i, el);
                 }
             }, false, null, function (i, e) {
@@ -421,7 +438,7 @@
             horizontal = typeof horizontal !== 'undefined' && horizontal === true;
             var id = 'selectable' + Helper.uniqid();
             var count = $(header).length;
-            var html = '<table class="selectable ' + (count  > 2 || horizontal ? 'rank' : '') + '" id="' + id + '">';
+            var html = '<table class="selectable ' + (count > 2 || horizontal ? 'rank' : '') + '" id="' + id + '">';
             var displayedElems = [];
             var lines = [];
             var line = '';
@@ -438,10 +455,13 @@
                 });
                 defaultStyle = 'style="width:' + (100 / (elems.length + plus1)).toPrecision(2) + '%"';
             }
+            var i;
             if (typeof width !== 'undefined') {
-                style = width;
+                for (i = 0; i < width.length; ++i) {
+                    style[i] = 'style="width:' + width[i] + '%"';
+                }
             } else {
-                for (var i = 0; i < elems.length + plus1; ++i) {
+                for (i = 0; i < elems.length + plus1; ++i) {
                     style[i] = defaultStyle;
                 }
             }
@@ -459,17 +479,20 @@
                     displayedElems[i] = this;
                     var y = 0;
                     var x = 0;
-                    td = '<td ' + style[i] + ' data-line="' + i + '" data-id="' + this.id + '" class="label ui-widget-content"><div class="div_label" style="' + (horizontal ? 'flex-direction: column;' : '') + '">' + funcsLabel[y++](i, this) + '</div></td>';
+                    var w = function (i, x, horizontal) {
+                        return horizontal ? i : x
+                    };
+                    td = '<td ' + style[w(i, x, horizontal)] + ' data-line="' + i + '" data-id="' + this.id + '" class="label ui-widget-content"><div class="div_label" style="' + (horizontal ? 'flex-direction: column;' : '') + '">' + funcsLabel[y++](i, this) + '</div></td>';
                     line = Helper.organizeTable(td, x++, line, lines, horizontal);
                     if (count >= 4) {
-                        td = '<td ' + style[i] + ' data-line="' + i + '" data-id="' + this.id + '" class="base">' + funcsLabel[y++](i, this) + '</td>';
+                        td = '<td ' + style[w(i, x, horizontal)] + ' data-line="' + i + '" data-id="' + this.id + '" class="base">' + funcsLabel[y++](i, this) + '</td>';
                         line = Helper.organizeTable(td, x++, line, lines, horizontal);
                     }
-                    td = '<td ' + style[i] + ' data-line="' + i + '" data-id="' + this.id + '" class="modif">';
+                    td = '<td ' + style[w(i, x, horizontal)] + ' data-line="' + i + '" data-id="' + this.id + '" class="modif">';
                     if (append) {
                         line = Helper.organizeTable(td + funcsLabel[y++](i, this) + '</td>', x++, line, lines, horizontal);
                         while (y < count - 1) {
-                            td = '<td ' + style[i] + ' data-line="' + i + '" data-id="' + this.id + '">' + funcsLabel[y++](i, this) + '</td>';
+                            td = '<td ' + style[w(i, x, horizontal)] + ' data-line="' + i + '" data-id="' + this.id + '">' + funcsLabel[y++](i, this) + '</td>';
                             line = Helper.organizeTable(td, x++, line, lines, horizontal);
                         }
                     } else {
@@ -488,12 +511,12 @@
                         }
                         line = Helper.organizeTable(td + '</td>', x++, line, lines, horizontal);
                         while (y < count - 1) {
-                            td = '<td ' + style[i] + ' data-line="' + i + '" data-id="' + this.id + '">' + funcsLabel[y++](i, this) + '</td>';
+                            td = '<td ' + style[w(i, x, horizontal)] + ' data-line="' + i + '" data-id="' + this.id + '">' + funcsLabel[y++](i, this) + '</td>';
                             line = Helper.organizeTable(td, x++, line, lines, horizontal);
                         }
                     }
                     if (count > 2) {
-                        td = '<td ' + style[i] + ' class="total">' + funcsLabel[y++](i, this) + '</td>'
+                        td = '<td ' + style[w(i, x, horizontal)] + ' class="total">' + funcsLabel[y++](i, this) + '</td>'
                         line = Helper.organizeTable(td, x++, line, lines, horizontal);
                     }
                     if (!horizontal) {
@@ -529,29 +552,39 @@
             });
             select.find('input.number').off('change').on('change', function () {
                 var index = $(this).parents("td").data('line');
-                funcOnChange(index, elems[index], displayedElems, $(this).parents("tr").find('.total'));
+                funcOnChange(index, elems[index], displayedElems, $(this).parents("tr").find('.total'), $(this));
             });
             return select;
         },
         generateListWithHelp: function (elems, filter, el, funcLabel, funcHelp, append, funDisabled, funcLevel, custom, showHelp) {
-            var id = 'selectable' + Helper.uniqid();
-            var html = '<ol class="selectable" id="' + id + '">';
+            var id = Helper.uniqid();
+            var selectId = 'selectable' + id;
+            var searchId = 'search' + id;
+            var html = '<div style="display: flex; margin: 2px;"><input class="ui-widget-content div_label" style="padding: 0.4em;" id="' + searchId + '" type="text" placeholder="Rechercher..."></div>';
+            html += '<ol class="selectable" id="' + selectId + '">';
             elems = typeof custom !== 'undefined' && custom ? [].concat(elems, ['custom']) : elems;
             $(elems).each(function (i, el) {
-                if (filter(i, el)) {
+                if (filter === null || filter(i, el)) {
                     var disabled = '';
                     if (funDisabled && funDisabled(i, el)) {
                         disabled = 'disabled';
                     }
                     var level = '';
+                    var lev = '';
                     if (funcLevel) {
-                        level = 'listchild' + funcLevel(i, el);
+                        lev = funcLevel(i, el);
+                        level = 'listchild' + lev;
+                        lev = 'data-level="' + lev + '"';
                     }
-                    html += '<li data-line="' + i + '" data-id="' + el.id + '" class="ui-widget-content ' + disabled + ' ' + level + '"><div class="div_label">';
+                    html += '<li data-line="' + i + '" data-id="' + el.id + '" ' + lev + ' class="ui-widget-content ' + disabled + ' ' + level + '"><div class="div_label">';
                     if (funcHelp && (typeof showHelp === 'undefined' || showHelp(i, el))) {
                         html += '<buttom class="icon popin_help for_mobile">?</buttom>';
                     }
-                    html += funcLabel(i, el) + '</div></li>';
+                    var l = funcLabel(i, el);
+                    if (l.indexOf('<span>') === -1) {
+                        l = '<span>' + l + '</span>';
+                    }
+                    html += l + '</div></li>';
                 }
             });
             html += '</ol>';
@@ -560,12 +593,12 @@
             } else {
                 el.html(html);
             }
-            var select = $('#' + id);
+            var select = $('#' + selectId);
 
             select.off("click", 'li').on('click', 'li', function () {
                 var $el = $(this);
                 var i = $el.data('line');
-                if (append !== true && !$el.is('.disabled')) {
+                if (!$el.is('.disabled')) {
                     select.find('li.ui-selected').removeClass('ui-selected');
                     $el.addClass('ui-selected');
                 }
@@ -580,6 +613,41 @@
                 funcHelp(i, elems[i], $el.is('.disabled'), true);
                 return false;
             })
+
+            var search = $('#' + searchId);
+            search.off('keyup').on("keyup", function () {
+                var value = Helper.toId($(this).val());
+                var v;
+                var level = null;
+                select.children("li").filter(function () {
+                    var $this = $(this);
+                    v = Helper.toId($(this).children('div').children('span').first().text()).indexOf(value) > -1;
+                    if ($this.data('level')) {
+                        if (level !== null && parseInt($this.data('level')) > level) {
+                            v = true;
+                        } else {
+                            if (v) {
+                                level = parseInt($this.data('level'));
+                                var tmpl = level;
+                                $this.prevAll("li").each(function () {
+                                    var $t = $(this);
+                                    if (parseInt($t.data('level')) < tmpl) {
+                                        $t.toggle(true);
+                                        tmpl = parseInt($t.data('level'));
+                                        if (tmpl <= 1) {
+                                            return false;
+                                        }
+                                    }
+                                })
+                            } else {
+                                level = null;
+                            }
+                        }
+                    }
+                    $(this).toggle(v)
+                });
+            });
+
             $(el).animate({
                 scrollTop: 0
             });
@@ -606,7 +674,7 @@
             } else if (rank === 4) {
                 icon += 'shield_icon'
             }
-            return '<div title="Rang '+rank+'" class="'+icon+'"></div>'
+            return '<div title="Rang ' + rank + '" class="' + icon + '"></div>'
         },
         generateListWithHelpPopin: function (elems, filter, el, left, funcLabel, funDisabled, funcHelp, funcAdd, showHelp) {
             var id = 'selectable' + Helper.uniqid();
@@ -1045,7 +1113,7 @@
             var $species = Helper.generateNormalList(species, function (i, el) {
                 return (!spec || el.title === spec) &&
                     ((mode === 'Magie des Arcanes' && el.title !== 'Magie du Chaos') || (
-                        (mode === 'Magie du Chaos'|| el.title === 'Magie du Chaos')))
+                        (mode === 'Magie du Chaos' || el.title === 'Magie du Chaos')))
             }, function (i, el) {
                 var magicTalent = character.searchTalent(mode, '', false);
                 magicTalent.spec = el.label;

@@ -19,7 +19,7 @@ function doGet(request) {
     } else if (request['parameter']['json']) {
         return ContentService.createTextOutput(JSON.stringify(getAllData(true))).setMimeType(ContentService.MimeType.JSON);
     } else if (request['parameter']['generateHelp']) {
-        return generateHelp();
+        return ContentService.createTextOutput(generateHelp());
     }
     if (request['parameter']['display']) {
         var html = HtmlService.createTemplateFromFile('NewPage')
@@ -31,7 +31,7 @@ function doGet(request) {
                 "Helper.loader = new Helper.ajaxLoader(\"body\");" +
                 "google.script.run.withSuccessHandler(CharacterGenerator().loadDataAndDisplay).getAdminData(); }); </script>";
         } else {
-            html += "<script> $(document).ready(function () { CharacterGenerator().init(); }); </script>";
+            html += generateHelp(!request['parameter']['generateSite']) + "<script> $(document).ready(function () { CharacterGenerator().init(); }); </script>";
         }
         var result = HtmlService
             .createTemplate(html)
@@ -80,8 +80,37 @@ function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
 }
 
+function replaceHelpText(string) {
+    /*if (string && string !== 1) {
+        return string.replace(/{{SH\|([^|]*)\|([^|]*)\|([^|]*)}}/g, '<span class=\\"showHelp\\" data-type=\\"$1\\" data-index=\\"$2\\">$3</span>');
+    }*/
+    return string;
+}
+
 function showHelpText(type, index, text) {
     return '<span class="showHelp" data-type="' + type + '" data-index="' + index + '">' + text + '</span>';
+//    return '{{SH|'+type+'|'+index+'|'+text+'}}';
+}
+function addToBook(el, type, match, extra) {
+    if (typeof el.book !== 'undefined' && el.book && typeof match !== 'undefined') {
+        if (typeof match['books'] === 'undefined') {
+            match['books'] = {};
+        }
+        if (typeof match['books'][el.book] === 'undefined') {
+            match['books'][el.book] = {};
+        }
+        if (typeof match['books'][el.book][type] === 'undefined') {
+            match['books'][el.book][type] = {};
+        }
+        if (extra) {
+            if (typeof match['books'][el.book][type][extra] === 'undefined') {
+                match['books'][el.book][type][extra] = {};
+            }
+            match['books'][el.book][type][extra][el.label] = {index: el.index, text: "page " + el.page};
+        } else {
+            match['books'][el.book][type][el.label] = {index: el.index, text: "page " + el.page};
+        }
+    }
 }
 
 function applyHelp(texts, el, type, labels, match) {
@@ -93,8 +122,8 @@ function applyHelp(texts, el, type, labels, match) {
     });
     (isArray ? texts : [texts]).forEach(function (text) {
         if (!text) {
-            console.log(texts);
-            console.log(el);
+            console.log('applyHelp texts: ' + texts);
+            console.log('applyHelp el: ' + el);
         } else {
             var originText = text;
             for (let [label, data] of labels) {
@@ -135,11 +164,26 @@ function applyHelp(texts, el, type, labels, match) {
     return isArray ? result : result[0];
 }
 
+function showDescription(condition, description, el, result, allDescription) {
+    var show = condition && description;
+    if (show && el.book && allDescription !== true) {
+        var i = 0;
+        while (result.books[i]) {
+            var book = result.books[i];
+            if (book && book.abr === el.book) {
+                show = book.language === 'VF';
+                break;
+            }
+            ++i;
+        }
+    }
+    return show ? description : '';
+}
 
-function generateSpecieHelp(result, labels, match) {
+function generateSpecieHelp(result, labels, match, allDescription) {
     var i = 0;
-    var data = getSpeedseetApp().getRange('Species!A:A');
-    var val = data.getValues();
+    //var data = getSpeedseetApp().getRange('Species!A1:A' + (result.species.length + 1));
+    //var val = data.getValues();
     while (result.species[i]) {
         var el = result.species[i];
         var descs = el.desc;
@@ -152,45 +196,49 @@ function generateSpecieHelp(result, labels, match) {
             }
             ++j;
         }
-        val[i + 1][0] = JSON.stringify(
-            {
-                'Info': applyHelp(descs[0], el, 'species', {...labels.lore, ...labels.gods, ...labels.psychologie}),
-                'Caractéristiques': '#showSpecieChar|' + el.refChar,
-                'Comps/Talents': '<b>Compétences de race: </b>' + toHtmlList(applyHelp(descs[1].split(', '), el, 'species', {...labels.skills}, match))
-                    + '<b>Talents de race: </b>' + toHtmlList(applyHelp(descs[2].split(', '), el, 'species', {...labels.talents}, match))
-                    + '<b>Carrière de race: </b>' + toHtmlList(careers)
-
-            });
+        var res = {};
+        var text = showDescription(descs[0], applyHelp(descs[0], el, 'species', {...labels.lore, ...labels.gods, ...labels.psychologie}), el, result, allDescription);
+        if (text) {
+            res['Info'] = text;
+        }
+        res['Comps/Talents'] =  '<b>Compétences de race: </b>' + toHtmlList(applyHelp(descs[1].split(', '), el, 'species', {...labels.skills}, match))
+            + '<b>Talents de race: </b>' + toHtmlList(applyHelp(descs[2].split(', '), el, 'species', {...labels.talents}, match))
+            + '<b>Carrière de race: </b>' + toHtmlList(careers)
+        res['Caractéristiques'] = '#showSpecieChar|' + el.refChar;
+        el.desc = JSON.stringify(res);
+        addToBook(el, 'species', match, el.refDetail);
         ++i;
     }
-    data.setValues(val);
+    //data.setValues(val);
 }
 
 function toHtmlList(array) {
     return '<ul><li>' + array.join('</li><li>') + '</li></ul>'
 }
 
-function generateClassesHelp(result, labels, match) {
+function generateClassesHelp(result, labels, match, allDescription) {
     var i = 0;
-    var data = getSpeedseetApp().getRange('Classes!A:A');
-    var val = data.getValues();
+    //var data = getSpeedseetApp().getRange('Classes!A1:A' + (result.classes.length + 1));
+    //var val = data.getValues();
     while (result.classes[i]) {
         var el = result.classes[i];
         var descs = el.desc;
-        var info = applyHelp(descs[0], el, 'classes', {...labels.lore, ...labels.gods}, match) +
-            '<br><br><b>Options de Carrière: </b>' + toHtmlList(applyHelp(descs[1].split(', '), el, 'classes', {...labels.careers}, match));
+        var info = showDescription(descs[0], applyHelp(descs[0], el, 'classes', {...labels.lore, ...labels.gods}, match) +
+            '<br><br><b>Options de Carrière: </b>' + toHtmlList(applyHelp(descs[1].split(', '), el, 'classes', {...labels.careers}, match)), el, result, allDescription);
         if (descs[1]) {
             info += '<b>Possesssions: </b>' + toHtmlList(applyHelp(descs[2].split(', '), el, 'classes', {...labels.trappings}))
         }
-        val[++i][0] = info;
+        el.desc = info;
+        addToBook(el, 'classes', match);
+        ++i;
     }
-    data.setValues(val);
+    //data.setValues(val);
 }
 
-function generateGodsHelp(result, labels, match) {
+function generateGodsHelp(result, labels, match, allDescription) {
     var i = 0;
-    var data = getSpeedseetApp().getRange('Gods!A:A');
-    var val = data.getValues();
+    //var data = getSpeedseetApp().getRange('Gods!A1:A' + (result.spells.length + 1));
+    //var val = data.getValues();
     var miracles = {};
     while (result.spells[i]) {
         var spell = result.spells[i];
@@ -206,7 +254,10 @@ function generateGodsHelp(result, labels, match) {
     while (result.gods[i]) {
         var el = result.gods[i];
         var descs = el.desc;
-        var desc = '<b>Sphères: </b>' + descs[0] + '<BR>';
+        var desc = '';
+        if (descs[0]) {
+            var desc = '<b>Sphères: </b>' + descs[0] + '<BR>';
+        }
         if (descs[1]) {
             desc += '<b>Adorateurs: </b>' + descs[1] + '<BR>';
         }
@@ -231,7 +282,10 @@ function generateGodsHelp(result, labels, match) {
         if (descs[8]) {
             desc += '<b>Symboles sacrés courants: </b>' + descs[8] + '<BR>';
         }
-        desc += "<br>" + descs[9] + "<br>";
+        var text = showDescription(descs[9], descs[9], el, result, allDescription);
+        if (text) {
+            desc += "<br>" + text +"<br>";
+        }
         if (descs[10]) {
             desc += '<b><h3>Les adorateurs</h3></b>' + descs[10] + '<BR>';
         }
@@ -244,29 +298,31 @@ function generateGodsHelp(result, labels, match) {
         if (descs[13]) {
             desc += '<b><h3>Commandements</h3></b>' + descs[13] + '<BR>';
         }
+
         if (descs[16]) {
             miracles[el.label] = descs[16].split('; ');
         }
-
-        val[i + 1][0] = JSON.stringify({
-            'Info': applyHelp(desc, el, 'gods', {...labels.lore, ...labels.gods}, match),
-            'Miracles': '<b>Bénédictions: </b>' + toHtmlList(applyHelp(('Bénédiction de ' + el.spells.join(', Bénédiction de ')).split(', '), el, 'gods', {...labels.spells}, match)) + (typeof miracles[el.label] != 'undefined' ?
-                '<b>Miracles: </b>' + toHtmlList(applyHelp(miracles[el.label], el, 'gods', {...labels.spells}, match)) : '')
-        });
+        var res = {};
+        if (desc) {
+            res['Info'] = applyHelp(desc, el, 'gods', {...labels.lore, ...labels.gods}, match);
+        }
+        res['Miracles'] = '<b>Bénédictions: </b>' + toHtmlList(applyHelp(('Bénédiction de ' + el.spells.join(', Bénédiction de ')).split(', '), el, 'gods', {...labels.spells}, match)) + (typeof miracles[el.label] != 'undefined' ?
+            '<b>Miracles: </b>' + toHtmlList(applyHelp(miracles[el.label], el, 'gods', {...labels.spells}, match)) : '')
+        el.desc = JSON.stringify(res);
+        addToBook(el, 'gods', match);
         ++i;
     }
-    data.setValues(val);
+    //data.setValues(val);
 }
 
-function generateStarsHelp(result, labels, match) {
+function generateStarsHelp(result, labels, match, allDescription) {
+    //var data = getSpeedseetApp().getRange('Stars!A1:A' + (result.stars.length + 1));
+    //var val = data.getValues();
     var i = 0;
-    var data = getSpeedseetApp().getRange('Stars!A:A');
-    var val = data.getValues();
-    i = 0;
     while (result.stars[i]) {
         var el = result.stars[i];
         var descs = el.desc;
-        var desc = '<b>' + descs[0] +'</b><BR>';
+        var desc = '<b>' + descs[0] + '</b><BR>';
         if (descs[1]) {
             desc += '<b>Nom classique: </b>' + descs[1] + '<BR>';
         }
@@ -290,21 +346,62 @@ function generateStarsHelp(result, labels, match) {
         }
         desc += "<br>" + descs[8] + "<br>";
 
-        val[i + 1][0] = applyHelp(desc, el, 'stars', {...labels.lore, ...labels.gods}, match);
+        el.desc = applyHelp(desc, el, 'stars', {...labels.lore, ...labels.gods}, match);
+        addToBook(el, 'stars', match);
         ++i;
     }
-    data.setValues(val);
+    //data.setValues(val);
 }
 
-function generateCareersHelp(result, labels, match) {
+function generateBookHelp(result, labels, match, allDescription) {
     var i = 0;
-    var finalDesc = {};
+    while (result.books[i]) {
+        var el = result.books[i];
+        //var descs = result.books[i].desc;
+        var res = {};
+        var elem = listMatchSimple(el.label, '', match['books'][el.abr], 'species');
+        if (elem) {
+            res[ 'Races'] = elem;
+        }
+        elem = listMatchSimple(el.label, '', match['books'][el.abr], 'careers');
+        if (elem) {
+            res[ 'Carrières'] = elem;
+        }
+        elem = listMatchSimple(el.label, '', match['books'][el.abr], 'talents');
+        if (elem) {
+            res[ 'Talents'] = elem;
+        }
+        elem = listMatchSimple(el.label, '', match['books'][el.abr], 'skills');
+        if (elem) {
+            res[ 'Compétences'] = elem;
+        }
+        elem = listMatchSimple(el.label, '', match['books'][el.abr], 'spells');
+        if (elem) {
+            res[ 'Sorts'] = elem;
+        }
+        elem = listMatchSimple(el.label, '', match['books'][el.abr], 'trappings');
+        if (elem) {
+            res[ 'Possessions'] = elem;
+        }
+        el.desc = Object.entries(res).length ? JSON.stringify(res) : '';
+        ++i;
+    }
+}
+
+function generateCareersHelp(result, labels, match, allDescription) {
+    var i = 0;
+    var y = 0;
     while (result.careersLevels[i]) {
         var el = result.careersLevels[i];
         var descs = el.desc;
         if (el.careerLevel === 1) {
-            finalDesc = {};
-            finalDesc['Info'] = applyHelp('<I>' + descs[0] + '</I><BR><BR>' + descs[9], el, 'careersLevels', {...labels.lore, ...labels.gods});
+            var text = showDescription(descs[9], applyHelp('<I>' + descs[0] + '</I><BR><BR>' + descs[9], el, 'careersLevels', {...labels.lore, ...labels.gods}), result.careers[y], result, allDescription);
+            var finalDesc = {};
+            if (text) {
+                finalDesc = {
+                    'Info': text
+                };
+            }
         }
         var desc = '';
         desc += '<b>Niveau de carrière: </b>' + descs[2] + '<BR><BR>';
@@ -315,14 +412,17 @@ function generateCareersHelp(result, labels, match) {
         desc += '<b>Talents: </b>' + toHtmlList(applyHelp(descs[7].split(', '), el, 'careersLevels', {...labels.talents}, match));
         desc += '<b>Possessions: </b>' + toHtmlList(applyHelp(descs[8].split(', '), el, 'careersLevels', {...labels.trappings}, match));
         finalDesc[rangToImg(el.careerLevel)] = desc;
+        result.careersLevels[i].desc = {'tab_actif': el.careerLevel - (text ? 0 : 1)};
         if (el.careerLevel === 4) {
-            result.careersLevels[i - 3].desc = finalDesc;
+            result.careers[y].desc = finalDesc;
+            addToBook(result.careers[y], 'careers', match, descs[1]);
+            ++y;
         }
         ++i;
     }
 }
 
-function generateCharacteristicsHelp(result, labels, match) {
+function generateCharacteristicsHelp(result, labels, match, allDescription) {
     var i = 0;
     while (result.characteristics[i]) {
         var el = result.characteristics[i];
@@ -332,11 +432,12 @@ function generateCharacteristicsHelp(result, labels, match) {
                 'Info': applyHelp(descs[0], el, 'characteristics', {...labels.skills}),
                 'Accès': ''
             }
+        addToBook(el, 'characteristics', match);
         ++i;
     }
 }
 
-function generateTalentsHelp(result, labels, match) {
+function generateTalentsHelp(result, labels, match, allDescription) {
     var i = 0;
     while (result.talents[i]) {
         var el = result.talents[i];
@@ -345,7 +446,7 @@ function generateTalentsHelp(result, labels, match) {
         if (descs[1]) {
             desc += "<b>Tests: </b>" + applyHelp(descs[1], el, 'talents', {...labels.skills}, match) + "<br>";
         }
-        desc += "<br>" + applyHelp(descs[2], el, 'talents', {...labels.characteristics, ...labels.skills, ...labels.lore, ...labels.etat, ...labels.psychologie, ...labels.magick, ...labels.equipment, ...labels.trappings, ...labels.gods}) + "<br>";
+        desc += "<br>" + showDescription(descs[2], applyHelp(descs[2], el, 'talents', {...labels.characteristics, ...labels.skills, ...labels.lore, ...labels.etat, ...labels.psychologie, ...labels.magick, ...labels.equipment, ...labels.trappings, ...labels.gods}), el, result, allDescription) + "<br>";
         if (descs[3]) {
             desc += "<br><b>Spécialisations: </b>" + descs[3] + "<br>";
         }
@@ -354,42 +455,48 @@ function generateTalentsHelp(result, labels, match) {
                 'Info': desc,
                 'Accès': ''
             }
+        addToBook(el, 'talents', match);
         ++i;
     }
 }
 
-function generateSpellsHelp(result, labels, match) {
+function generateSpellsHelp(result, labels, match, allDescription) {
     var i = 0;
     while (result.spells[i]) {
         var el = result.spells[i];
         var descs = el.desc;
         var desc = '';
+        var type = el.type + (el.spec ? " (" + el.spec + ")" : "");
+        if (el.type !== '') {
+            desc += "<b>Talent: </b>" + applyHelp(type, el, 'spells', {...labels.talents}, match) + "<br>";
+        }
         if (descs[0] !== '') {
             desc += "<b>NI: </b>" + descs[0] + "<br>";
         }
         if (descs[1] !== '') {
-            desc += "<b>Portée: </b>" + applyHelp(descs[1], el, 'spells', {...labels.characteristics}) + "<br>";
+            desc += "<b>Portée: </b>" + applyHelp(descs[1], el, 'spells', {...labels.characteristics}, match) + "<br>";
         }
         if (descs[2] !== '') {
             desc += "<b>Cible: </b>" + descs[2] + "<br>";
         }
         if (descs[3] !== '') {
-            desc += "<b>Durée: </b>" + applyHelp(descs[3], el, 'spells', {...labels.characteristics}) + "<br>";
+            desc += "<b>Durée: </b>" + applyHelp(descs[3], el, 'spells', {...labels.characteristics}, match) + "<br>";
         }
-        desc += "<br>" + applyHelp(descs[4], el, 'spells', {...labels.lore, ...labels.etat, ...labels.psychologie, ...labels.magick, ...labels.trait, ...labels.characteristics, ...labels.skills, ...labels.gods});
+        desc += "<br>" + showDescription(descs[4], applyHelp(descs[4], el, 'spells', {...labels.lore, ...labels.etat, ...labels.psychologie, ...labels.magick, ...labels.trait, ...labels.characteristics, ...labels.skills, ...labels.gods}), el, result, allDescription);
         el.desc =
             {
                 'Info': desc,
                 'Accès': ''
             };
+        addToBook(el, 'spells', match, type);
         ++i;
     }
 }
 
-function generateTrappingsHelp(result, labels, match) {
+function generateTrappingsHelp(result, labels, match, allDescription) {
     var i = 0;
-    var data = getSpeedseetApp().getRange('Trappings!A:A');
-    var val = data.getValues();
+    //var data = getSpeedseetApp().getRange('Trappings!A1:A' + (result.trappings.length + 1));
+    //var val = data.getValues();
     while (result.trappings[i]) {
         var el = result.trappings[i];
         var descs = el.desc;
@@ -429,18 +536,15 @@ function generateTrappingsHelp(result, labels, match) {
         } else if ((type.search('Sacs et Contenants') !== -1 || type.search('Animaux et véhicules') !== -1) && descs[5]) {
             desc += "<b>Contenu: </b>" + descs[5] + "<br>";
         }
-        if (descs[7]) {
-            desc += '<br>' + applyHelp(descs[7], el, 'trappings', {...labels.lore, ...labels.gods, ...labels.etat, ...labels.characteristics, ...labels.psychologie});
-        }
-        if (descs[11]) {
-            desc += "<br><br>" + descs[11] + " page " + descs[12];
-        }
-        val[++i][0] = desc;
+        desc += '<br>' + showDescription(descs[7], applyHelp((descs[7] ? descs[7] : ''), el, 'trappings', {...labels.lore, ...labels.gods, ...labels.etat, ...labels.characteristics, ...labels.psychologie}), el, result, allDescription);
+        el.desc = desc;
+        addToBook(el, 'trappings', match, type + (spec ? " (" + spec + ")" : ""));
+        ++i;
     }
-    data.setValues(val);
+    //data.setValues(val);
 }
 
-function generateSkillsHelp(result, labels, match) {
+function generateSkillsHelp(result, labels, match, allDescription) {
     var i = 0;
     while (result.skills[i]) {
         var el = result.skills[i];
@@ -453,7 +557,7 @@ function generateSkillsHelp(result, labels, match) {
             desc += ", groupée";
         }
         desc += "</i><br><br>"
-        desc += applyHelp(descs[3], el, 'skills', {...labels.characteristics, ...labels.lore, ...labels.skills, ...labels.gods, ...labels.etat, ...labels.psychologie});
+        desc += showDescription(descs[3], applyHelp(descs[3], el, 'skills', {...labels.characteristics, ...labels.lore, ...labels.skills, ...labels.gods, ...labels.etat, ...labels.psychologie}), el, result, allDescription);
         if (descs[4]) {
             desc += "<br><br><b>Exemple: </b>" + applyHelp(descs[4], el, 'skills', {...labels.characteristics, ...labels.lore, ...labels.skills, ...labels.gods, ...labels.etat, ...labels.psychologie});
         }
@@ -465,6 +569,7 @@ function generateSkillsHelp(result, labels, match) {
                 'Info': desc,
                 'Accès': ''
             }
+        addToBook(el, 'skills', match, descs[0]);
         ++i;
     }
 }
@@ -502,120 +607,137 @@ function listMatchCareerLevel(label, text, match) {
 function listMatchSimple(label, text, match, key) {
     var traits = ''
     if (typeof match !== 'undefined' && typeof match[key] !== 'undefined') {
-        traits += '<b>' + text + ': </b><ul>';
-        for (let [i, e] of Object.entries(match[key])) {
-            traits += '<li>' + showHelpText(key, e.index, i) + (label !== e.text ? ': ' + e.text : '') + '</li>';
+        if (text) {
+            traits += '<b>' + text + ': </b>';
         }
-        traits += '</ul>';
+        if (Object.entries(match[key]).length) {
+            traits += '<ul>';
+            for (let [i, e] of Object.entries(match[key])) {
+                if (typeof e.index === 'undefined') {
+                    traits += '<br><b>' + i + ': </b>';
+                    for (let [y, el] of Object.entries(e)) {
+                        traits += '<li>' + showHelpText(key, el.index, y) + (label !== el.text ? ': ' + el.text : '') + '</li>';
+                    }
+                } else {
+                    traits += '<li>' + showHelpText(key, e.index, i) + (label !== e.text ? ': ' + e.text : '') + '</li>';
+                }
+            }
+            traits += '</ul>';
+        }
     }
     return traits;
 }
 
-function generateFinalSkillsHelp(result, labels, match) {
+function generateFinalSkillsHelp(result, labels, match, allDescription) {
     var i = 0;
-    var data = getSpeedseetApp().getRange('Skills!A:A');
-    var val = data.getValues();
+    //var data = getSpeedseetApp().getRange('Skills!A1:A' + (result.skills.length + 1));
+    //var val = data.getValues();
     while (result.skills[i]) {
         var el = result.skills[i];
         var descs = el.desc;
         var traits = '';
-        traits += listMatchSimple(el.label, 'Races donnant accès à la compétence', match['skills'][el.label], 'species');
-        traits += listMatchCareerLevel(el.label, 'Carrières donnant accès à la compétence', match['skills'][el.label]);
-        traits += listMatchSimple(el.label, 'Talents liés à la compétence', match['skills'][el.label], 'talents');
+        traits += listMatchSimple(el.label, 'Races donnant accès à cette compétence', match['skills'][el.label], 'species');
+        traits += listMatchCareerLevel(el.label, 'Carrières donnant accès à cette compétence', match['skills'][el.label]);
+        traits += listMatchSimple(el.label, 'Talents liés à cette compétence', match['skills'][el.label], 'talents');
         if (traits !== '') {
             descs['Accès'] = traits;
-            val[++i][0] = JSON.stringify(descs);
+            el.desc = JSON.stringify(descs);
         } else {
-            val[++i][0] = descs['Info'];
+            el.desc = descs['Info'];
         }
+        ++i;
     }
-    data.setValues(val);
+    //data.setValues(val);
 }
 
-function generateFinalSpellsHelp(result, labels, match) {
+function generateFinalSpellsHelp(result, labels, match, allDescription) {
     var i = 0;
-    var data = getSpeedseetApp().getRange('Spells!A:A');
-    var val = data.getValues();
+    //var data = getSpeedseetApp().getRange('Spells!A1:A' + (result.spells.length + 1));
+    //var val = data.getValues();
     while (result.spells[i]) {
         var el = result.spells[i];
         var descs = el.desc;
         var traits = '';
-        traits += listMatchSimple(el.label, 'Domaines donnant accès au sort', match['spells'][el.label], 'lore');
-        traits += listMatchSimple(el.label, 'Dieux donnant accès au sort', match['spells'][el.label], 'gods');
+        traits += listMatchSimple(el.label, 'Domaines donnant accès à ce sort', match['spells'][el.label], 'lore');
+        traits += listMatchSimple(el.label, 'Dieux donnant accès à ce sort', match['spells'][el.label], 'gods');
         if (traits !== '') {
             descs['Accès'] = traits;
-            val[++i][0] = JSON.stringify(descs);
+            el.desc = JSON.stringify(descs);
         } else {
-            val[++i][0] = descs['Info'];
+            el.desc = descs['Info'];
         }
+        ++i;
     }
-    data.setValues(val);
+    //data.setValues(val);
 }
 
-function generateFinalCareerHelp(result, labels, match) {
+function generateFinalCareerHelp(result, labels, match, allDescription) {
     var i = 0;
-    var data = getSpeedseetApp().getRange('Careers!A:A');
-    var val = data.getValues();
-    while (result.careersLevels[i]) {
-        var el = result.careersLevels[i++];
+    //var data = getSpeedseetApp().getRange('Careers!A1:A' + (result.careersLevels.length + 1));
+    //var val = data.getValues();
+    while (result.careers[i]) {
+        var el = result.careers[i];
         var descs = el.desc;
         if (descs) {
             var traits = '';
-            traits += listMatchSimple(el.careerGroup, 'Race donnant accès a la carrière', match['careers'][el.careerGroup], 'species');
+            traits += listMatchSimple(el.label, 'Race donnant accès à cette carrière', match['careers'][el.label], 'species');
             if (traits !== '') {
                 descs['Accès'] = traits;
             }
-            val[i][0] = JSON.stringify(descs);
+            el.desc = JSON.stringify(descs);
         }
+        ++i;
     }
-    data.setValues(val);
+    //data.setValues(val);
 }
 
 
-function generateFinalTalentsHelp(result, labels, match) {
+function generateFinalTalentsHelp(result, labels, match, allDescription) {
     var i = 0;
-    var data = getSpeedseetApp().getRange('Talents!A:A');
-    var val = data.getValues();
+    //var data = getSpeedseetApp().getRange('Talents!A1:A' + (result.talents.length + 1));
+    //var val = data.getValues();
     while (result.talents[i]) {
         var el = result.talents[i];
         var descs = el.desc;
         var traits = '';
-        traits += listMatchSimple(el.label, 'Races donnant accès au talent', match['talents'][el.label], 'species');
-        traits += listMatchCareerLevel(el.label, 'Carrières donnant accès au talent', match['talents'][el.label]);
+        traits += listMatchSimple(el.label, 'Races donnant accès à ce talent', match['talents'][el.label], 'species');
+        traits += listMatchCareerLevel(el.label, 'Carrières donnant accès à ce talent', match['talents'][el.label]);
         if (traits !== '') {
             descs['Accès'] = traits;
-            val[++i][0] = JSON.stringify(descs);
+            el.desc = JSON.stringify(descs);
         } else {
-            val[++i][0] = descs['Info'];
+            el.desc = descs['Info'];
         }
+        ++i;
     }
-    data.setValues(val);
+    //data.setValues(val);
 }
 
-function generateFinalCharacteristicsHelp(result, labels, match) {
+function generateFinalCharacteristicsHelp(result, labels, match, allDescription) {
     var i = 0;
-    var data = getSpeedseetApp().getRange('Characteristics!A:A');
-    var val = data.getValues();
+    //var data = getSpeedseetApp().getRange('Characteristics!A1:A' + (result.characteristics.length + 1));
+    //var val = data.getValues();
     while (result.characteristics[i]) {
         var el = result.characteristics[i];
         var descs = el.desc;
         var traits = '';
-        traits += listMatchSimple(el.label, 'Compétences liées à la caractéristique', match['characteristics'][el.label], 'skills');
-        traits += listMatchCareerLevel(el.label, 'Carrières donnant accès à la caractéristique', match['characteristics'][el.label]);
+        traits += listMatchSimple(el.label, 'Compétences liées à cette caractéristique', match['characteristics'][el.label], 'skills');
+        traits += listMatchCareerLevel(el.label, 'Carrières donnant accès à cette caractéristique', match['characteristics'][el.label]);
         if (traits !== '') {
             descs['Accès'] = traits;
-            val[++i][0] = JSON.stringify(descs);
+            el.desc = JSON.stringify(descs);
         } else {
-            val[++i][0] = descs['Info'];
+            el.desc = descs['Info'];
         }
+        ++i;
     }
-    data.setValues(val);
+    //data.setValues(val);
 }
 
-function generateLoreHelp(result, labels, match) {
+function generateLoreHelp(result, labels, match, allDescription) {
     var i = 0;
-    var data = getSpeedseetApp().getRange('Lore!A:A');
-    var val = data.getValues();
+    //var data = getSpeedseetApp().getRange('Lore!A1:A' + (result.spells.length + 1));
+    //var val = data.getValues();
     var sorts = {};
     while (result.spells[i]) {
         var spell = result.spells[i];
@@ -634,9 +756,9 @@ function generateLoreHelp(result, labels, match) {
         var descs = el.desc;
         var info;
         if (el.spec !== 'lore') {
-            info = descs[0] ? applyHelp(descs[0], el, 'lore', {...labels.characteristics, ...labels.lore, ...labels.skills, ...labels.gods, ...labels.spells, ...labels.etat, ...labels.psychologie, ...labels.magick, ...labels.equipment, ...labels.trait}) : '';
+            info = showDescription(descs[0], applyHelp(descs[0], el, 'lore', {...labels.characteristics, ...labels.lore, ...labels.skills, ...labels.gods, ...labels.spells, ...labels.etat, ...labels.psychologie, ...labels.magick, ...labels.equipment, ...labels.trait}), el, result, allDescription);
         } else {
-            info = descs[0] ? applyHelp(descs[0], el, 'lore', {...labels.lore, ...labels.gods}) : '';
+            info = showDescription(descs[0], applyHelp(descs[0], el, 'lore', {...labels.lore, ...labels.gods}), el, result, allDescription);
         }
         var final = '';
         if (info && typeof sorts[el.label] !== 'undefined') {
@@ -648,37 +770,40 @@ function generateLoreHelp(result, labels, match) {
         } else {
             final = info;
         }
-        val[++i][0] = final;
+        el.desc = final;
+        addToBook(el, 'lore', match, el.spec);
+        ++i;
     }
-    data.setValues(val);
+    //data.setValues(val);
 }
 
-function generateHelp() {
+function generateHelp(allDescription) {
     var result = getAllData(false, true);
     var labels = initHelpData(result);
     var match = {};
-    generateSpecieHelp(result, labels, match);
-    generateClassesHelp(result, labels, match);
-    generateGodsHelp(result, labels, match);
-    generateCareersHelp(result, labels, match);
-    generateCharacteristicsHelp(result, labels, match);
+    generateSpecieHelp(result, labels, match, allDescription);
+    generateClassesHelp(result, labels, match, allDescription);
+    generateGodsHelp(result, labels, match, allDescription);
+    generateCareersHelp(result, labels, match, allDescription);
+    generateCharacteristicsHelp(result, labels, match, allDescription);
     //result.eyes = getEyes(desc);
     //result.hairs = getHairs(desc);
-    generateTalentsHelp(result, labels, match);
-    generateSpellsHelp(result, labels, match);
-    generateTrappingsHelp(result, labels, match);
-    generateSkillsHelp(result, labels, match);
+    generateTalentsHelp(result, labels, match, allDescription);
+    generateSpellsHelp(result, labels, match, allDescription);
+    generateTrappingsHelp(result, labels, match, allDescription);
+    generateSkillsHelp(result, labels, match, allDescription);
     //result.details = getDetails(desc);
-    generateLoreHelp(result, labels, match);
+    generateLoreHelp(result, labels, match, allDescription);
     //result.foundry = getFoundry(desc);
-    generateStarsHelp(result, labels, match);
+    generateStarsHelp(result, labels, match, allDescription);
+    generateBookHelp(result, labels, match, allDescription);
 
-    generateFinalSkillsHelp(result, labels, match);
-    generateFinalTalentsHelp(result, labels, match);
-    generateFinalCharacteristicsHelp(result, labels, match);
-    generateFinalSpellsHelp(result, labels, match);
-    generateFinalCareerHelp(result, labels, match);
-    return ContentService.createTextOutput("<script>var myCharacterData = " + JSON.stringify(getAllData()) + ";</script>");
+    generateFinalSkillsHelp(result, labels, match, allDescription);
+    generateFinalTalentsHelp(result, labels, match, allDescription);
+    generateFinalCharacteristicsHelp(result, labels, match, allDescription);
+    generateFinalSpellsHelp(result, labels, match, allDescription);
+    generateFinalCareerHelp(result, labels, match, allDescription);
+    return "<script>var myCharacterData = " + JSON.stringify(result) + ";</script>";
 }
 
 function random(code) {
@@ -719,7 +844,7 @@ function random(code) {
 }
 
 function getSpeedseetApp() {
-    return SpreadsheetApp.openById('1ORw2FbAbbAbzzUsZHddZj2dJlavmHUwBnx6VdYq_MSE');
+    return SpreadsheetApp.openById('17tUzD0ywWFbJ3oT20XlcQ6eQzyI9Oyoga0gynhYgmeM');
 }
 
 function generateKey(array) {
@@ -749,12 +874,10 @@ function getLore(desc, tmp) {
         if (i !== 0) {
             var parent = toId(name[keys['Parent']]);
             var id = toId(name[keys['Nom']]);
-            var resume = tmp ? name[keys['Description']] : name[keys['Html']];
+            var resume = tmp ? name[keys['Description']] : replaceHelpText(name[keys['Html']]);
             if (desc) {
                 resume = [
                     name[keys['Description']],
-                    name[keys['Livre']],
-                    name[keys['Page']]
                 ]
             }
             result[y] = {
@@ -817,20 +940,20 @@ function getClasses(desc) {
     while (names[i][0] !== '') {
         name = names[i];
         if (i !== 0) {
-            var resume = name[keys['Html']];
+            var resume = replaceHelpText(name[keys['Html']]);
             if (desc) {
                 resume = [
                     name[keys['Description']],
                     name[keys['Career']],
                     name[keys['Trappings']],
-                    name[keys['Livre']],
-                    name[keys['Page']],
                 ];
             }
             result[y] = {
                 index: y,
                 id: toId(name[keys['Name']]),
                 label: name[keys['Name']],
+                book: name[keys['Livre']],
+                page: name[keys['Page']],
                 desc: resume,
                 trappings: name[keys['Trappings']]
             };
@@ -855,7 +978,7 @@ function getStars(desc) {
     while (names[i][0] !== '') {
         name = names[i];
         if (i !== 0) {
-            var resume = name[keys['Html']];
+            var resume = replaceHelpText(name[keys['Html']]);
 
             if (desc) {
                 var bonus = [];
@@ -916,9 +1039,7 @@ function getStars(desc) {
                     name[keys['Apparence']],
                     bonus.join(', '),
                     malus.join(', '),
-                    name[keys['Description']],
-                    name[keys['Livre']],
-                    name[keys['Page']]
+                    name[keys['Description']]
                 ];
             }
             result[y] = {
@@ -929,17 +1050,19 @@ function getStars(desc) {
                 subRand: name[keys['SubRoll']],
                 desc: resume,
                 talent: name[keys['Talent']],
+                book: name[keys['Livre']],
+                page: name[keys['Page']],
                 char: {
-                    'cc': name[keys['CC']],
-                    'ct': name[keys['CT']],
-                    'f': name[keys['F']],
-                    'e': name[keys['E']],
-                    'i': name[keys['I']],
-                    'ag': name[keys['Ag']],
-                    'dex': name[keys['Dex']],
-                    'int': name[keys['Int']],
-                    'fm': name[keys['FM']],
-                    'soc': name[keys['Soc']]
+                    'CC': name[keys['CC']],
+                    'CT': name[keys['CT']],
+                    'F': name[keys['F']],
+                    'E': name[keys['E']],
+                    'I': name[keys['I']],
+                    'Ag': name[keys['Ag']],
+                    'Dex': name[keys['Dex']],
+                    'Int': name[keys['Int']],
+                    'FM': name[keys['FM']],
+                    'Soc': name[keys['Soc']]
                 }
             };
             ++y;
@@ -962,7 +1085,7 @@ function getGods(desc) {
     while (names[i][0] !== '') {
         name = names[i];
         if (i !== 0) {
-            var resume = name[keys['Html']];
+            var resume = replaceHelpText(name[keys['Html']]);
             if (desc) {
                 resume = [
                     name[keys['Spheres']],
@@ -979,8 +1102,6 @@ function getGods(desc) {
                     name[keys['Les sites sacrés']],
                     name[keys['Les pénitences']],
                     name[keys['Restriction']],
-                    name[keys['Livre']],
-                    name[keys['Page']],
                     name[keys['Miracles']]
                 ];
             }
@@ -989,6 +1110,8 @@ function getGods(desc) {
                 id: toId(name[keys['God']]),
                 label: name[keys['God']],
                 title: name[keys['Titre']],
+                book: name[keys['Livre']],
+                page: name[keys['Page']],
                 desc: resume,
                 spells: [name[keys['Blessing 1']], name[keys['Blessing 2']], name[keys['Blessing 3']], name[keys['Blessing 4']], name[keys['Blessing 5']], name[keys['Blessing 6']]]
             };
@@ -1015,27 +1138,45 @@ function load(key) {
     return ContentService.createTextOutput('').setMimeType(ContentService.MimeType.JSON);
 }
 
-function saveLore(save) {
+function saveData(save) {
     var el = JSON.parse(save);
-    var data = getSpeedseetApp().getRange('TmpLore!A:I');
-    var names = data.getValues();
-    var keys = generateKey(names[0]);
-    var i = 0;
-    while (names[i][keys['Nom']] !== '') {
-        if (names[i][keys['Nom']] === el.label) {
-            break;
+    var i = parseInt(el.index) + 2;
+    var sheet = getSpeedseetApp();
+    var j = i;
+    var elem = [el];
+    if (el.mode === 'insert') {
+        if (el.file === 'Careers') {
+            el.Rank = el.Name + '|1';
+            sheet.getSheetByName(el.file).insertRowsAfter(i++, 4);
+            elem = [
+                el,
+                {'Rank': el.Name + '|2'},
+                {'Rank': el.Name + '|3'},
+                {'Rank': el.Name + '|4'},
+            ];
+            j += 4;
+        } else {
+            sheet.getSheetByName(el.file).insertRowAfter(i++);
+            j++;
         }
-        ++i;
     }
-    names[i][keys['Prefix']] = el.prefix;
-    names[i][keys['Nom']] = el.label;
-    names[i][keys['Extra']] = el.extra;
-    names[i][keys['Spec']] = el.spec;
-    names[i][keys['Parent']] = el.parent;
-    names[i][keys['Livre']] = el.book;
-    names[i][keys['Page']] = el.page;
-    names[i][keys['Description']] = el.desc;
-    data.setValues(names);
+    var data = getSpeedseetApp().getRange(el.file + '!' + i + ':' + j);
+    var values = data.getValues();
+    var names = sheet.getRange(el.file + '!1:1').getValues();
+    for (var index = 0; index < elem.length; ++index) {
+        el = elem[index];
+        var y = 0;
+        while (typeof names[0][y] != 'undefined') {
+            var key = names[0][y];
+            if (key === 'Html') {
+                values[index][y] = '1';
+            } else if (typeof el[key] !== 'undefined') {
+                values[index][y] = el[key];
+            }
+            ++y;
+        }
+    }
+    data.setValues(values);
 
     return getAdminData();
 }
@@ -1064,9 +1205,9 @@ function nextChar(c, number) {
     return String.fromCharCode(c.charCodeAt(0) + number);
 }
 
-function getCareers(base, desc, ref) {
+function getCareers(base, desc, ref, saveload) {
     var careerRef = Object.keys(ref);
-    var letter = nextChar('M', careerRef.length);
+    var letter = nextChar('N', careerRef.length);
     var names = getSpeedseetApp().getRange('Careers!A:' + letter).getValues();
     var i = 0;
     var careerIndex = 0;
@@ -1079,6 +1220,8 @@ function getCareers(base, desc, ref) {
     var oldCareer = '';
     var resumeDesc = '';
     var compDesc = '';
+    var page = '';
+    var book = '';
     var pastCareerLevel = '';
     var careerLevel = 1;
     var keys = [];
@@ -1086,7 +1229,7 @@ function getCareers(base, desc, ref) {
     keys = generateKey(names[i]);
     while (names[i][keys['Rank']] !== '') {
         name = names[i];
-        if (i !== 0) {
+        if (i !== 0 && (saveload === true || name[keys['Characteristics']])) {
             var className = name[keys['Classes']];
             if (oldClass !== className && className !== '') {
                 ++classeIndex;
@@ -1094,12 +1237,17 @@ function getCareers(base, desc, ref) {
             }
             var careerName = name[keys['Name']];
             if (careerName !== '') {
+                page = name[keys['Page']];
+                book = name[keys['Livre']];
                 careers[careerIndex] = {
                     id: toId(careerName),
                     label: careerName,
                     index: careerIndex,
                     class: oldClass,
-                    desc: name[keys['Html']],
+                    subRand: name[keys['SubRoll']],
+                    desc: replaceHelpText(name[keys['Html']]),
+                    page: page,
+                    book: book,
                     rand: {}
                 }
                 for (var w = 0; w < careerRef.length; ++w) {
@@ -1127,7 +1275,7 @@ function getCareers(base, desc, ref) {
             careerLevels[careerLevelIndex]['skills'] = name[keys['Skills']].split(', ').sort().join(', ');
             careerLevels[careerLevelIndex]['talents'] = name[keys['Talents']].split(', ').sort().join(', ');
             careerLevels[careerLevelIndex]['characteristics'] = name[keys['Characteristics']];
-            careerLevels[careerLevelIndex]['trappings'] = ((careerLevel == 1 && classes[classeIndex].trappings ? classes[classeIndex].trappings + (name[keys['Trappings']] !== '' ? ', ' : '') : '') + name[keys['Trappings']]).split(', ').sort().join(', ');
+            careerLevels[careerLevelIndex]['trappings'] = ((careerLevel == 1 && classes[classeIndex].trappings && !saveload ? classes[classeIndex].trappings + (name[keys['Trappings']] !== '' ? ', ' : '') : '') + name[keys['Trappings']]).split(', ').sort().join(', ');
             careerLevels[careerLevelIndex]['pastCareerLevel'] = pastCareerLevel;
             if (desc) {
                 careerLevels[careerLevelIndex]['desc'] = [
@@ -1141,8 +1289,6 @@ function getCareers(base, desc, ref) {
                     careerLevels[careerLevelIndex]['talents'],
                     careerLevels[careerLevelIndex]['trappings'],
                     compDesc,
-                    name[keys['Livre']],
-                    name[keys['Page']],
                     careerLevels[careerLevelIndex]['careerLevel'],
                 ];
             } else {
@@ -1168,12 +1314,10 @@ function getCharacteristics(desc, ref) {
     while (names[i][0] !== '') {
         name = names[i];
         if (i !== 0) {
-            var resume = name[keys['Html']];
+            var resume = replaceHelpText(name[keys['Html']]);
             if (desc) {
                 resume = [
-                    name[keys['Description']],
-                    name[keys['Livre']],
-                    name[keys['Page']],
+                    name[keys['Description']]
                 ]
             }
             var final = {};
@@ -1187,6 +1331,8 @@ function getCharacteristics(desc, ref) {
                 label: name[keys['Name']],
                 id: toId(name[keys['Name']]),
                 abr: name[keys['abr']],
+                book: name[keys['Livre']],
+                page: name[keys['Page']],
                 rand: final,
                 class: name[keys['Mode']],
                 desc: resume
@@ -1267,6 +1413,31 @@ function getHairs(desc, ref) {
     return result;
 }
 
+function getBooks(desc) {
+    var names = getSpeedseetApp().getRange('Books!A:D').getValues();
+    var i = 0;
+    var result = [];
+    var keys = [];
+    var name;
+    while (names[i][0] !== '') {
+        name = names[i];
+        if (i !== 0) {
+            result[i - 1] = {
+                index: i - 1,
+                abr: name[keys['Abr']],
+                label: name[keys['Name']],
+                language: name[keys['Language']],
+                type: name[keys['Type']],
+            };
+        } else {
+            keys = generateKey(name);
+        }
+        ++i;
+    }
+
+    return result;
+}
+
 function getDetails(desc, ref) {
     var detailRef = Object.keys(ref);
     var letter = nextChar('D', detailRef.length);
@@ -1327,6 +1498,8 @@ function getSpecies(desc, ref) {
             rollAge: name[keys['Age Roll']],
             height: name[keys['Height']],
             rollHeight: name[keys['Height Roll']],
+            book: name[keys['Livre']],
+            page: name[keys['Page']],
         };
         ref.refChar[result[y]['refChar']] = 1;
         ref.refCareer[result[y]['refCareer']] = 1;
@@ -1337,11 +1510,9 @@ function getSpecies(desc, ref) {
                 name[keys['Description']],
                 result[y]['skills'],
                 result[y]['talents'] + (result[y]['randomTalents'] ? ', ' + result[y]['randomTalents'] + ' Talent' + s + ' aléatoire' + s : ''),
-                name[keys['Livre']],
-                name[keys['Page']]
             ]
         } else {
-            result[y]['desc'] = name[keys['Html']];
+            result[y]['desc'] = replaceHelpText(name[keys['Html']]);
         }
         ++y;
         ++i;
@@ -1360,15 +1531,13 @@ function getTalents(desc) {
     while (names[i][0] !== '') {
         name = names[i];
         if (i !== 0) {
-            var resume = name[keys['Html']];
+            var resume = replaceHelpText(name[keys['Html']]);
             if (desc) {
                 resume = [
                     name[keys['Max']],
                     name[keys['Test']],
                     name[keys['Description']],
                     name[keys['Spec']],
-                    name[keys['Livre']],
-                    name[keys['Page']],
                 ];
             }
             result[y] = {
@@ -1385,6 +1554,8 @@ function getTalents(desc) {
                 addSkill: name[keys['Add Skill']],
                 addTalent: name[keys['AddTalent']],
                 addMagic: name[keys['Magic']],
+                book: name[keys['Livre']],
+                page: name[keys['Page']],
                 test: name[keys['Test']],
                 addCharacteristic: name[keys['Bonus char']]
             };
@@ -1408,16 +1579,14 @@ function getSpells(desc) {
     while (names[i][0] !== '') {
         name = names[i];
         if (i !== 0) {
-            var resume = name[keys['Html']];
+            var resume = replaceHelpText(name[keys['Html']]);
             if (desc) {
                 resume = [
                     name[keys['CN']],
                     name[keys['Range']],
                     name[keys['Target']],
                     name[keys['Duration']],
-                    name[keys['Description']],
-                    name[keys['Livre']],
-                    name[keys['Page']]
+                    name[keys['Description']]
                 ]
             }
             result[y] = {
@@ -1431,7 +1600,9 @@ function getSpells(desc) {
                 target: name[keys['Target']],
                 duration: name[keys['Duration']],
                 effect: name[keys['Description']],
-                desc: resume
+                desc: resume,
+                page: name[keys['Page']],
+                book: name[keys['Livre']]
             };
             ++y;
         } else {
@@ -1480,7 +1651,7 @@ function getTrappings(desc) {
     while (names[i][0] !== '') {
         name = names[i];
         if (i !== 0) {
-            var resume = name[keys['Html']];
+            var resume = replaceHelpText(name[keys['Html']]);
             var damage = '';
             var carry = '';
             var reach = '';
@@ -1501,9 +1672,7 @@ function getTrappings(desc) {
                     name[keys['Description']],
                     name[keys['Gold']],
                     name[keys['Silver']],
-                    name[keys['Bronze']],
-                    name[keys['Livre']],
-                    name[keys['Page']]
+                    name[keys['Bronze']]
                 ]
             }
             if (type.search('Sacs et Contenants') !== -1 || type.search('Animaux et véhicules') !== -1) {
@@ -1533,7 +1702,9 @@ function getTrappings(desc) {
                 reach: reach,
                 pa: pa,
                 qualities: qualities,
-                damage: damage
+                damage: damage,
+                book: name[keys['Livre']],
+                page: name[keys['Page']],
             };
             ++y;
         } else {
@@ -1555,7 +1726,7 @@ function getSkills(desc) {
     while (names[i][0] !== '') {
         name = names[i];
         if (i !== 0) {
-            var resume = name[keys['Html']];
+            var resume = replaceHelpText(name[keys['Html']]);
             var type = name[keys['Type']];
             var specs = name[keys['Spe']];
             if (desc) {
@@ -1564,9 +1735,7 @@ function getSkills(desc) {
                     type,
                     specs,
                     name[keys['Description']],
-                    name[keys['Exemple']],
-                    name[keys['Livre']],
-                    name[keys['Page']],
+                    name[keys['Exemple']]
                 ]
             }
             result[y] = {
@@ -1579,6 +1748,8 @@ function getSkills(desc) {
                 specs: specs,
                 specName: name[keys['Spe']] ? 'Au choix' : '',
                 type: type,
+                book: name[keys['Livre']],
+                page: name[keys['Page']],
                 desc: resume
             };
             ++y;
@@ -1592,32 +1763,36 @@ function getSkills(desc) {
 }
 
 function getAdminData() {
-    var result = {};
-    result.lore = getLore(false, true);
+    //var result = {};
+    //result.lore = getLore(false, true);
 
-    return result;
+    return getAllData(true, true, true);
 }
 
-function getAllData(base, desc) {
+function getAllData(base, desc, saveload) {
     var result = {};
     var ref = {'refChar': {}, 'refCareer': {}, 'refDetail': {}};
     result.species = getSpecies(desc, ref);
     result.classes = getClasses(desc);
-    result.stars = getStars(desc);
-    result.gods = getGods(desc);
-    let [careers, careersLevels] = getCareers(base, desc, ref.refCareer);
+    let [careers, careersLevels] = getCareers(base, desc, ref.refCareer, saveload);
     result.careers = careers;
     result.careersLevels = careersLevels
-    result.characteristics = getCharacteristics(desc, ref.refChar);
-    result.eyes = getEyes(desc, ref.refDetail);
-    result.hairs = getHairs(desc, ref.refDetail);
     result.talents = getTalents(desc);
-    result.spells = getSpells(desc);
+    result.characteristics = getCharacteristics(desc, ref.refChar);
     result.trappings = getTrappings(desc);
     result.skills = getSkills(desc);
-    result.details = getDetails(desc, ref.refDetail);
-    result.lore = getLore(desc);
-    result.foundry = {}//getFoundry(desc);
+    result.spells = getSpells(desc);
+    result.books = getBooks(desc);
+    result.ref = ref;
+    if (!saveload) {
+        result.stars = getStars(desc);
+        result.gods = getGods(desc);
+        result.eyes = getEyes(desc, ref.refDetail);
+        result.hairs = getHairs(desc, ref.refDetail);
+        result.details = getDetails(desc, ref.refDetail);
+        result.lore = getLore(desc);
+        result.foundry = {}//getFoundry(desc);
+    }
 
     return result;
 }

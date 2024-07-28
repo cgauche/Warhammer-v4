@@ -214,6 +214,8 @@
                     talent: 0,
                     advance: 0,
                     tmpadvance: 0,
+                    specie: 0,
+                    star: 0,
                     career: 0,
                     data: characteristic,
                     origins: typeof characteristic.origins !== 'undefined' ? characteristic.origins : [],
@@ -221,18 +223,22 @@
                         return 'characteristic';
                     },
                     getSymbol: function () {
-                        var careersCharacteristics = CharGen.allCareersLevelsByGroup[oThat.getCareerLevel().getCareer().id][4].getCharacteristics();
-                        var e = careersCharacteristics.find(item => item.id === characteristic.id);
-                        var tmp = '';
-                        if (typeof e !== 'undefined') {
-                            tmp = Helper.rangToImg(CharGen.allCareersLevels[e.origins[0]].careerLevel);
-                        } else {
-                            tmp = '<div class="icon"></div>'
+                        var tmp = '<div class="icon"></div>';
+                        if (oThat.getCareerLevel()) {
+                            var careersCharacteristics = CharGen.allCareersLevelsByGroup[oThat.getCareerLevel().getCareer().id][4].getCharacteristics();
+                            var e = careersCharacteristics.find(item => item.id === characteristic.id);
+                            if (typeof e !== 'undefined') {
+                                tmp = Helper.rangToImg(CharGen.allCareersLevels[e.origins[0]].careerLevel);
+                            }
                         }
                         return tmp;
                     },
                     getLabel: function (withSymbol) {
-                        return (typeof withSymbol === 'undefined' || withSymbol ? this.getSymbol() : '') + this.data.getLabel();
+                        var ret = this.data.label;
+                        if (typeof withSymbol === 'undefined' || withSymbol) {
+                            ret = this.getSymbol() + '<span>' + ret + '</span>';
+                        }
+                        return ret;
                     },
                     getDescription: function () {
                         var tmp = [];
@@ -269,6 +275,12 @@
                     hasOrigin: function (origin) {
                         return origin && this.origins.includes(origin);
                     },
+                    getStar: function () {
+                        if (oThat.getStar() && this.data.class === 'roll' && oThat.getStar().data.char[this.data.abr] !== '') {
+                            return parseInt(oThat.getStar().data.char[this.data.abr]);
+                        }
+                        return 0;
+                    },
                     getSpecie: function () {
                         if (this.data.label === 'Points de Blessures') {
                             var wounds = oThat.searchCharacteristic('Endurance').getBonus() * 2
@@ -292,7 +304,8 @@
                     },
                     getBase: function () {
                         this.specie = this.getSpecie();
-                        return this.specie + this.roll + this.talent;
+                        this.star = this.getStar();
+                        return this.specie + this.roll + this.talent + this.star;
                     },
                     getAdvance: function () {
                         return this.advance + this.career + this.tmpadvance;
@@ -356,20 +369,24 @@
                         return 'talent';
                     },
                     getSymbol : function () {
-                        var group = CharGen.allCareersLevelsByGroup[oThat.getCareerLevel().getCareer().id];
-                        var careersCharacteristics = [].concat(group[1].getTalents(), group[2].getTalents(), group[3].getTalents(), group[4].getTalents());
-                        var e = careersCharacteristics.find(item => item.id === talent.id);
-                        var tmp = '';
-                        if (typeof e !== 'undefined') {
-                            tmp = Helper.rangToImg(CharGen.allCareersLevels[e.origins[0]].careerLevel);
-                        } else {
-                            tmp = '<div class="icon"></div>'
+                        var tmp = '<div class="icon"></div>';
+                        if (oThat.getCareerLevel()) {
+                            var group = CharGen.allCareersLevelsByGroup[oThat.getCareerLevel().getCareer().id];
+                            var careersCharacteristics = [].concat(group[1].getTalents(), group[2].getTalents(), group[3].getTalents(), group[4].getTalents());
+                            var e = careersCharacteristics.find(item => item.id === talent.id);
+                            if (typeof e !== 'undefined') {
+                                tmp = Helper.rangToImg(CharGen.allCareersLevels[e.origins[0]].careerLevel);
+                            }
                         }
                         return tmp;
                     },
                     getLabel: function (withSymbol) {
                         var spec = this.spec ? this.spec : this.data.specName;
-                        return (typeof withSymbol === 'undefined' || withSymbol ? this.getSymbol() : '') + this.data.label + (spec !== '' ? ' (' + spec + ')' : '');
+                        var ret = this.data.label + (spec !== '' ? ' (' + spec + ')' : '');
+                        if (typeof withSymbol === 'undefined' || withSymbol) {
+                            ret = this.getSymbol() + '<span>' + ret + '</span>';
+                        }
+                        return ret;
                     },
                     getBase: function () {
                         return 0;
@@ -607,22 +624,26 @@
                         return oThat.searchCharacteristic(this.data.characteristic);
                     },
                     getSymbol: function () {
-                        var careersCharacteristics = CharGen.allCareersLevelsByGroup[oThat.getCareerLevel().getCareer().id][4].getSkills();
-                        var e = careersCharacteristics.find(item => item.id === skill.id);
-                        var tmp = '';
-                        if (typeof e !== 'undefined') {
-                            tmp = Helper.rangToImg(CharGen.allCareersLevels[e.origins[0]].careerLevel);
-                        } else {
-                            tmp = '<div class="icon"></div>'
+                        var tmp = '<div class="icon"></div>';
+                        if (oThat.getCareerLevel()) {
+                            var careersCharacteristics = CharGen.allCareersLevelsByGroup[oThat.getCareerLevel().getCareer().id][4].getSkills();
+                            var e = careersCharacteristics.find(item => item.id === skill.id);
+                            if (typeof e !== 'undefined') {
+                                tmp = Helper.rangToImg(CharGen.allCareersLevels[e.origins[0]].careerLevel);
+                            }
                         }
                         return tmp;
                     },
                     getLabel: function (withSymbol) {
                         var spec = this.spec ? this.spec : this.data.specName;
-                        return (typeof withSymbol === 'undefined' || withSymbol ? this.getSymbol() : '') + this.data.label + (spec !== '' ? ' (' + spec + ')' : '');
+                        var ret = this.data.label + (spec !== '' ? ' (' + spec + ')' : '');
+                        if (typeof withSymbol === 'undefined' || withSymbol) {
+                            ret = this.getSymbol() + '<span>' + ret + '</span>';
+                        }
+                        return ret;
                     },
                     getBase: function () {
-                        return this.getCharacteristic().getTotal();
+                        return this.getCharacteristic() ? this.getCharacteristic().getTotal() : 0;
                     },
                     getAdvance: function () {
                         return this.advance + this.specie + this.career + this.tmpadvance;

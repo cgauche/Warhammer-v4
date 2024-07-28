@@ -114,16 +114,29 @@
             var previousRand = 1;
             var previousPreviousRand = 1;
             var displayedSpecies = [];
+            var currentDetail = '';
+            var tmp = '';
             $(species).each(function (i, el) {
+                var tmpDetail = el.refDetail;
                 var mySpecie = Helper.clone(el);
                 var min = (el.rand >= previousRand ? previousRand : previousPreviousRand);
                 var max = min !== el.rand ? '-' + el.rand : ''
-                mySpecie.altLabel = '<span>' + mySpecie.getLabel() + '</span><span class="showRoll"">' + min + max + '</span>';
+                var roll = '<span class="showRoll">' + min + max + '</span>';
+                if (currentDetail !== tmpDetail) {
+                    currentDetail = tmpDetail;
+                    tmp = Helper.clone(mySpecie);
+                    tmp.level = 1;
+                    tmp.altLabel = '<span>' + tmpDetail + '</span>' + roll;
+                    displayedSpecies[displayedSpecies.length] = tmp;
+                }
                 if (el.rand && el.rand >= previousRand) {
                     previousPreviousRand = previousRand;
                     previousRand = el.rand + 1;
                 }
-                displayedSpecies[displayedSpecies.length] = mySpecie;
+                if (typeof species[i+1] !== 'undefined' && species[i+1].refDetail === currentDetail) {
+                    mySpecie.level = 2;
+                    displayedSpecies[displayedSpecies.length] = mySpecie;
+                }
             });
             $species = Helper.generateNormalList(displayedSpecies, function () {
                 return true

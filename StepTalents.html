@@ -23,6 +23,9 @@
         oThat.initAction = function () {
             character = CharGen.character.clone();
             var specieTalent = character.getSpecie().data.getTalents();
+            if (character.getStar() && character.getStar().data.getTalent()) {
+                specieTalent[specieTalent.length] = [character.getStar().data.getTalent()];
+            }
             var nbSpecieTalent = specieTalent.length
             var el;
             var number;
@@ -46,7 +49,7 @@
             for (number = 0; number < elems.length; ++number) {
                 el = elems[number];
                 if (el) {
-                    if (el.length === 1 && (!el[0].specs || el[0].spec)) {
+                    if (el.length === 1 && (!el[0].specs || el[0].spec) && !el[0].addMagic) {
                         talent = character.setTalent(el[0], number);
                         talent.roll = 1;
                         allTalentsToChoose[number] = [talent];
@@ -251,8 +254,8 @@
                         label = function (i, el) {
                             var min = (el.rand >= previousRand ? previousRand : previousPreviousRand);
                             var max = min !== el.rand ? '-' + el.rand : '';
-                            var roll = ' <span class="showRoll"">' + min + max + '</span>';
-                            var result = el.rand ? (character.isFreeMode() ? '<span class="highlighting">' + el.getLabel() + roll + '</span>' : el.getLabel() + roll) : el.getLabel();
+                            var roll = ' <span class="showRoll">' + min + max + '</span>';
+                            var result = el.rand ? (character.isFreeMode() ? '<span class="highlighting">' + el.getLabel() + '</span>' + roll : '<span>' + el.getLabel() + '</span>' + roll) : el.getLabel();
                             if (el.rand && el.rand >= previousRand) {
                                 previousPreviousRand = previousRand;
                                 previousRand = el.rand + 1;

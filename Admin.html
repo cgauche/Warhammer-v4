@@ -12,80 +12,738 @@
             CharGen.loadData();
         };
 
-        oThat.edit = function (y, el) {
+        oThat.editCareer = function (y, el) {
             $('.validate').prop('disabled', false);
             var html = '<span>';
             const regex = /<br>/gmi;
-            var desc = el.desc.replace(regex, "\n");
-            html += '<input name="id" type="hidden" value="' + y + '">';
-            html += '<div><b>Prefix :</b><input name="prefix" type="text" value="' + el.prefix + '"></div>';
-            html += '<div><b>Label :</b><input name="label" type="text" value="' + el.label + '"></div>';
-            html += '<div><b>Extra :</b><input name="extra" type="text" value="' + el.title + '"></div>';
-            html += '<div><b>Spec :</b><input name="spec" type="text" value="' + el.spec + '"></div>';
-            html += '<div><b>Parent :</b><select name="parent">';
-            html += '<option value=""></option>';
-            for (var i = 0; i < CharGen.data.lore.length; ++i) {
-                var e = CharGen.data.lore[i];
-                var selected = e.id === el.parent ? 'selected="selected"' : '';
-                html += '<option ' + selected + ' value="' + e.label + '">' + e.label + '</option>'
+            var career = el.getCareer();
+            var elems;
+            var i;
+            var el1;
+            var selected;
+            var disable = el.careerLevel != 1 ? 'display:none;' : '';
+            if (!disable) {
+                $('.random').html('Dupliquer Carrière').show();
+            }
+
+            html += '<input type="hidden" name="file" value="Careers">'
+            html += '<input type="hidden" name="index" value="' + el.index + '">'
+            html += '<input type="hidden" name="careerLevel" value="' + el.careerLevel + '">'
+            var desc = el.desc[9].replace(regex, "\n");
+            html += '<div style="' + disable + '"><b>Classe : </b>'
+            el1 = career.class
+            html += '<select style="display:none;" name="Classes">';
+            html += '<option value=""></option>'
+            $(CharGen.data.classes).each(function (i, e) {
+                selected = el1 && e.label === el1 ? 'selected="selected"' : '';
+                html += '<option ' + selected + '>' + e.label + '</option>'
+            });
+            html += '</select>' + el1 + '</div>';
+            html += '<div style="' + disable + '"><b>Nom de la carrière : </b><input name="Name" type="text" value="' + career.label + '"></div>'
+            html += '<div><b>Nom du niveau de carrière : </b><input name="Rank" type="text" value="' + el.label + '"></div>'
+            html += '<div style="' + disable + '"><b>Livre : </b>';
+            html += '<select name="Livre">';
+            html += '<option value=""></option>'
+            el1 = career.book;
+            $(CharGen.data.books).each(function (i, e) {
+                selected = el1 && e.abr === el1 ? 'selected="selected"' : '';
+                html += '<option value="' + e.abr + '" ' + selected + '>' + e.label + '</option>'
+            });
+            html += '</select></div>';
+            html += '<div style="' + disable + '"><b>Page : </b><input name="Page" type="text" value="' + career.page + '"></div>'
+            html += '<div><b>Statut : </b>';
+            [elems, el1] = el.status.split(' ');
+            var quality = ['Bronze', 'Argent', 'Or'];
+            html += '<select name="Status1">';
+            html += '<option value=""></option>'
+            for (i = 0; i < quality.length; ++i) {
+                selected = elems && elems === quality[i] ? 'selected="selected"' : '';
+                html += '<option ' + selected + '>' + quality[i] + '</option>'
+            }
+            html += '</select>';
+            html += '<select name="Status2">';
+            html += '<option value=""></option>'
+            for (i = 0; i <= 10; ++i) {
+                selected = el1 && el1 == i ? 'selected="selected"' : '';
+                html += '<option ' + selected + '>' + i + '</option>'
             }
             html += '</select></div>';
-            html += '<div><b>Livre :</b><input name="book" type="text" value="' + el.book + '"></div>';
-            html += '<div><b>Page :</b><input name="page" type="text" value="' + el.page + '"</div>';
-            html += '<div><b>Description :</b></div><textarea name="desc" style="width: 100%;height: 640px;">' + desc + '</textarea>';
+
+            html += '<div><b>Attributs : </b></div>';
+            elems = el.getCharacteristics();
+            for (i = 0; i < (el.careerLevel === 1 ? 3 : 1); ++i) {
+                el1 = typeof elems[i] !== 'undefined' ? elems[i] : '';
+                html += '<div><select name="Characteristics[' + i + ']">';
+                html += '<option value=""></option>'
+                $(CharGen.data.characteristics).each(function (i, e) {
+                    if (e.class === 'roll') {
+                        selected = el1 && e.id === el1.id ? 'selected="selected"' : '';
+                        html += '<option ' + selected + '>' + e.label + '</option>'
+                    }
+                });
+                html += '</select></div>';
+            }
+            html += '<div><b>Compétences : </b></div>'
+            elems = el.getSkills();
+            for (i = 0; i < (10 - el.careerLevel * 2) + (el.careerLevel === 1 ? 2 : 0); ++i) {
+                el1 = typeof elems[i] !== 'undefined' ? elems[i] : '';
+                html += '<div><select class="autocomplete" name="Skills[' + i + ']">';
+                html += '<option value=""></option>'
+                $(CharGen.data.skills).each(function (i, e) {
+                    selected = el1 && e.id === el1.id ? 'selected="selected"' : '';
+                    html += '<option value="' + e.label + '" ' + selected + '>' + e.label + '</option>'
+                });
+                html += '</select><input name="SpecSkills[' + i + ']" type="text" value="' + (el1 ? (el1.spec ? el1.spec : (el1.specName && el1.specName.split(' ou ').length === 1 ? 'Au choix' : el1.specName)) : '') + '"></div>';
+            }
+            html += '<div><b>Talents : </b></div>'
+            elems = el.getTalents();
+            for (i = 0; i < 4; ++i) {
+                el1 = typeof elems[i] !== 'undefined' ? elems[i] : '';
+                html += '<div><select class="autocomplete" name="Talents[' + i + ']">';
+                html += '<option value=""></option>'
+                $(CharGen.data.talents).each(function (i, e) {
+                    selected = el1 && e.id === el1.id ? 'selected="selected"' : '';
+                    html += '<option value="' + e.label + '" ' + selected + '>' + e.label + '</option>'
+                });
+                html += '</select><input name="SpecTalents[' + i + ']" type="text" value="' + (el1 ? (el1.spec ? el1.spec : (el1.specName && el1.specName.split(' ou ').length === 1 ? 'Au choix' : el1.specName)) : '') + '"></div>';
+            }
+            html += '<div><b>Equipements : </b></div>'
+            elems = el.trappings.split(', ');
+            for (i = 0; i < 10; ++i) {
+                el1 = typeof elems[i] !== 'undefined' ? elems[i] : '';
+                html += '<input name="Trappings[' + i + ']" type="text" value="' + el1 + '">';
+            }
+            html += '<div style="' + disable + '"><b>Jet de carrière selon la race : </b></div>'
+            html += '<table style="' + disable + '"><tr>';
+            for (let [label, value] of Object.entries(career.rand)) {
+                html += '<td>' + label + '</td>'
+            }
+            html += '</tr><tr>'
+            for (let [label, value] of Object.entries(career.rand)) {
+                html += '<td><input style="width: 100%;text-align: center;" name="Rand[' + label + ']" type="text" value="' + value + '"></td>'
+            }
+            html += '</tr></table>';
+            html += '<div style="' + disable + '"><b>Jet supplémentaire : </b><input style="width: 30px;text-align: center;" name="SubRoll" type="text" value="' + career.subRand + '"></div>'
+            html += '<div style="' + disable + '"><b>Resumé : </b><textarea style="width: 100%;height: 100px;" name="Resume">' + el.desc[0] + '</textarea></div>'
+            html += '<div style="' + disable + '"><b>Description :</b></div><textarea name="Description" style="' + disable + 'width: 100%;height: 640px;">' + desc + '</textarea>';
             html += '</span>';
             return html;
-        }
-        oThat.validateAction = true;
-        oThat.saveAction = function () {
+        };
+        oThat.saveCareerAction = function () {
             var con = $('.right_panel');
             var el = {};
-            var i = con.find('[name="id"]').val();
             const regex = /(\n)+/gmi;
-            var desc = con.find('[name="desc"]').val().trim().replace(new RegExp("[\n]+$", 'gmi'), "").replace(regex, "<br><br>").replace('’', "'");
-            el.label = con.find('[name="label"]').val().trim();
-            el.parent = con.find('[name="parent"]').val().trim();
-            el.book = con.find('[name="book"]').val().trim();
-            el.page = con.find('[name="page"]').val().trim();
-            el.prefix = con.find('[name="prefix"]').val().trim();
-            el.extra = con.find('[name="extra"]').val().trim();
-            el.spec = con.find('[name="spec"]').val().trim();
-            el.desc = desc;
+            var desc = con.find('[name="Description"]').val().trim().replace(new RegExp("[\n]+$", 'gmi'), "").replace(regex, "<br><br>").replace('’', "'");
+            var careerLevel = con.find('[name="careerLevel"]').val().trim().replace('’', "'");
+            el.index = con.find('[name="index"]').val().trim().replace('’', "'");
+            el.file = con.find('[name="file"]').val().trim().replace('’', "'");
+            el.mode = 'update';
+
+            el.Name = careerLevel != 1 ? '' : con.find('[name="Name"]').val().trim().replace('’', "'");
+            el.Classes = careerLevel != 1 ? '' : con.find('[name="Classes"]').val().trim().replace('’', "'");
+            el.Resume = careerLevel != 1 ? '' : con.find('[name="Resume"]').val().trim().replace('’', "'");
+            el.Description = careerLevel != 1 ? '' : desc;
+            el.Rank = con.find('[name="Rank"]').val().trim().replace('’', "'");
+            el.Livre = con.find('[name="Livre"]').val().trim().replace('’', "'");
+            el.Page = careerLevel != 1 ? '' : con.find('[name="Page"]').val().trim().replace('’', "'");
+            el.SubRoll = careerLevel != 1 ? '' : con.find('[name="SubRoll"]').val().trim().replace('’', "'");
+            el.Status = con.find('[name="Status1"]').val().trim() + ' ' + con.find('[name="Status2"]').val().trim().replace('’', "'");
+
+            var tmp = [];
+            var spec = '';
+            con.find('[name^=Skills]').each(function (e, i) {
+                if ($(i).val().trim()) {
+                    spec = $('[name="Spec' + $(i).prop('name') + '"]').val().trim().replace('’', "'")
+                    tmp[tmp.length] = $(i).val().trim() + (spec ? ' (' + spec + ')' : '');
+                }
+            });
+            el.Skills = tmp.sort().join(', ');
+            tmp = [];
+            con.find('[name^=Talents]').each(function (e, i) {
+                if ($(i).val().trim()) {
+                    spec = $('[name="Spec' + $(i).prop('name') + '"]').val().trim().replace('’', "'")
+                    tmp[tmp.length] = $(i).val().trim() + (spec ? ' (' + spec + ')' : '');
+                }
+            });
+            el.Talents = tmp.sort().join(', ');
+            tmp = [];
+            con.find('[name^=Trappings]').each(function (e, i) {
+                if ($(i).val().trim()) {
+                    tmp[tmp.length] = $(i).val().trim().replace('’', "'")
+                }
+            });
+            el.Trappings = tmp.sort().join(', ');
+            tmp = [];
+            con.find('[name^=Characteristics]').each(function (e, i) {
+                if ($(i).val().trim()) {
+                    tmp[tmp.length] = $(i).val().trim().replace('’', "'")
+                }
+            });
+            el.Characteristics = tmp.sort().join(', ');
+            con.find('[name^=Rand]').each(function (e, i) {
+                el[$(i).prop('name').split('[')[1].split(']')[0]] = careerLevel != 1 ? '' : $(i).val().trim().replace('’', "'");
+            });
             Helper.loader = new Helper.ajaxLoader("body");
+            var selected = $('.left_panel').find('.ui-selected').data('line');
             google.script.run.withSuccessHandler(function (data) {
                 CharacterGenerator().loadDataAndDisplay(data);
                 Helper.loader.remove();
-                $('.left_panel').find('[data-id="' + Helper.toId(el.label) + '"]').click();
-            }).saveLore(JSON.stringify(el));
+                var onglet = $('.left_panel #tabs-1');
+                var elSelected = onglet.find('[data-line="' + selected + '"]');
+                $('.left_panel [href="#tabs-1"]').click();
+                elSelected.click();
+                Helper.scrollToElement(elSelected, $('.left_panel'));
+            }).saveData(JSON.stringify(el));
+            return true;
+        };
+        oThat.duplicateCareerAction = function () {
+            var con = $('.right_panel');
+            var el = {};
+
+            el.index = parseInt(con.find('[name="index"]').val().trim()) + 3;
+            el.file = con.find('[name="file"]').val().trim();
+            el.mode = 'insert';
+
+            el.Name = 'New Career ' + Math.floor(Math.random() * 10000);
+            el.Classes = con.find('[name="Classes"]').val().trim();
+            el.SubRoll = con.find('[name="SubRoll"]').val().trim();
+            con.find('[name^=Rand]').each(function (e, i) {
+                el[$(i).prop('name').split('[')[1].split(']')[0]] = $(i).val().trim();
+            });
+
+            Helper.loader = new Helper.ajaxLoader("body");
+            var selected = parseInt($('.left_panel').find('.ui-selected').data('line')) + 5;
+            google.script.run.withSuccessHandler(function (data) {
+                CharacterGenerator().loadDataAndDisplay(data);
+                Helper.loader.remove();
+                var onglet = $('.left_panel #tabs-1');
+                var elSelected = onglet.find('[data-line="' + selected + '"]');
+                $('.left_panel [href="#tabs-1"]').click();
+                elSelected.click();
+                Helper.scrollToElement(elSelected, $('.left_panel'));
+            }).saveData(JSON.stringify(el));
             return true;
         };
 
-        oThat.cancelAction = false;
+        oThat.otherAction = function (el) {
+            el.html('Prévisualiser');
+            el.off('click').on('click', function () {
+                if ($('.right_panel').find('[name="Description"]:visible').val()) {
+                    const regex = /(\n)+/gmi;
+                    Helper.showPopin($('.right_panel').find('[name="Description"]').val().trim().replace(new RegExp("[\n]+$", 'gmi'), "").replace(regex, "<br><br>").replace('’', "'"), CharGen);
+                }
+            });
+        };
+
+        oThat.editSpecie = function (y, el) {
+            $('.validate').prop('disabled', false);
+            var html = '<span>';
+            const regex = /<br>/gmi;
+            var elems;
+            var i;
+            var el1;
+            var selected;
+            var el2;
+            $('.random').html('Dupliquer Race').show();
+
+            html += '<input type="hidden" name="file" value="Species">'
+            html += '<input type="hidden" name="index" value="' + el.index + '">'
+            var desc = el.desc[0].replace(regex, "\n");
+            html += '<div><b>Nom de la race : </b><input name="Name" type="text" value="' + el.label + '"></div>'
+            html += '<div><b>Livre : </b>';
+            html += '<select name="Livre">';
+            html += '<option value=""></option>'
+            el1 = el.book;
+            $(CharGen.data.books).each(function (i, e) {
+                selected = el1 && e.abr === el1 ? 'selected="selected"' : '';
+                html += '<option value="' + e.abr + '" ' + selected + '>' + e.label + '</option>'
+            });
+            html += '</select></div>';
+            html += '<div><b>Page : </b><input name="Page" type="text" value="' + el.page + '"></div>'
+
+            html += '<div><b>Compétences : </b></div>'
+            elems = el.getSkills();
+            for (i = 0; i < 14; ++i) {
+                el1 = typeof elems[i] !== 'undefined' ? elems[i] : '';
+                html += '<div><select class="autocomplete" name="Skills[' + i + ']">';
+                html += '<option value=""></option>'
+                $(CharGen.data.skills).each(function (i, e) {
+                    selected = el1 && e.id === el1.id ? 'selected="selected"' : '';
+                    html += '<option value="' + e.label + '" ' + selected + '>' + e.label + '</option>'
+                });
+                html += '</select><input name="SpecSkills[' + i + ']" type="text" value="' + (el1 ? (el1.spec ? el1.spec : (el1.specName && el1.specName.split(' ou ').length === 1 ? 'Au choix' : el1.specName)) : '') + '"></div>';
+            }
+            html += '<div><b>Talents : </b></div>'
+            elems = el.getTalents();
+            for (i = 0; i < 8; ++i) {
+                el1 = typeof elems[i] !== 'undefined' ? elems[i] : '';
+                html += '<div>'
+                for (y = 0; y < Math.max(el1.length, 2); ++y) {
+                    var el2 = el1[y];
+                    if (y > 0) {
+                        html += 'ou';
+                    }
+                    html += '<select style="width: 20%" class="autocomplete" data-i="' + i + '" data-y="' + y + '" name="Talents[' + i + '][' + y + ']">';
+                    html += '<option value=""></option>'
+                    $(CharGen.data.talents).each(function (i, e) {
+                        selected = el2 && e.id === el2.id ? 'selected="selected"' : '';
+                        html += '<option value="' + e.label + '" ' + selected + '>' + e.label + '</option>'
+                    });
+                    html += '</select><input style="width: 20%" name="SpecTalents[' + i + '][' + y + ']" type="text" value="' + (el2 ? (el2.spec ? el2.spec : (el2.specName && el2.specName.split(' ou ').length === 1 ? 'Au choix' : el2.specName)) : '') + '">'
+                }
+                html += '</div>';
+            }
+            html += '<div><b>Nombre de talent aléatoire : </b><input name="Random talents" style="width: 30px;text-align: center;" type="text" value="' + el.randomTalents + '"></div>'
+
+            html += '<div><b>Age : </b><input name="Age" style="width: 30px;text-align: center;"  type="text" value="' + el.age + '"> + <input name="Age Roll" style="width: 30px;text-align: center;" type="text" value="' + el.rollAge + '"> x 1d10 ans</div>'
+            html += '<div><b>Taille : </b><input name="Height" style="width: 30px;text-align: center;" type="text" value="' + el.height + '"> + <input name="Height Roll" style="width: 30px;text-align: center;" type="text" value="' + el.rollHeight + '"> x 1d10 cm</div>'
+
+
+            html += '<div><b>Jet de race : </b><input style="width: 30px;text-align: center;" name="Roll" type="text" value="' + el.rand + '"></div>';
+            html += '<div><b>Profil : </b></div>'
+            html += '<table><tr>';
+            el2 = {
+                'refChar': 'Attributs',
+                'refCareer': 'Carrières',
+                'refDetail': 'Détails'
+            }
+            for (let [value, label] of Object.entries(el2)) {
+                html += '<td>' + label + '</td>'
+            }
+            html += '</tr><tr>'
+            for (let [value, label] of Object.entries(el2)) {
+                html += '<td><select name="' + value + '">';
+                el1 = el[value];
+                for (let [i, label] of Object.entries(CharGen.data.ref[value])) {
+                    selected = el1 && i === el1 ? 'selected="selected"' : '';
+                    html += '<option value="' + i + '" ' + selected + '>' + i + '</option>'
+                }
+                html += '</select></td>';
+            }
+            html += '</tr></table>';
+            html += '<div><b>Description :</b></div><textarea name="Description" style="width: 100%;height: 640px;">' + desc + '</textarea>';
+            html += '</span>';
+            return html;
+        };
+        oThat.saveSpecieAction = function () {
+            var con = $('.right_panel');
+            var el = {};
+            const regex = /(\n)+/gmi;
+            var desc = con.find('[name="Description"]').val().trim().replace(new RegExp("[\n]+$", 'gmi'), "").replace(regex, "<br><br>").replace('’', "'");
+            el.index = con.find('[name="index"]').val().trim().replace('’', "'");
+            el.file = con.find('[name="file"]').val().trim().replace('’', "'");
+            el.mode = 'update';
+
+            el.Name = con.find('[name="Name"]').val().trim().replace('’', "'");
+            el.Livre = con.find('[name="Livre"]').val().trim().replace('’', "'");
+            el.Page = con.find('[name="Page"]').val().trim().replace('’', "'");
+
+            el['Random talents'] = con.find('[name="Random talents"]').val().trim().replace('’', "'");
+            el.Age = con.find('[name="Age"]').val().trim().replace('’', "'");
+            el['Age Roll'] = con.find('[name="Age Roll"]').val().trim().replace('’', "'");
+            el.Height = con.find('[name="Height"]').val().trim().replace('’', "'");
+            el['Height Roll'] = con.find('[name="Height Roll"]').val().trim().replace('’', "'");
+
+            el['Char ref'] = con.find('[name="refChar"]').val().trim().replace('’', "'");
+            el['Career ref'] = con.find('[name="refCareer"]').val().trim().replace('’', "'");
+            el['Detail ref'] = con.find('[name="refDetail"]').val().trim().replace('’', "'");
+            el.Roll = con.find('[name="Roll"]').val().trim().replace('’', "'");
+
+            el.Description = desc;
+
+            var tmp = [];
+            var spec = '';
+            con.find('[name^=Skills]').each(function (e, i) {
+                if ($(i).val().trim()) {
+                    spec = $('[name="Spec' + $(i).prop('name') + '"]').val().trim().replace('’', "'")
+                    tmp[tmp.length] = $(i).val().trim() + (spec ? ' (' + spec + ')' : '');
+                }
+            });
+            el.Skills = tmp.sort().join(', ');
+            tmp = [];
+            con.find('[name^=Talents][name$="[0]"]').each(function (e, i) {
+                var index = $(i).data('i');
+                var tmp2 = [];
+                con.find('[name^=Talents][data-i=' + index + ']').each(function (e, i) {
+                    if ($(i).val().trim()) {
+                        spec = $('[name="Spec' + $(i).prop('name') + '"]').val().trim().replace('’', "'")
+                        if (spec && spec.split(' ou ').length > 1) {
+                            $(spec.split(' ou ')).each(function (x, y) {
+                                tmp2[tmp2.length] = $(i).val().trim() + ' (' + y + ')';
+                            });
+                        } else {
+                            tmp2[tmp2.length] = $(i).val().trim() + (spec ? ' (' + spec + ')' : '');
+                        }
+                    }
+                });
+                if (tmp2.length) {
+                    tmp[tmp.length] = tmp2.sort().join(' ou ');
+                }
+            })
+            el.Talents = tmp.sort().join(', ');
+
+            Helper.loader = new Helper.ajaxLoader("body");
+            var selected = $('.left_panel').find('.ui-selected').data('line');
+            google.script.run.withSuccessHandler(function (data) {
+                CharacterGenerator().loadDataAndDisplay(data);
+                Helper.loader.remove();
+                var onglet = $('.left_panel #tabs-2');
+                var elSelected = onglet.find('[data-line="' + selected + '"]');
+                $('.left_panel [href="#tabs-2"]').click();
+                elSelected.click();
+                Helper.scrollToElement(elSelected, $('.left_panel'));
+            }).saveData(JSON.stringify(el));
+            return true;
+        };
+        oThat.duplicateSpecieAction = function () {
+            var con = $('.right_panel');
+            var el = {};
+
+            el.index = parseInt(con.find('[name="index"]').val().trim());
+            el.file = con.find('[name="file"]').val().trim();
+            el.mode = 'insert';
+
+            el.Name = 'New Specie ' + Math.floor(Math.random() * 10000);
+            el.Age = con.find('[name="Age"]').val().trim().replace('’', "'");
+            el['Age Roll'] = con.find('[name="Age Roll"]').val().trim().replace('’', "'");
+            el.Height = con.find('[name="Height"]').val().trim().replace('’', "'");
+            el['Height Roll'] = con.find('[name="Height Roll"]').val().trim().replace('’', "'");
+
+            el['Char ref'] = con.find('[name="refChar"]').val().trim().replace('’', "'");
+            el['Career ref'] = con.find('[name="refCareer"]').val().trim().replace('’', "'");
+            el['Detail ref'] = con.find('[name="refDetail"]').val().trim().replace('’', "'");
+            el.Roll = con.find('[name="Roll"]').val().trim().replace('’', "'");
+
+            Helper.loader = new Helper.ajaxLoader("body");
+            var selected = parseInt($('.left_panel').find('.ui-selected').data('line')) + 1;
+            google.script.run.withSuccessHandler(function (data) {
+                CharacterGenerator().loadDataAndDisplay(data);
+                Helper.loader.remove();
+                var onglet = $('.left_panel #tabs-2');
+                var elSelected = onglet.find('[data-line="' + selected + '"]');
+                $('.left_panel [href="#tabs-2"]').click();
+                elSelected.click();
+                Helper.scrollToElement(elSelected, $('.left_panel'));
+            }).saveData(JSON.stringify(el));
+            return true;
+        };
+
+        var SpellRange = [];
+        var SpellDuration = [];
+        var SpellTarget = [];
+        oThat.editSpell = function (y, el) {
+            $('.validate').prop('disabled', false);
+            $('.random').html('Dupliquer Sort').show();
+            var html = '<span>';
+            const regex = /<br>/gmi;
+            var elems;
+            var i;
+            var selected;
+            html += '<input type="hidden" name="file" value="Spells">'
+            html += '<input type="hidden" name="index" value="' + el.index + '">'
+            var desc = el.desc[4].replace(regex, "\n");
+            html += '<div><b>Type : </b><input name="Type" type="hidden" value="' + el.type + '">' + el.type + '</div>'
+            html += '<div><b>Domaine/Dieu : </b><input name="Spec" type="hidden" value="' + el.spec + '">' + el.spec + '</div>'
+            html += '<div><b>Nom : </b><input name="Name" type="text" value="' + el.label + '"></div>'
+            html += '<div><b>Livre : </b>';
+            html += '<select name="Livre">';
+            html += '<option value=""></option>'
+            var el1 = el.book;
+            $(CharGen.data.books).each(function (i, e) {
+                selected = el1 && e.abr === el1 ? 'selected="selected"' : '';
+                html += '<option value="' + e.abr + '" ' + selected + '>' + e.label + '</option>'
+            });
+            html += '</select></div>';
+            html += '<div><b>Page : </b><input name="Page" type="text" value="' + el.page + '"></div>'
+            html += '<div><b>NI : </b><input name="CN" type="text" value="' + el.cn + '"></div>';
+            html += '<div><b>Portée : </b>';
+            html += '<select name="Range" class="autocomplete">';
+            elems = el.range;
+            for (i = 0; i < SpellRange.length; ++i) {
+                selected = elems && elems === SpellRange[i] ? 'selected="selected"' : '';
+                html += '<option value="' + SpellRange[i] + '" ' + selected + '>' + SpellRange[i] + '</option>'
+            }
+            html += '</select></div>';
+            html += '<div><b>Cible : </b>';
+            html += '<select name="Target" class="autocomplete">';
+            elems = el.target;
+            for (i = 0; i < SpellTarget.length; ++i) {
+                selected = elems && elems === SpellTarget[i] ? 'selected="selected"' : '';
+                html += '<option value="' + SpellTarget[i] + '" ' + selected + '>' + SpellTarget[i] + '</option>'
+            }
+            html += '</select></div>';
+            html += '<div><b>Durée : </b>';
+            html += '<select name="Duration" class="autocomplete">';
+            elems = el.duration;
+            for (i = 0; i < SpellDuration.length; ++i) {
+                selected = elems && elems === SpellDuration[i] ? 'selected="selected"' : '';
+                html += '<option value="' + SpellDuration[i] + '" ' + selected + '>' + SpellDuration[i] + '</option>'
+            }
+            html += '</select></div>';
+            html += '<div><b>Description :</b></div><textarea name="Description" style="width: 100%;height: 640px;">' + desc + '</textarea>';
+            html += '</span>';
+            return html;
+        };
+
+        oThat.saveSpellAction = function () {
+            var con = $('.right_panel');
+            var el = {};
+            const regex = /(\n)+/gmi;
+            var desc = con.find('[name="Description"]').val().trim().replace(new RegExp("[\n]+$", 'gmi'), "").replace(regex, "<br><br>").replace('’', "'");
+
+            el.index = con.find('[name="index"]').val().trim().replace('’', "'");
+            el.file = con.find('[name="file"]').val().trim().replace('’', "'");
+            el.mode = 'update';
+
+            el.Name = con.find('[name="Name"]').val().trim().replace('’', "'");
+            el.CN = con.find('[name="CN"]').val().trim().replace('’', "'");
+            el.Range = con.find('[name="Range"]').val().trim().replace('’', "'");
+            el.Target = con.find('[name="Target"]').val().trim().replace('’', "'");
+            el.Duration = con.find('[name="Duration"]').val().trim().replace('’', "'");
+            el.Description = desc;
+            el.Livre = con.find('[name="Livre"]').val().trim().replace('’', "'");
+            el.Page = con.find('[name="Page"]').val().trim().replace('’', "'");
+            el.Type = con.find('[name="Type"]').val().trim().replace('’', "'");
+            el.Spec = con.find('[name="Spec"]').val().trim().replace('’', "'");
+
+            Helper.loader = new Helper.ajaxLoader("body");
+            var selected = $('.left_panel').find('.ui-selected').data('line');
+            google.script.run.withSuccessHandler(function (data) {
+                CharacterGenerator().loadDataAndDisplay(data);
+                Helper.loader.remove();
+                var onglet = $('.left_panel #tabs-4');
+                var elSelected = onglet.find('[data-line="' + selected + '"]');
+                $('.left_panel [href="#tabs-4"]').click();
+                elSelected.click();
+                Helper.scrollToElement(elSelected, $('.left_panel'));
+            }).saveData(JSON.stringify(el));
+            return true;
+        };
+        oThat.duplicateSpellAction = function () {
+            var con = $('.right_panel');
+            var el = {};
+
+            el.index = con.find('[name="index"]').val().trim();
+            el.file = con.find('[name="file"]').val().trim();
+            el.mode = 'insert';
+
+            el.Name = 'New Spell ' + Math.floor(Math.random() * 10000);
+            el.Type = con.find('[name="Type"]').val().trim();
+            el.Spec = con.find('[name="Spec"]').val().trim();
+            el.Livre = con.find('[name="Livre"]').val().trim().replace('’', "'");
+            el.Page = con.find('[name="Page"]').val().trim().replace('’', "'");
+
+            Helper.loader = new Helper.ajaxLoader("body");
+            var selected = parseInt($('.left_panel').find('.ui-selected').data('line')) + 1;
+            google.script.run.withSuccessHandler(function (data) {
+                CharacterGenerator().loadDataAndDisplay(data);
+                Helper.loader.remove();
+                var onglet = $('.left_panel #tabs-4');
+                var elSelected = onglet.find('[data-line="' + selected + '"]');
+                $('.left_panel [href="#tabs-4"]').click();
+                elSelected.click();
+                Helper.scrollToElement(elSelected, $('.left_panel'));
+            }).saveData(JSON.stringify(el));
+            return true;
+        };
+        oThat.validateAction = true;
+        oThat.saveAction = function () {
+            var val = $('.right_panel').find('[name="file"]').val();
+            if (val === 'Careers') {
+                oThat.saveCareerAction();
+            }
+            if (val === 'Spells') {
+                oThat.saveSpellAction();
+            }
+            if (val === 'Species') {
+                oThat.saveSpecieAction();
+            }
+
+            return false;
+        };
+
+        oThat.randomAction = function () {
+            $('.random').hide();
+            $('.random').off('click').on('click', function () {
+                var val = $('.right_panel').find('[name="file"]').val();
+                if (val === 'Careers') {
+                    oThat.duplicateCareerAction();
+                }
+                if (val === 'Spells') {
+                    oThat.duplicateSpellAction();
+                }
+                if (val === 'Species') {
+                    oThat.duplicateSpecieAction();
+                }
+                return false;
+            });
+        };
+
 
         oThat.show = function () {
             var con = $('.left_panel').css('width', '370px').html('');
             $('.right_panel').css('width', '680px');
+            con.append('<div class="tabs glossaire"></div>');
+            var tabs = con.find('.tabs');
+            tabs.append('<ul><li><a href="#tabs-1">Carrières</a></li><li><a href="#tabs-2">Races</a></li><li><a href="#tabs-3">Possessions</a></li><li><a href="#tabs-4">Sorts</a></li></ul>');
 
-            /** Lore **/
-            var lore = CharGen.data.lore;
+            /** Career **/
+            tabs.append('<div id="tabs-1" class="pretty_panel paneltabs overflow_panel"></div>');
+            var careerTab = tabs.find('#tabs-1');
+
+            var careers = CharGen.data.careers;
+            var currentClass = '';
+            var displayedCareers = [];
+            $(careers).each(function (i) {
+                var el = careers[i];
+                var tmpClass = el.getClass();
+                if (currentClass !== tmpClass.getLabel()) {
+                    currentClass = tmpClass.getLabel();
+                    displayedCareers[displayedCareers.length] = {
+                        label: currentClass,
+                        desc: tmpClass.desc,
+                        level: 1
+                    };
+                }
+                displayedCareers[displayedCareers.length] = {
+                    label: el.book + ' - ' + el.getLabel(),
+                    desc: el.desc,
+                    level: 2
+                };
+                (CharGen.allCareersLevelsByGroup[el.id]).forEach(function (el, i) {
+                    el.pastCareerLevel = el.careerGroup + '|' + el.label;
+                    var myCareer = Helper.clone(el);
+                    myCareer.level = 3;
+                    displayedCareers[displayedCareers.length] = myCareer;
+                })
+            });
             Helper.generateListWithHelp(
-                lore,
+                displayedCareers,
+                function () {
+                    return true
+                },
+                careerTab,
                 function (i, el) {
-                    return true;
+                    return el.label;
                 },
-                con,
+                function (i, elem, dis, force) {
+                    Helper.addDescription(oThat.editCareer(i, displayedCareers[i]), CharGen);
+                    $('.right_panel').find('select.autocomplete').selectToAutocomplete({'remove-valueless-options': false});
+                },
+                true,
                 function (i, el) {
-                    return (el.prefix ? el.prefix + ' ' : '') + el.label + (el.title ? ' ' + el.title : '');
+                    return el.level !== 3;
                 },
-                function (i) {
-                    Helper.addDescription(oThat.edit(i, lore[i]), CharGen);
-                },
-                false,
-                null,
                 function (i, el) {
                     return el.level;
                 }
             );
+
+            /** Races **/
+            tabs.append('<div id="tabs-2" class="pretty_panel paneltabs overflow_panel"></div>');
+            var speciesTab = tabs.find('#tabs-2');
+            var species = CharGen.data.species;
+            Helper.generateListWithHelp(
+                species,
+                function () {
+                    return true
+                },
+                speciesTab,
+                function (i, el) {
+                    return el.book + ' - ' + el.label
+                },
+                function (i, elem, dis, force) {
+                    Helper.addDescription(oThat.editSpecie(i, species[i]), CharGen);
+                    $('.right_panel').find('select.autocomplete').selectToAutocomplete({'remove-valueless-options': false})
+                },
+                true
+            );
+
+            /** Possessions **/
+            tabs.append('<div id="tabs-3" class="pretty_panel paneltabs overflow_panel"></div>');
+
+            /** Sorts **/
+            tabs.append('<div id="tabs-4" class="pretty_panel paneltabs overflow_panel"></div>');
+            var spellTab = tabs.find('#tabs-4');
+            var spells = CharGen.data.spells;
+            var currentType = '';
+            var currentSpec = '';
+            var desc = '';
+            var displayedSpells = [];
+            $(spells).each(function (i, el) {
+                if (currentType !== spells[i].type) {
+                    desc = '';
+                    currentType = spells[i].type;
+                    if (typeof CharGen.allTalents[Helper.toId(currentType)] !== 'undefined') {
+                        desc = CharGen.allTalents[Helper.toId(currentType)].desc;
+                    }
+                    displayedSpells[displayedSpells.length] = {
+                        label: currentType,
+                        desc: desc,
+                        level: 1
+                    };
+                }
+                if (currentSpec !== spells[i].spec) {
+                    currentSpec = spells[i].spec;
+                    displayedSpells[displayedSpells.length] = {
+                        label: currentSpec,
+                        level: 2
+                    };
+                }
+                var mySpell = Helper.clone(spells[i]);
+                if (SpellRange.indexOf(mySpell.range) === -1) {
+                    SpellRange[SpellRange.length] = mySpell.range;
+                }
+                if (SpellDuration.indexOf(mySpell.duration) === -1) {
+                    SpellDuration[SpellDuration.length] = mySpell.duration;
+                }
+                if (SpellTarget.indexOf(mySpell.target) === -1) {
+                    SpellTarget[SpellTarget.length] = mySpell.target;
+                }
+                mySpell.level = 3
+                displayedSpells[displayedSpells.length] = mySpell;
+            });
+            SpellRange.sort();
+            SpellDuration.sort();
+            SpellTarget.sort();
+            Helper.generateListWithHelp(
+                displayedSpells,
+                function () {
+                    return true
+                },
+                spellTab,
+                function (i, el) {
+                    return el.level === 3 ? el.book + ' - ' + el.label : el.label
+                },
+                function (i, elem, dis, force) {
+                    Helper.addDescription(oThat.editSpell(i, displayedSpells[i]), CharGen);
+                    $('.right_panel').find('select.autocomplete').selectToAutocomplete({
+                        'remove-valueless-options': false, 'autoselect': false,
+                        handle_invalid_input: function (context) {
+                            var newVal = context.$text_field.val();
+                            context.$select_field.append($('<option>', {
+                                value: newVal,
+                                text: newVal
+                            }));
+                            context.$select_field.val(newVal);
+                            var selected_finder = 'option:selected:first';
+                            if (context.settings['remove-valueless-options']) {
+                                selected_finder = 'option:selected[value!=""]:first';
+                            }
+                            context.$text_field.val(context.$select_field.find(selected_finder).text());
+                        }
+                    })
+                },
+                true,
+                function (i, el) {
+                    return el.level !== 3;
+                },
+                function (i, el) {
+                    return el.level;
+                }
+            );
+
+            tabs.tabs();
         };
         return oThat;
     }

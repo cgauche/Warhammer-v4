@@ -149,6 +149,13 @@
                     }
                 },
                 {
+                    label: 'Signe Astrologique', value: character.getStar() ? character.getStar().getLabel() : '', desc: function () {
+                        if (character.getStar()) {
+                            Helper.showPopin(Helper.getHelpFormat(character.getStar().data, CharGen), CharGen)
+                        }
+                    }
+                },
+                {
                     label: 'Classe', value: career ? career.getClass().getLabel() : '', desc: function () {
                         if (career) {
                             Helper.showPopin(Helper.getHelpFormat(career.getClass(), CharGen), CharGen)
@@ -207,40 +214,50 @@
                 }
             ]
             var mouvement = character.searchCharacteristic('Mouvement')
-            var marche = Helper.clone(mouvement);
-            marche.getLabel = function () { return 'Marche'};
-            marche.getTotal = function () { return mouvement.getTotal() * 2};
-            var course = Helper.clone(mouvement);
-            course.getLabel = function () { return 'Course'};
-            course.getTotal = function () { return mouvement.getTotal() * 4};
-            skillstab = tabs.find('#tabs-1 .right_panel');
-            $([
-                ['Destin', [character.searchCharacteristic('Destin'), character.searchCharacteristic('Chance')]],
-                ['Résilience', [character.searchCharacteristic('Résilience'), character.searchCharacteristic('Détermination'), detailDescription(5)]],
-                ['Mouvement', [mouvement, marche, course]],
-                ['Autre', [character.searchCharacteristic('Points de Blessures'), character.searchCharacteristic('Corruption')]],
-            ]).each(function (i, elem) {
-                skillstab.append('<h3>'+elem[0]+'</h3>');
-                Helper.generateListWithRankAndHelp(
-                    elem[1],
-                    ['', ''],
-                    function (i, el) {
-                        return true
-                    },
-                    skillstab,
-                    columFunction,
-                    function () {
-                    },
-                    function () {
-                    },
-                    function (i, el) {
-                        Helper.showPopin(Helper.getHelpFormat(el, CharGen), CharGen)
-                    },
-                    1,
-                    undefined,
-                    true
-                );
-            });
+            if (mouvement) {
+                var marche = Helper.clone(mouvement);
+                marche.getLabel = function () {
+                    return 'Marche'
+                };
+                marche.getTotal = function () {
+                    return mouvement.getTotal() * 2
+                };
+                var course = Helper.clone(mouvement);
+                course.getLabel = function () {
+                    return 'Course'
+                };
+                course.getTotal = function () {
+                    return mouvement.getTotal() * 4
+                };
+                skillstab = tabs.find('#tabs-1 .right_panel');
+                $([
+                    ['Destin', [character.searchCharacteristic('Destin'), character.searchCharacteristic('Chance')]],
+                    ['Résilience', [character.searchCharacteristic('Résilience'), character.searchCharacteristic('Détermination'), detailDescription(5)]],
+                    ['Mouvement', [mouvement, marche, course]],
+                    ['Autre', [character.searchCharacteristic('Points de Blessures'), character.searchCharacteristic('Corruption')]],
+                ]).each(function (i, elem) {
+                    skillstab.append('<h3>' + elem[0] + '</h3>');
+                    Helper.generateListWithRankAndHelp(
+                        elem[1],
+                        ['', ''],
+                        function (i, el) {
+                            return true
+                        },
+                        skillstab,
+                        columFunction,
+                        function () {
+                        },
+                        function () {
+                        },
+                        function (i, el) {
+                            Helper.showPopin(Helper.getHelpFormat(el, CharGen), CharGen)
+                        },
+                        1,
+                        undefined,
+                        true
+                    );
+                });
+            }
             /** SKILLS **/
             tabs.append('<div id="tabs-6" class="pretty_panel overflow_panel"><div class="main_div"><div class="left_panel"></div><div class="right_panel"></div></div></div>');
             skillstab = tabs.find('#tabs-6 .left_panel');
@@ -258,7 +275,7 @@
                         return el.getLabel()
                     },
                     function (i, el) {
-                        return el.getCharacteristic().data.abr + ' ' + el.getBase();
+                        return el.getCharacteristic() ? el.getCharacteristic().data.abr + ' ' + el.getBase() : '';
                     },
                     function (i, el) {
                         return el.getAdvance() ? el.getAdvance() : '';
@@ -278,7 +295,6 @@
             );
             skillstab = tabs.find('#tabs-6 .right_panel');
             skillstab.append('<h3>Comp. groupées et avancées</h3>');
-
             Helper.generateListWithRankAndHelp(
                 skills,
                 ['Nom', 'Carac', 'Aug', 'Comp'],
@@ -291,7 +307,7 @@
                         return el.getLabel()
                     },
                     function (i, el) {
-                        return el.getCharacteristic().data.abr + ' ' + el.getBase();
+                        return el.getCharacteristic() ? el.getCharacteristic().data.abr + ' ' + el.getBase() : '';
                     },
                     function (i, el) {
                         return el.getAdvance() ? el.getAdvance() : '';
@@ -516,8 +532,7 @@
                                 },
                                 1,
                                 null,
-                                true,
-                                [20, 80]
+                                true
                             );
                         });
                     }

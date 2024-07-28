@@ -23,7 +23,7 @@
         };
         oThat.randomAllAction = function () {
             var elems = CharGen.data.stars;
-            var value = Helper.getRandomInt(100);
+            var value = 101;//Helper.getRandomInt(100);
             for (var i = 0; i < elems.length; ++i) {
                 var el = elems[i];
                 if (el.rand >= value) {
@@ -118,7 +118,7 @@
                 var myStar = Helper.clone(el);
                 var min = (el.rand >= previousRand ? previousRand : previousPreviousRand);
                 var max = min !== el.rand ? '-' + el.rand : ''
-                myStar.altLabel = '<span>' + myStar.getLabel() + '</span><span class="showRoll"">' + min + max + '</span>';
+                myStar.altLabel = '<span>' + myStar.getLabel() + '</span><span class="showRoll">' + min + max + '</span>';
                 if (el.rand && el.rand >= previousRand) {
                     previousPreviousRand = previousRand;
                     previousRand = el.rand + 1;

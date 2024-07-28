@@ -83,22 +83,23 @@
                                 }
                                 if (rand >= value) {
                                     if (!character.randomState.imposedCareers.includes(el.id)) {
-                                        if (typeof imposedCareersCounter[y] === 'undefined') {
-                                            imposedCareersCounter[y] = [];
-                                        }
-                                        imposedCareersCounter[y][imposedCareersCounter[y].length] = character.randomState.imposedCareers.length;
                                         character.randomState.imposedCareers[character.randomState.imposedCareers.length] = el.id;
+                                        if (typeof imposedCareersCounter[y] === 'undefined') {
+                                            imposedCareersCounter[y] = 0;
+                                        }
+                                        imposedCareersCounter[y] = character.randomState.imposedCareers.length;
                                         if (target === -1) {
-                                            target = el.rand;
+                                            target = rand;
                                             values[values.length] = value;
-                                            ++y;
                                         }
                                     } else {
+                                        --y;
                                         return false;
                                     }
                                 }
                             }
                         });
+                        ++y;
                     }
                     Helper.dice(values,
                         function (i) {
@@ -130,13 +131,13 @@
             };
         }
 
-        oThat.autoSelectCareer = function (array, anime) {
+        oThat.autoSelectCareer = function (nb, anime) {
             anime = typeof anime !== 'undefined' && anime;
             $(character.randomState.imposedCareers).each(function (y, el) {
                 var $el = $careers.find('li[data-id="' + el + '"]');
                 setTimeout(function () {
                     if (anime) {
-                        if (array.includes(y)) {
+                        if (nb > y && $el.is('.disabled')) {
                             $el.removeClass('disabled');
                             Helper.scrollToElement($el.prevAll('.listchild1').first(), $el.parents('.overflow_panel'))
                             $el.animate({
@@ -177,16 +178,10 @@
                 rand = el.rand;
                 if (currentClass !== tmpClass.getLabel() && rand[specie]) {
                     currentClass = tmpClass.getLabel();
-                    displayedCareers[displayedCareers.length] = {
-                        label: currentClass,
-                        id: tmpClass.id,
-                        desc: tmpClass.desc,
-                        rand: rand,
-                        level: 1,
-                        getLabel: function () {
-                            return this.label;
-                        }
-                    };
+                    tmpClass = Helper.clone(tmpClass);
+                    tmpClass.level = 1;
+                    tmpClass.rand = rand;
+                    displayedCareers[displayedCareers.length] = tmpClass;
                 }
                 if (rand[specie] && rand[specie] >= previousRand) {
                     previousPreviousRand = previousRand;
@@ -194,26 +189,22 @@
                 }
                 var min = (rand[specie] >= previousRand ? previousRand : previousPreviousRand);
                 var max = min !== rand[specie] ? '-' + rand[specie] : '';
-                var roll = ' <span class="showRoll"">' + min + max + '</span>';
-                displayedCareers[displayedCareers.length] = {
-                    label: el.getLabel(),
-                    id: el.id,
-                    desc: el.desc,
-                    rand: rand,
-                    level: 2,
-                    altLabel: oThat.characterOnCreation() && rand[specie] ?
-                        (character.isFreeMode() ? '<span class="highlighting">' + this.getLabel() + roll + '<span>' : this.getLabel() + roll) :
-                        this.getLabel(),
-                    getLabel: function () {
-                        return this.label;
-                    }
-                };
-                (CharGen.allCareersLevelsByGroup[el.id]).forEach(function (el, i) {
-                    var myCareer = Helper.clone(el);
-                    myCareer.level = 3;
-                    myCareer.rand = rand;
-                    displayedCareers[displayedCareers.length] = myCareer;
-                })
+                var roll = '<span class="showRoll">' + min + max + '</span>';
+                var tmp = Helper.clone(el);
+                tmp.level = 2;
+                tmp.rand = rand;
+                tmp.altLabel = oThat.characterOnCreation() && rand[specie] ?
+                    (character.isFreeMode() ? '<span class="highlighting">' + this.getLabel() + '<span>' + roll : '<span>' + this.getLabel() + '</span>' + roll) :
+                    this.getLabel();
+                displayedCareers[displayedCareers.length] = tmp;
+                if (!oThat.characterOnCreation()) {
+                    (CharGen.allCareersLevelsByGroup[el.id]).forEach(function (el, i) {
+                        var myCareer = Helper.clone(el);
+                        myCareer.level = 3;
+                        myCareer.rand = rand;
+                        displayedCareers[displayedCareers.length] = myCareer;
+                    })
+                }
                 /*var */
             });
 

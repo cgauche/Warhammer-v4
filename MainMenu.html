@@ -12,7 +12,14 @@
 
         };
 
-        oThat.otherAction = false;
+        oThat.otherAction = false; /*function (el) {
+            el.html('Options');
+            el.off('click').on('click', function () {
+                $('.all_panel').hide();
+                $('.two_part_panel').show();
+                CharGen.showPanel(0, Option(CharGen));
+            });
+        };*/
 
         oThat.randomAction = false;
         oThat.show = function () {
@@ -35,7 +42,7 @@
                 {
                     stepName: "Nouveau (aléatoire)", onClick: function () {
                         var i = 0;
-                        var max = 9;
+                        var max = 8;
                         Menu(CharGen, 'normal').createNewCharacter();
                         //CharGen.character.xp.max = 50000;
                         while (i < max) {
@@ -53,7 +60,7 @@
                             }*/
                         }
 
-                        CharGen.character.stepIndex = 9;
+                        CharGen.character.stepIndex = i;
                         $('.all_panel').hide();
                         $('.two_part_panel').show();
                         CharGen.showPanel(CharGen.character.stepIndex, CharGen.stepList[CharGen.character.stepIndex]);
@@ -74,8 +81,15 @@
                                             "Content-Type": "text/plain;charset=utf-8",
                                         },
                                     })
-                                    if (response) {
-                                        var data = await response.json();
+                                    /*var save = localStorage.getItem('save');
+                                    var saveName = $('.code').val();
+                                    if (save === null) {
+                                        save = {};
+                                    } else {
+                                        save = JSON.parse(save);
+                                    }*/
+                                    if (response/*typeof save[saveName] !== 'undefined'*/) {
+                                        var data = /*save[saveName];*/await response.json();
                                         Menu(CharGen).createNewCharacter();
                                         CharGen.character.load(data);
                                         CharGen.saveName = $('.code').val();

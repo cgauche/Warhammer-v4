@@ -8,7 +8,7 @@
             StepSpecies(i++, oThat),
             StepCareers(i++, oThat, 'creation'),
             StepCharacteristics(i++, oThat),
-            StepStars(i++, oThat),
+            //StepStars(i++, oThat),
             StepTalents(i++, oThat),
             StepSkills(i++, oThat),
             StepTrappings(i++, oThat),
@@ -136,7 +136,7 @@
                             skill.origins = [el.id];
                             skills[skills.length] = skill;
                         } else {
-                            console.log(el2)
+                            console.log('addSpecie getSkills: ' + el2)
                         }
                     }
                 }
@@ -158,7 +158,7 @@
                                 talent.origins = [el.id];
                                 talents[i][talents[i].length] = talent;
                             } else {
-                                console.log(el2)
+                                console.log('addSpecie getTalents: ' + el2)
                             }
                         }
                     }
@@ -200,6 +200,18 @@
             el.getLabel = function () {
                 return this.label;
             };
+            el.getTalent = function () {
+                var talent = '';
+                if (this.talent) {
+                    talent = Helper.formatTalent(oThat, this.talent);
+                    if (talent) {
+                        talent.origins = ['star'];
+                    } else {
+                        console.log('addStar getTalent: ' + this.talent)
+                    }
+                }
+                return talent;
+            };
         }
         oThat.addSkill = function (el) {
             el.from = 'skills';
@@ -229,7 +241,7 @@
                         }
                         skill.origins = ['talent'];
                     } else {
-                        console.log(this.addSkill)
+                        console.log('addTalent getSkill: ' + this.addSkill)
                     }
                 }
                 return skill;
@@ -241,7 +253,7 @@
                     if (talent) {
                         talent.origins = ['talent'];
                     } else {
-                        console.log(this.addTalent)
+                        console.log('addTalent getTalent: ' + this.addTalent)
                     }
                 }
                 return talent;
@@ -284,7 +296,7 @@
                         spell.spec = el.label;
                         result[result.length] = spell;
                     } else {
-                        console.log('Bénédiction de ' + el2)
+                        console.log('addGod getSpells: Bénédiction de ' + el2)
                     }
                 }
                 return result;
@@ -349,7 +361,7 @@
             }
             oThat.allCareersLevelsByGroup[careerGroupId][el.careerLevel] = el;
             el.getLabel = function () {
-                return Helper.rangToImg(this.careerLevel) + this.label;
+                return Helper.rangToImg(this.careerLevel) + '<span>' + this.label + '</span>';
             };
             el.getCareer = function () {
                 return oThat.allCareers[Helper.toId(el.careerGroup)];
@@ -367,7 +379,8 @@
                             skill.origins = [elem.id, elem.id.split('|')[0]];
                             skills[skills.length] = skill;
                         } else {
-                            console.log(el2)
+                            console.log(el);
+                            console.log('addCareerLevel getSkills: ' + el2)
                         }
                     }
                 }
@@ -386,7 +399,7 @@
                             characteristic.origins = [elem.id, elem.id.split('|')[0]];
                             characteristics[characteristics.length] = characteristic;
                         } else {
-                            console.log(el2)
+                            console.log('addCareerLevel getCharacteristics: ' + el2)
                         }
                     }
                 }
@@ -402,7 +415,8 @@
                         talent.origins = [el.id];
                         talents[talents.length] = talent;
                     } else {
-                        console.log(el2)
+                        console.log(el);
+                        console.log('addCareerLevel getTalents: ' + el2)
                     }
                 }
                 return talents;
@@ -417,7 +431,7 @@
                     if (career) {
                         result[result.length] = career;
                     } else {
-                        console.log(el1)
+                        console.log('addCareerLevel getPastLevelCareers: ' + el1)
                     }
                 }
                 return result;
@@ -579,12 +593,27 @@
                     oThat.addLore(elems[i]);
                 }
             }
-            console.log(testSkills);
-            console.log(testTalents);
-            console.log(testTrappings);
+            console.log('loadData testSkills: ');
+            console.log(testSkills)
+            console.log('loadData testTalents: ' );
+            console.log(testTalents)
+            console.log('loadData testTrappings: ');
+            console.log(testTrappings)
         };
         oThat.saveDatabaseCharacter = async function (afterFunction, step) {
             Helper.loader = new Helper.ajaxLoader("body");
+            /*var save = localStorage.getItem('save');
+            var saveName = oThat.saveName;
+            if (save === null) {
+                save = {};
+            } else {
+                save = JSON.parse(save);
+            }
+            if (!oThat.saveName) {
+                saveName = Math.random().toString(36).substr(2, 9);
+            }
+            save[saveName] = oThat.character.save(step);
+            localStorage.setItem('save', JSON.stringify(save));*/
             var response = await fetch(Helper.googleURL,
                 {
                     redirect: "follow",
@@ -599,7 +628,7 @@
                     }
                 });
             if (afterFunction) {
-                var data = await response.text();
+                var data = /*saveName;*/await response.text();
                 Helper.loader.remove();
                 afterFunction(data);
             } else {
