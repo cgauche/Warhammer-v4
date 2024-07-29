@@ -138,6 +138,7 @@
                 setTimeout(function () {
                     if (anime) {
                         if (nb > y && $el.is('.disabled')) {
+                            Helper.updateSelectedElementFromList($el, true)
                             $el.removeClass('disabled');
                             Helper.scrollToElement($el.prevAll('.listchild1').first(), $el.parents('.overflow_panel'))
                             $el.animate({
@@ -153,6 +154,7 @@
                         }
                     } else {
                         $el.removeClass('disabled');
+                        Helper.updateSelectedElementFromList($el, true)
                         if (character.randomState.imposedCareers.length === 1) {
                             var el = $careers.find('li[data-id="' + character.randomState.imposedCareers[0] + '"]');
                             el.click();
@@ -194,7 +196,7 @@
                 tmp.level = 2;
                 tmp.rand = rand;
                 tmp.altLabel = oThat.characterOnCreation() && rand[specie] ?
-                    (character.isFreeMode() ? '<span class="highlighting">' + this.getLabel() + '<span>' + roll : '<span>' + this.getLabel() + '</span>' + roll) :
+                    (character.isFreeMode() ? '<span class="highlighting">' + this.getLabel() + '</span>' + roll : '<span>' + this.getLabel() + '</span>' + roll) :
                     this.getLabel();
                 displayedCareers[displayedCareers.length] = tmp;
                 if (!oThat.characterOnCreation()) {
@@ -256,6 +258,7 @@
                 $el.next('.listchild3').removeClass('disabled')
                 $el.removeClass('disabled')
                 $el.prevUntil('.listchild2').removeClass('disabled');
+                $el.prevAll('.listchild2').first().click();
                 $el.click();
                 Helper.scrollToElement($el.prevAll('.listchild2').first(), $el.parents('.overflow_panel'))
             }

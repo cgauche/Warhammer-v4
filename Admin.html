@@ -184,15 +184,19 @@
                 el[$(i).prop('name').split('[')[1].split(']')[0]] = careerLevel != 1 ? '' : $(i).val().trim().replace('’', "'");
             });
             Helper.loader = new Helper.ajaxLoader("body");
-            var selected = $('.left_panel').find('.ui-selected').data('line');
+            var onglet = $('.left_panel div[role="tabpanel"]:visible');
+            var tab = onglet.attr('id');
+            var selected = onglet.find('.ui-selected').data('line');
+            var searchVal = onglet.find('[id^=search]').val();
             google.script.run.withSuccessHandler(function (data) {
                 CharacterGenerator().loadDataAndDisplay(data);
                 Helper.loader.remove();
-                var onglet = $('.left_panel #tabs-1');
+                $('.left_panel [href="#'+tab+'"]').click();
+                onglet = $('.left_panel div[id='+tab+']')
+                onglet.find('[id^=search]').val(searchVal).keyup();
                 var elSelected = onglet.find('[data-line="' + selected + '"]');
-                $('.left_panel [href="#tabs-1"]').click();
                 elSelected.click();
-                Helper.scrollToElement(elSelected, $('.left_panel'));
+                Helper.scrollToElement(elSelected, onglet);
             }).saveData(JSON.stringify(el));
             return true;
         };
@@ -212,15 +216,19 @@
             });
 
             Helper.loader = new Helper.ajaxLoader("body");
-            var selected = parseInt($('.left_panel').find('.ui-selected').data('line')) + 5;
+            var onglet = $('.left_panel div[role="tabpanel"]:visible');
+            var tab = onglet.attr('id');
+            var selected = onglet.find('.ui-selected').data('line') + 5;
+            var searchVal = onglet.find('[id^=search]').val();
             google.script.run.withSuccessHandler(function (data) {
                 CharacterGenerator().loadDataAndDisplay(data);
                 Helper.loader.remove();
-                var onglet = $('.left_panel #tabs-1');
+                $('.left_panel [href="#'+tab+'"]').click();
+                onglet = $('.left_panel div[id='+tab+']')
+                onglet.find('[id^=search]').val(searchVal).keyup();
                 var elSelected = onglet.find('[data-line="' + selected + '"]');
-                $('.left_panel [href="#tabs-1"]').click();
                 elSelected.click();
-                Helper.scrollToElement(elSelected, $('.left_panel'));
+                Helper.scrollToElement(elSelected, onglet);
             }).saveData(JSON.stringify(el));
             return true;
         };
@@ -383,15 +391,19 @@
             el.Talents = tmp.sort().join(', ');
 
             Helper.loader = new Helper.ajaxLoader("body");
-            var selected = $('.left_panel').find('.ui-selected').data('line');
+            var onglet = $('.left_panel div[role="tabpanel"]:visible');
+            var tab = onglet.attr('id');
+            var selected = onglet.find('.ui-selected').data('line');
+            var searchVal = onglet.find('[id^=search]').val();
             google.script.run.withSuccessHandler(function (data) {
                 CharacterGenerator().loadDataAndDisplay(data);
                 Helper.loader.remove();
-                var onglet = $('.left_panel #tabs-2');
+                $('.left_panel [href="#'+tab+'"]').click();
+                onglet = $('.left_panel div[id='+tab+']')
+                onglet.find('[id^=search]').val(searchVal).keyup();
                 var elSelected = onglet.find('[data-line="' + selected + '"]');
-                $('.left_panel [href="#tabs-2"]').click();
                 elSelected.click();
-                Helper.scrollToElement(elSelected, $('.left_panel'));
+                Helper.scrollToElement(elSelected, onglet);
             }).saveData(JSON.stringify(el));
             return true;
         };
@@ -415,15 +427,19 @@
             el.Roll = con.find('[name="Roll"]').val().trim().replace('’', "'");
 
             Helper.loader = new Helper.ajaxLoader("body");
-            var selected = parseInt($('.left_panel').find('.ui-selected').data('line')) + 1;
+            var onglet = $('.left_panel div[role="tabpanel"]:visible');
+            var tab = onglet.attr('id');
+            var selected = onglet.find('.ui-selected').data('line') + 1;
+            var searchVal = onglet.find('[id^=search]').val();
             google.script.run.withSuccessHandler(function (data) {
                 CharacterGenerator().loadDataAndDisplay(data);
                 Helper.loader.remove();
-                var onglet = $('.left_panel #tabs-2');
+                $('.left_panel [href="#'+tab+'"]').click();
+                onglet = $('.left_panel div[id='+tab+']')
+                onglet.find('[id^=search]').val(searchVal).keyup();
                 var elSelected = onglet.find('[data-line="' + selected + '"]');
-                $('.left_panel [href="#tabs-2"]').click();
                 elSelected.click();
-                Helper.scrollToElement(elSelected, $('.left_panel'));
+                Helper.scrollToElement(elSelected, onglet);
             }).saveData(JSON.stringify(el));
             return true;
         };
@@ -507,15 +523,19 @@
             el.Spec = con.find('[name="Spec"]').val().trim().replace('’', "'");
 
             Helper.loader = new Helper.ajaxLoader("body");
-            var selected = $('.left_panel').find('.ui-selected').data('line');
+            var onglet = $('.left_panel div[role="tabpanel"]:visible');
+            var tab = onglet.attr('id');
+            var selected = onglet.find('.ui-selected').data('line');
+            var searchVal = onglet.find('[id^=search]').val();
             google.script.run.withSuccessHandler(function (data) {
                 CharacterGenerator().loadDataAndDisplay(data);
                 Helper.loader.remove();
-                var onglet = $('.left_panel #tabs-4');
+                $('.left_panel [href="#'+tab+'"]').click();
+                onglet = $('.left_panel div[id='+tab+']')
+                onglet.find('[id^=search]').val(searchVal).keyup();
                 var elSelected = onglet.find('[data-line="' + selected + '"]');
-                $('.left_panel [href="#tabs-4"]').click();
                 elSelected.click();
-                Helper.scrollToElement(elSelected, $('.left_panel'));
+                Helper.scrollToElement(elSelected, onglet);
             }).saveData(JSON.stringify(el));
             return true;
         };
@@ -534,15 +554,19 @@
             el.Page = con.find('[name="Page"]').val().trim().replace('’', "'");
 
             Helper.loader = new Helper.ajaxLoader("body");
-            var selected = parseInt($('.left_panel').find('.ui-selected').data('line')) + 1;
+            var onglet = $('.left_panel div[role="tabpanel"]:visible') + 1;
+            var tab = onglet.attr('id');
+            var selected = onglet.find('.ui-selected').data('line');
+            var searchVal = onglet.find('[id^=search]').val();
             google.script.run.withSuccessHandler(function (data) {
                 CharacterGenerator().loadDataAndDisplay(data);
                 Helper.loader.remove();
-                var onglet = $('.left_panel #tabs-4');
+                $('.left_panel [href="#'+tab+'"]').click();
+                onglet = $('.left_panel div[id='+tab+']')
+                onglet.find('[id^=search]').val(searchVal).keyup();
                 var elSelected = onglet.find('[data-line="' + selected + '"]');
-                $('.left_panel [href="#tabs-4"]').click();
                 elSelected.click();
-                Helper.scrollToElement(elSelected, $('.left_panel'));
+                Helper.scrollToElement(elSelected, onglet);
             }).saveData(JSON.stringify(el));
             return true;
         };

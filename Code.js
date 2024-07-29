@@ -121,10 +121,7 @@ function applyHelp(texts, el, type, labels, match) {
         return b[0].length - a[0].length;
     });
     (isArray ? texts : [texts]).forEach(function (text) {
-        if (!text) {
-            console.log('applyHelp texts: ' + texts);
-            console.log('applyHelp el: ' + el);
-        } else {
+        if (text) {
             var originText = text;
             for (let [label, data] of labels) {
                 if (data.type !== type || label !== origin) {

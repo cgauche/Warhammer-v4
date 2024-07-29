@@ -118,7 +118,7 @@
                 $('.left_panel'),
                 [function (i, el) {
                     return (character.isFreeMode() && currentSpecieSkills.some((item => item.getLabel() === el.getLabel())) ?
-                        '<span class="highlighting">' + el.getLabel() + '<span>' :
+                        '<span class="highlighting">' + el.getLabel() + '</span>' :
                         el.getLabel());
                 },
                     function (i, el) {
@@ -198,7 +198,7 @@
                 $('.left_panel'),
                 [function (i, el) {
                     return character.isFreeMode() && currentCareerSkills.some((item => item.getLabel() === el.getLabel())) ?
-                        '<span class="highlighting">' + el.getLabel() + '<span>' :
+                        '<span class="highlighting">' + el.getLabel() + '</span>' :
                         el.getLabel();
                 },
                     function (i, el) {

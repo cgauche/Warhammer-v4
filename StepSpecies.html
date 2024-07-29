@@ -91,6 +91,7 @@
                 var $el = $species.find('li[data-id="' + el + '"]');
                 setTimeout(function () {
                     $el.removeClass('disabled');
+                    Helper.updateSelectedElementFromList($el, true, null)
                     if (anime) {
                         $el.animate({
                             "background-color": "#F39814",

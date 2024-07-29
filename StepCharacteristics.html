@@ -355,7 +355,7 @@
                 [
                     function (i, el) {
                         return character.isFreeMode() && careersCharacteristics.some((item => item.id === el.id)) ?
-                            '<span class="highlighting">' + el.getLabel() + '<span>' :
+                            '<span class="highlighting">' + el.getLabel() + '</span>' :
                             el.getLabel()
                     },
                     function (i, el) {
